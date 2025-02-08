@@ -1,0 +1,45 @@
+---
+repos:
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.1.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.4.0
+    hooks:
+      - id: go-fmt
+      - id: go-vet
+      - id: go-mod-tidy
+
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.4.2
+    hooks:
+      - id: prettier
+        stages: [pre-commit]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.6
+    hooks:
+      - id: actionlint
+
+  # This needs to be compiled so we disable it by default
+  - repo: https://github.com/trufflesecurity/truffleHog
+    rev: v3.66.3
+    hooks:
+      - id: trufflehog
