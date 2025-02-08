@@ -1,5 +1,6 @@
 ---
 repos:
+  # TODO: investigate why commitlint tool is not working
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.1.1
     hooks:
