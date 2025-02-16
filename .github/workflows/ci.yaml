@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  # Allow this config to be reused by other workflows in the repo
+  workflow_call:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.event.number || 'main' }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Release preview
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - run: echo "Release preview"
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - id: pre-commit
+        run: echo "Lint"
+      - id: govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-file: .go-version
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - id: test
+        run: echo "Test"
