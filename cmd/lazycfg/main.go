@@ -6,13 +6,13 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/jmreicha/lazycfg/internal/cmd/configure"
-	"github.com/jmreicha/lazycfg/internal/cmd/tool"
+	"github.com/jmreicha/lazycfg/internal/cmd/generate"
 )
 
 // CLI represents the command-line interface structure
 type CLI struct {
 	Configure ConfigureCmd `cmd:"" help:"Guided configuration setup."`
-	Tool      ToolCmd      `cmd:"" help:"Run configuration setup for a specific tool."`
+	Generate  GenerateCmd  `cmd:"" help:"Run configuration setup for a specific tool."`
 }
 
 // ConfigureCmd represents the configure command
@@ -24,13 +24,22 @@ func (c *ConfigureCmd) Run() error {
 	return configure.RunConfiguration()
 }
 
-// ToolCmd represents the tool configuration command
-type ToolCmd struct{}
+// GenerateCmd represents the generate configuration command
+type GenerateCmd struct{}
 
 // Run executes the tool configuration command
-func (t *ToolCmd) Run() error {
-	fmt.Println("Running configuration for tool...")
-	return tool.CreateToolConfiguration()
+func (t *GenerateCmd) Run() error {
+	fmt.Println("Running configuration generation...")
+	return nil
+}
+
+// GrantedCmd represents the granted subcommand
+type GrantedCmd struct{}
+
+// Run executes the granted subcommand
+func (g *GrantedCmd) Run() error {
+	fmt.Println("Running configuration generation for Granted...")
+	return generate.CreateGrantedConfiguration()
 }
 
 func main() {
