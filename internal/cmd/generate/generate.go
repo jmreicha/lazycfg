@@ -4,17 +4,19 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
+
+	"github.com/lithammer/dedent"
+)
+
+var (
+	Home              = os.Getenv("HOME")
+	GrantedConfigPath = Home + "/.granted/config"
 )
 
 // CreateToolConfiguration creates a configuration file for the tool.
 // It returns an error if the file operation fails.
 func CreateGrantedConfiguration() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get user home directory: %w", err)
-	}
-
-	filePath := homeDir + "/.granted/config"
 	cmd := "granted"
 
 	if _, err := exec.LookPath(cmd); err != nil {
@@ -23,19 +25,22 @@ func CreateGrantedConfiguration() error {
 		os.Exit(1)
 	}
 
-	file, err := os.Create(filePath)
+	file, err := os.Create(GrantedConfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
 	defer file.Close()
 
-	configContent := `DefaultBrowser = "STDOUT"
-CustomBrowserPath = ""
-CustomSSOBrowserPath = ""
-Ordering = ""
-ExportCredentialSuffix = ""
-DisableUsageTips = true
-CredentialProcessAutoLogin = true`
+	configContent := dedent.Dedent(`
+		DefaultBrowser = "STDOUT"
+		CustomBrowserPath = ""
+		CustomSSOBrowserPath = ""
+		Ordering = ""
+		ExportCredentialSuffix = ""
+		DisableUsageTips = true
+		CredentialProcessAutoLogin = true
+	`)
+	configContent = strings.TrimSpace(configContent)
 
 	_, writeErr := file.WriteString(configContent)
 	if writeErr != nil {
