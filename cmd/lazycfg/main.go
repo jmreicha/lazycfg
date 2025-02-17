@@ -11,9 +11,15 @@ import (
 
 // CLI represents the command-line interface structure
 type CLI struct {
-	Version   kong.VersionFlag `short:"v" help:"Show version information."`
-	Configure ConfigureCmd     `cmd:"" help:"Guided configuration setup."`
-	Generate  GenerateCmd      `cmd:"" help:"Generate config for a specific tool."`
+	// Flags
+	Debug   bool             `short:"d" help:"Emit debug logs in addition to info logs."`
+	Version kong.VersionFlag `short:"v" help:"Show version information."`
+
+	Configure ConfigureCmd `cmd:"" help:"Guided configuration setup."`
+	Generate  struct {
+		Granted   GrantedCmd   `cmd:"" help:"Generate Granted configuration."`
+		Steampipe SteampipeCmd `cmd:"" help:"Generate Steampipe configuration."`
+	} `cmd:"" help:"Generate config for a specific tool."`
 }
 
 // ConfigureCmd represents the configure command
@@ -25,10 +31,13 @@ func (c *ConfigureCmd) Run() error {
 	return configure.RunConfiguration()
 }
 
-// GenerateCmd represents the generate configuration command
-type GenerateCmd struct {
-	Granted   GrantedCmd   `cmd:"" help:"Generate Granted configuration."`
-	Steampipe SteampipeCmd `cmd:"" help:"Generate Steampipe configuration."`
+// GrantedCmd represents the granted subcommand
+type GrantedCmd struct{}
+
+// Run executes the granted subcommand
+func (g *GrantedCmd) Run() error {
+	fmt.Println("Generating Granted configuration...")
+	return generate.CreateGrantedConfiguration()
 }
 
 // SteampipeCmd represents the steampipe subcommand
@@ -38,15 +47,6 @@ type SteampipeCmd struct{}
 func (s *SteampipeCmd) Run() error {
 	fmt.Println("Generating Steampipe configuration...")
 	return generate.CreateSteampipeConfiguration()
-}
-
-// GrantedCmd represents the granted subcommand
-type GrantedCmd struct{}
-
-// Run executes the granted subcommand
-func (g *GrantedCmd) Run() error {
-	fmt.Println("Generating Granted configuration...")
-	return generate.CreateGrantedConfiguration()
 }
 
 func main() {
