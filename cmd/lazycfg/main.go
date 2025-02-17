@@ -11,8 +11,9 @@ import (
 
 // CLI represents the command-line interface structure
 type CLI struct {
-	Configure ConfigureCmd `cmd:"" help:"Guided configuration setup."`
-	Generate  GenerateCmd  `cmd:"" help:"Run configuration setup for a specific tool."`
+	Version   kong.VersionFlag `short:"v" help:"Show version information."`
+	Configure ConfigureCmd     `cmd:"" help:"Guided configuration setup."`
+	Generate  GenerateCmd      `cmd:"" help:"Generate config for a specific tool."`
 }
 
 // ConfigureCmd represents the configure command
@@ -33,17 +34,18 @@ type GenerateCmd struct {
 // SteampipeCmd represents the steampipe subcommand
 type SteampipeCmd struct{}
 
+// SteampipeCmd executes the steampipe subcommand
 func (s *SteampipeCmd) Run() error {
-	fmt.Println("Running configuration generation for Steampipe...")
+	fmt.Println("Generating Steampipe configuration...")
 	return nil
 }
 
-// Granted represents the granted subcommand
+// GrantedCmd represents the granted subcommand
 type GrantedCmd struct{}
 
 // Run executes the granted subcommand
 func (g *GrantedCmd) Run() error {
-	fmt.Println("Running configuration generation for Granted...")
+	fmt.Println("Generating Granted configuration...")
 	return generate.CreateGrantedConfiguration()
 }
 
@@ -63,6 +65,10 @@ func main() {
 			Compact:   true,
 			FlagsLast: true,
 		}),
+		kong.Vars{
+			// TODO(jmreicha): See if there is a way to dynamically set this
+			"version": "v1.0.0",
+		},
 	)
 
 	err := ctx.Run()
