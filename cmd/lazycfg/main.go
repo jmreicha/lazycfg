@@ -25,15 +25,20 @@ func (c *ConfigureCmd) Run() error {
 }
 
 // GenerateCmd represents the generate configuration command
-type GenerateCmd struct{}
+type GenerateCmd struct {
+	Granted   GrantedCmd   `cmd:"" help:"Generate Granted configuration."`
+	Steampipe SteampipeCmd `cmd:"" help:"Generate Steampipe configuration."`
+}
 
-// Run executes the tool configuration command
-func (t *GenerateCmd) Run() error {
-	fmt.Println("Running configuration generation...")
+// SteampipeCmd represents the steampipe subcommand
+type SteampipeCmd struct{}
+
+func (s *SteampipeCmd) Run() error {
+	fmt.Println("Running configuration generation for Steampipe...")
 	return nil
 }
 
-// GrantedCmd represents the granted subcommand
+// Granted represents the granted subcommand
 type GrantedCmd struct{}
 
 // Run executes the granted subcommand
