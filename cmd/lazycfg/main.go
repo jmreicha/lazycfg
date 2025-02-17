@@ -37,7 +37,7 @@ type SteampipeCmd struct{}
 // SteampipeCmd executes the steampipe subcommand
 func (s *SteampipeCmd) Run() error {
 	fmt.Println("Generating Steampipe configuration...")
-	return nil
+	return generate.CreateSteampipeConfiguration()
 }
 
 // GrantedCmd represents the granted subcommand

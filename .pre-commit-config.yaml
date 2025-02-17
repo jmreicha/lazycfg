@@ -21,9 +21,8 @@ repos:
     hooks:
       - id: go-fmt
       - id: go-vet
-      # TODO(jmreicha): Come back later to get this working
-      # - id: go-sec-repo-pkg
-      - id: go-mod-tidy-repo
+      - id: go-sec-repo-mod
+      - id: go-mod-tidy
 
   - repo: https://github.com/rbubley/mirrors-prettier
     rev: v3.4.2
