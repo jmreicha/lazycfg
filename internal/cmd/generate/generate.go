@@ -44,7 +44,7 @@ func BackupConfig(filePath string) error {
 
 	timestamp := time.Now().Format("200601021504")
 	backupFilePath := filePath + ".bak." + timestamp
-	fmt.Println("Existing configuration found, backing up to" + "'" + backupFilePath + "'")
+	fmt.Println("Existing configuration found, backing up to " + "'" + backupFilePath + "'")
 
 	srcFile, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
@@ -105,6 +105,8 @@ func CreateGrantedConfiguration() error {
 	_, writeErr := file.WriteString(configContent)
 	if writeErr != nil {
 		return fmt.Errorf("failed to write to file: %w", writeErr)
+	} else {
+		println("Configuration file created successfully " + "'" + GrantedConfigPath + "'")
 	}
 
 	return nil
@@ -145,6 +147,8 @@ func CreateSteampipeConfiguration() error {
 	_, writeErr := file.WriteString(configContent)
 	if writeErr != nil {
 		return fmt.Errorf("failed to write to file: %w", writeErr)
+	} else {
+		println("Configuration file created successfully " + "'" + GrantedConfigPath + "'")
 	}
 
 	return nil
