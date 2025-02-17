@@ -14,6 +14,7 @@ import (
 
 var (
 	Home               = os.Getenv("HOME")
+	AwsConfigPath      = Home + "/.aws/config"
 	GrantedConfigPath  = Home + "/.granted/config"
 	SteamipeConfigPath = Home + "/.steampipe/config/aws.spc"
 )
@@ -117,6 +118,11 @@ func CreateGrantedConfiguration() error {
 func CreateSteampipeConfiguration() error {
 	CheckCmd("steampipe")
 
+	// Check if AwsConfigPath exists first, as it is required for Steampipe configuration
+	if _, err := os.Stat(AwsConfigPath); os.IsNotExist(err) {
+		return fmt.Errorf("AWS configuration file not found at %q", AwsConfigPath)
+	}
+
 	if err := BackupConfig(SteamipeConfigPath); err != nil {
 		return err
 	}
@@ -148,7 +154,7 @@ func CreateSteampipeConfiguration() error {
 	if writeErr != nil {
 		return fmt.Errorf("failed to write to file: %w", writeErr)
 	} else {
-		println("Configuration file created successfully " + "'" + GrantedConfigPath + "'")
+		println("Configuration file created successfully " + "'" + SteamipeConfigPath + "'")
 	}
 
 	return nil
