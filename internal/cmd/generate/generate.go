@@ -13,9 +13,11 @@ import (
 )
 
 var (
+	// Paths
 	Home               = os.Getenv("HOME")
 	AwsConfigPath      = Home + "/.aws/config"
 	GrantedConfigPath  = Home + "/.granted/config"
+	KubeConfigPath     = Home + "/.kube/config"
 	SteamipeConfigPath = Home + "/.steampipe/config/aws.spc"
 )
 
@@ -73,20 +75,20 @@ func BackupConfig(filePath string) error {
 
 // CreateGrantedConfiguration creates a configuration file for Granted.
 // It returns an error if the file operation fails.
-func CreateGrantedConfiguration() error {
+func CreateGrantedConfiguration(config string) error {
 	CheckCmd("granted")
 
-	if err := BackupConfig(GrantedConfigPath); err != nil {
+	if err := BackupConfig(config); err != nil {
 		return err
 	}
 
 	// Ensure the directory structure exists
-	dir := filepath.Dir(GrantedConfigPath)
+	dir := filepath.Dir(config)
 	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	file, err := os.Create(filepath.Clean(GrantedConfigPath))
+	file, err := os.Create(filepath.Clean(config))
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
@@ -107,7 +109,7 @@ func CreateGrantedConfiguration() error {
 	if writeErr != nil {
 		return fmt.Errorf("failed to write to file: %w", writeErr)
 	} else {
-		println("Configuration file created successfully " + "'" + GrantedConfigPath + "'")
+		println("Configuration file created successfully " + "'" + config + "'")
 	}
 
 	return nil
@@ -115,7 +117,7 @@ func CreateGrantedConfiguration() error {
 
 // CreateSteampipeConfiguration creates a configuration file for Steampipe.
 // It returns an error if the file operation fails.
-func CreateSteampipeConfiguration() error {
+func CreateSteampipeConfiguration(config string) error {
 	CheckCmd("steampipe")
 
 	// Check if AwsConfigPath exists first, as it is required for Steampipe configuration
@@ -123,17 +125,17 @@ func CreateSteampipeConfiguration() error {
 		return fmt.Errorf("AWS configuration file not found at %q", AwsConfigPath)
 	}
 
-	if err := BackupConfig(SteamipeConfigPath); err != nil {
+	if err := BackupConfig(config); err != nil {
 		return err
 	}
 
 	// Ensure the directory structure exists
-	dir := filepath.Dir(SteamipeConfigPath)
+	dir := filepath.Dir(config)
 	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	file, err := os.Create(filepath.Clean(SteamipeConfigPath))
+	file, err := os.Create(filepath.Clean(config))
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
@@ -154,7 +156,7 @@ func CreateSteampipeConfiguration() error {
 	if writeErr != nil {
 		return fmt.Errorf("failed to write to file: %w", writeErr)
 	} else {
-		println("Configuration file created successfully " + "'" + SteamipeConfigPath + "'")
+		println("Configuration file created successfully " + "'" + config + "'")
 	}
 
 	return nil

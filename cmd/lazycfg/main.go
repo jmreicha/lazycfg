@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/alecthomas/kong"
+	"github.com/fatih/color"
 	"github.com/jmreicha/lazycfg/internal/cmd/configure"
 	"github.com/jmreicha/lazycfg/internal/cmd/generate"
 )
@@ -20,6 +20,7 @@ type CLI struct {
 		Granted   GrantedCmd   `cmd:"" help:"Generate Granted configuration."`
 		Steampipe SteampipeCmd `cmd:"" help:"Generate Steampipe configuration."`
 	} `cmd:"" help:"Generate config for a specific tool."`
+	Clean CleanCmd `cmd:"" help:"Clean up configuration files."`
 }
 
 // ConfigureCmd represents the configure command
@@ -27,8 +28,17 @@ type ConfigureCmd struct{}
 
 // Run executes the configure command
 func (c *ConfigureCmd) Run() error {
-	fmt.Println("Running configuration...")
+	color.Blue("Running configuration...")
 	return configure.RunConfiguration()
+}
+
+// CleanCmd represents the granted subcommand
+type CleanCmd struct{}
+
+// Run executes the clean subcommand
+func (g *CleanCmd) Run() error {
+	color.Blue("Cleaning configurations...")
+	return nil
 }
 
 // GrantedCmd represents the granted subcommand
@@ -36,8 +46,8 @@ type GrantedCmd struct{}
 
 // Run executes the granted subcommand
 func (g *GrantedCmd) Run() error {
-	fmt.Println("Generating Granted configuration...")
-	return generate.CreateGrantedConfiguration()
+	color.Blue("Generating Granted configuration...")
+	return generate.CreateGrantedConfiguration(generate.GrantedConfigPath)
 }
 
 // SteampipeCmd represents the steampipe subcommand
@@ -45,8 +55,8 @@ type SteampipeCmd struct{}
 
 // SteampipeCmd executes the steampipe subcommand
 func (s *SteampipeCmd) Run() error {
-	fmt.Println("Generating Steampipe configuration...")
-	return generate.CreateSteampipeConfiguration()
+	color.Blue("Generating Steampipe configuration...")
+	return generate.CreateSteampipeConfiguration(generate.SteamipeConfigPath)
 }
 
 func main() {
