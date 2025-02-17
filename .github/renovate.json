@@ -1,0 +1,27 @@
+{
+  "extends": ["config:base", "helpers:pinGitHubActionDigests"],
+  "packageRules": [
+    {
+      "managers": ["gomod"],
+      "groupName": "go dependencies",
+      "schedule": ["before 3:00am"]
+    },
+    {
+      "groupName": "pre-commit auto-update",
+      "automerge": true,
+      "automergeType": "branch",
+      "automergeSchedule": ["before 3:00am"],
+      "managers": ["pre-commit"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
+    }
+  ],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "pre-commit": {
+    "enabled": true
+  },
+  "recreateClosed": true,
+  "vulnerabilityAlerts": {
+    "labels": ["security"]
+  }
+}
