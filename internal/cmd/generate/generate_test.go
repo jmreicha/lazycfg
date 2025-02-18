@@ -43,7 +43,7 @@ func TestCreateGrantedConfiguration(t *testing.T) {
 }
 
 // TestCreateGrantedConfigurationDefaultLocation verifies that the default config file is created.
-func TestCreateGrantedConfigurationDefaultLocation(t *testing.T) {
+func TestCreateGrantedConfigurationLocation(t *testing.T) {
 	defer os.Remove(generate.GrantedConfigPath + ".test")
 
 	configPath := generate.GrantedConfigPath + ".test"
