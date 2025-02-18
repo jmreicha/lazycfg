@@ -2,13 +2,11 @@ package generate
 
 import (
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"github.com/jmreicha/lazycfg/internal/cmd/util"
 	"github.com/lithammer/dedent"
 )
 
@@ -21,64 +19,12 @@ var (
 	SteamipeConfigPath = Home + "/.steampipe/config/aws.spc"
 )
 
-// CheckCmd checks if a command is available in the system.
-func CheckCmd(cmd string) {
-	if _, err := exec.LookPath(cmd); err != nil {
-		fmt.Printf("Command '%s' not found\n", cmd)
-		fmt.Println("Please install and try again")
-		os.Exit(1)
-	}
-}
-
-// BackupConfig copies the given file to a new file with a `.bak` extension
-// and a timestamp appended. It returns an error if the backup operation fails.
-func BackupConfig(filePath string) error {
-	fileInfo, err := os.Stat(filePath)
-	if os.IsNotExist(err) {
-		fmt.Printf("File %q does not exist, creating.\n", filePath)
-		return nil
-	} else if err != nil {
-		return fmt.Errorf("unable to access file %q: %w", filePath, err)
-	}
-
-	if fileInfo.IsDir() {
-		return fmt.Errorf("%q is a directory, not a file", filePath)
-	}
-
-	timestamp := time.Now().Format("200601021504")
-	backupFilePath := filePath + ".bak." + timestamp
-	fmt.Println("Existing configuration found, backing up to " + "'" + backupFilePath + "'")
-
-	srcFile, err := os.Open(filepath.Clean(filePath))
-	if err != nil {
-		return fmt.Errorf("failed to open source file: %w", err)
-	}
-	defer srcFile.Close()
-
-	dstFile, err := os.Create(filepath.Clean(backupFilePath))
-	if err != nil {
-		return fmt.Errorf("failed to create backup file: %w", err)
-	}
-	defer dstFile.Close()
-
-	if _, err := io.Copy(dstFile, srcFile); err != nil {
-		return fmt.Errorf("failed to copy file contents: %w", err)
-	}
-
-	// Remove the original file
-	if err := os.Remove(filePath); err != nil {
-		return fmt.Errorf("failed to remove original file: %w", err)
-	}
-
-	return nil
-}
-
 // CreateGrantedConfiguration creates a configuration file for Granted.
 // It returns an error if the file operation fails.
 func CreateGrantedConfiguration(config string) error {
-	CheckCmd("granted")
+	util.CheckCmd("granted")
 
-	if err := BackupConfig(config); err != nil {
+	if err := util.BackupConfig(config); err != nil {
 		return err
 	}
 
@@ -118,14 +64,14 @@ func CreateGrantedConfiguration(config string) error {
 // CreateSteampipeConfiguration creates a configuration file for Steampipe.
 // It returns an error if the file operation fails.
 func CreateSteampipeConfiguration(config string) error {
-	CheckCmd("steampipe")
+	util.CheckCmd("steampipe")
 
 	// Check if AwsConfigPath exists first, as it is required for Steampipe configuration
 	if _, err := os.Stat(AwsConfigPath); os.IsNotExist(err) {
 		return fmt.Errorf("AWS configuration file not found at %q", AwsConfigPath)
 	}
 
-	if err := BackupConfig(config); err != nil {
+	if err := util.BackupConfig(config); err != nil {
 		return err
 	}
 
