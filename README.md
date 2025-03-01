@@ -33,7 +33,7 @@ the specific types of configs to build.
 
 ## Features
 
-Lazyccfg Currently supports config management for the following tools and services:
+Lazycfg currently supports configurations for the following tools and services:
 
 - AWS CLI
 - Kubernetes
