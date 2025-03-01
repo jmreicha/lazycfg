@@ -13,9 +13,10 @@ configs.
 
 This setup process can be time-consuming and error-prone. Additionally, you may
 not understand (or care about) security implications or know about advanced
-configuration which you may want to want but don't know exist. `lazycfg` aims to
-simplify all of this setup by providing a simple command line interface to handle
-this for you so you can focus on more important things.
+configuration which you may want but don't know exist.
+
+`lazycfg` aims to simplify all of this setup by providing a simple command line
+interface to handle this for you so you can focus on more important things.
 
 ## Getting Started
 
