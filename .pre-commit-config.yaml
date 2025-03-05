@@ -2,7 +2,7 @@
 repos:
   # TODO: investigate why commitlint tool is not working
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.2.2
+    rev: v4.4.1
     hooks:
       - id: commitizen
         stages: [commit-msg]
@@ -25,7 +25,7 @@ repos:
       - id: go-mod-tidy
 
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.5.2
+    rev: v3.5.3
     hooks:
       - id: prettier
         stages: [pre-commit]
@@ -42,6 +42,6 @@ repos:
 
   # This needs to be compiled so we disable it by default
   - repo: https://github.com/trufflesecurity/truffleHog
-    rev: v3.88.12
+    rev: v3.88.15
     hooks:
       - id: trufflehog
