@@ -42,6 +42,6 @@ repos:
 
   # This needs to be compiled so we disable it by default
   - repo: https://github.com/trufflesecurity/truffleHog
-    rev: v3.88.15
+    rev: v3.88.16
     hooks:
       - id: trufflehog
