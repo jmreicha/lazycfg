@@ -1,9 +1,11 @@
 package generate
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/jmreicha/lazycfg/internal/cmd/util"
@@ -11,13 +13,38 @@ import (
 )
 
 var (
-	// Paths
-	Home               = os.Getenv("HOME")
-	AwsConfigPath      = Home + "/.aws/config"
-	GrantedConfigPath  = Home + "/.granted/config"
-	KubeConfigPath     = Home + "/.kube/config"
-	SteamipeConfigPath = Home + "/.steampipe/config/aws.spc"
+	// Default paths
+	defaultHome                = os.Getenv("HOME")
+	defaultAwsConfigPath       = filepath.Join(defaultHome, ".aws", "config")
+	defaultGrantedConfigPath   = filepath.Join(defaultHome, ".granted", "config")
+	defaultKubeConfigPath      = filepath.Join(defaultHome, ".kube", "config")
+	defaultSteampipeConfigPath = filepath.Join(defaultHome, ".steampipe", "config", "aws.spc")
+
+	// Paths, initialized with defaults, can be overridden by environment variables
+	AwsConfigPath      = util.GetEnvOrDefault("AWS_CONFIG_PATH", defaultAwsConfigPath)
+	GrantedConfigPath  = util.GetEnvOrDefault("GRANTED_CONFIG_PATH", defaultGrantedConfigPath)
+	KubeConfigPath     = util.GetEnvOrDefault("KUBE_CONFIG_PATH", defaultKubeConfigPath)
+	SteamipeConfigPath = util.GetEnvOrDefault("STEAMPIPE_CONFIG_PATH", defaultSteampipeConfigPath)
 )
+
+//go:embed templates/granted_config_darwin.tmpl
+var grantedConfigTemplateDarwin string
+
+//go:embed templates/granted_config_linux.tmpl
+var grantedConfigTemplateLinux string
+
+// getOSSpecificTemplate returns the appropriate template for the current operating system
+func getOSTemplateGranted() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return grantedConfigTemplateDarwin
+	case "linux":
+		return grantedConfigTemplateLinux
+	default:
+		fmt.Println("Unknown operating system")
+	}
+	return ""
+}
 
 // CreateGrantedConfiguration creates a configuration file for Granted.
 // It returns an error if the file operation fails.
@@ -40,16 +67,8 @@ func CreateGrantedConfiguration(config string) error {
 	}
 	defer file.Close()
 
-	configContent := dedent.Dedent(`
-		DefaultBrowser = "STDOUT"
-		CustomBrowserPath = ""
-		CustomSSOBrowserPath = ""
-		Ordering = ""
-		ExportCredentialSuffix = ""
-		DisableUsageTips = true
-		CredentialProcessAutoLogin = true
-	`)
-	configContent = strings.TrimSpace(configContent)
+	// Use the OS-specific template content
+	configContent := strings.TrimSpace(getOSTemplateGranted())
 
 	_, writeErr := file.WriteString(configContent)
 	if writeErr != nil {

@@ -60,3 +60,12 @@ func BackupConfig(filePath string) error {
 
 	return nil
 }
+
+// GetEnvOrDefault returns the value of the environment variable if set,
+// otherwise returns the default value.
+func GetEnvOrDefault(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
+}
