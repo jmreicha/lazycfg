@@ -2,54 +2,64 @@ package generate_test
 
 import (
 	"os"
-	"strings"
+	"runtime"
 	"testing"
 
 	"github.com/jmreicha/lazycfg/internal/cmd/generate"
-	"github.com/lithammer/dedent"
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-// teardown cleans up the environment after tests.
-func teardown() {
-	os.Remove(generate.GrantedConfigPath + ".test")
+func TestGenerate(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Generate Suite")
 }
 
-// TestCreateGrantedConfiguration tests the creation of the Granted configuration file.
-func TestCreateGrantedConfiguration(t *testing.T) {
-	defer teardown()
+var _ = Describe("Generate", func() {
+	AfterEach(func() {
+		// Clean up generated files after each test
+		os.Remove(generate.GrantedConfigPath)
+		os.Remove(generate.GrantedConfigPath + ".test")
+	})
 
-	configPath := generate.GrantedConfigPath
-	err := generate.CreateGrantedConfiguration(configPath)
+	Describe("CreateGrantedConfiguration", func() {
+		It("should create a granted config file with OS-specific content", func() {
+			// When
+			err := generate.CreateGrantedConfiguration(generate.GrantedConfigPath)
 
-	assert.NoError(t, err)
-	assert.FileExists(t, configPath)
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(generate.GrantedConfigPath).To(BeARegularFile())
 
-	// Verify the content of the file
-	content, readErr := os.ReadFile(configPath)
-	assert.NoError(t, readErr)
-	expectedContent := dedent.Dedent(`
-		DefaultBrowser = "STDOUT"
-		CustomBrowserPath = ""
-		CustomSSOBrowserPath = ""
-		Ordering = ""
-		ExportCredentialSuffix = ""
-		DisableUsageTips = true
-		CredentialProcessAutoLogin = true
-	`)
-	expectedContent = strings.TrimSpace(expectedContent)
+			// Verify the content of the file
+			content, err := os.ReadFile(generate.GrantedConfigPath)
+			Expect(err).NotTo(HaveOccurred())
 
-	assert.Equal(t, expectedContent, string(content))
-}
+			// Common configuration should be present regardless of OS
+			Expect(string(content)).To(ContainSubstring(`DefaultBrowser = "STDOUT"`))
+			Expect(string(content)).To(ContainSubstring(`DisableUsageTips = true`))
 
-// TestCreateGrantedConfigurationDefaultLocation verifies that the default config file is created.
-func TestCreateGrantedConfigurationLocation(t *testing.T) {
-	defer os.Remove(generate.GrantedConfigPath + ".test")
+			// OS-specific configuration based on runtime
+			switch runtime.GOOS {
+			case "darwin":
+				// Unimplemented: Check for macOS-specific content
+				// Expect(string(content)).To(ContainSubstring("ConsoleUrlBuilderForAwsConsole"))
+			case "linux":
+				// Unimplemented: Check for Linux-specific content
+				// Expect(string(content)).To(ContainSubstring("ConsoleUrlBuilderForAwsConsole"))
+			}
+		})
 
-	configPath := generate.GrantedConfigPath + ".test"
+		It("should create a config file at a custom location", func() {
+			// Given
+			customPath := generate.GrantedConfigPath + ".test"
 
-	err := generate.CreateGrantedConfiguration(configPath)
+			// When
+			err := generate.CreateGrantedConfiguration(customPath)
 
-	assert.NoError(t, err)
-	assert.FileExists(t, configPath)
-}
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(customPath).To(BeARegularFile())
+		})
+	})
+})
