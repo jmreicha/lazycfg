@@ -14,13 +14,10 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
 
-  - repo: https://github.com/tekwizely/pre-commit-golang
-    rev: v1.0.0-rc.1
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v2.0.2
     hooks:
-      - id: go-fmt
-      - id: go-vet
-      - id: go-sec-repo-mod
-      - id: go-mod-tidy
+      - id: golangci-lint
 
   - repo: https://github.com/rbubley/mirrors-prettier
     rev: v3.5.3
