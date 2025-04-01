@@ -1,0 +1,22 @@
+version: "2"
+
+linters:
+  # Default set of linters.
+  # The value can be: `standard`, `all`, `none`, or `fast`.
+  default: none
+
+  # Enable specific linters.
+  enable:
+    - gosec # security checks
+    - govet # better 'go vet'
+    - revive # better 'golint'
+    - staticcheck # unused code
+    - errcheck # find unchecked errors
+
+formatters:
+  # Enable specific formatter.
+  # Default: [] (uses standard Go formatting)
+  enable:
+    - gofmt
+    - gofumpt # better 'go fmt'
+    - goimports # import management
