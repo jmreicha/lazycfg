@@ -36,7 +36,7 @@ repos:
       - id: actionlint
 
   # This needs to be compiled so we disable it by default
-  - repo: https://github.com/trufflesecurity/truffleHog
-    rev: v3.88.20
-    hooks:
-      - id: trufflehog
+  # - repo: https://github.com/trufflesecurity/truffleHog
+  #   rev: v3.88.20
+  #   hooks:
+  #     - id: trufflehog
