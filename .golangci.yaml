@@ -20,3 +20,8 @@ formatters:
     - gofmt
     - gofumpt # better 'go fmt'
     - goimports # import management
+
+linters-settings:
+  maligned:
+      # print struct with more effective memory layout or not, false by default
+      suggest-new: true
