@@ -22,8 +22,13 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - id: pre-commit
-        run: echo "Lint"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - uses: tox-dev/action-pre-commit-uv@v1
       - id: govulncheck
         uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee # v1
         with:
