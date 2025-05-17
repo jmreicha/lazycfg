@@ -9,10 +9,10 @@ permissions:
 
 jobs:
   description:
+    name: Description
     runs-on: ubuntu-latest
     steps:
-      - name: Description
-        uses: actions/github-script@v7
+      - uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
@@ -26,9 +26,6 @@ jobs:
             // Debug regex match result
             const isPlaceholder = placeholderRegex.test(prBody);
             console.log('PR body matches placeholder regex:', isPlaceholder);
-
-            // Import core explicitly to ensure we can use setFailed
-            const core = require('@actions/core');
 
             let message = null;
 
