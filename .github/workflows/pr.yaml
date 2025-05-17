@@ -18,7 +18,17 @@ jobs:
             const pr = context.payload.pull_request;
             const prBody = pr.body?.trim() || "";
 
+            // Add debugging to see what's in the PR body
+            console.log('PR Body:', prBody);
+
             const placeholderRegex = /^###\s*Description of intended changes\s*[\r\n]+###\s*Links to related Jira tickets or other references\s*$/i;
+
+            // Debug regex match result
+            const isPlaceholder = placeholderRegex.test(prBody);
+            console.log('PR body matches placeholder regex:', isPlaceholder);
+
+            // Import core explicitly to ensure we can use setFailed
+            const core = require('@actions/core');
 
             let message = null;
 
@@ -32,20 +42,39 @@ jobs:
 
             // Check if the PR body is empty or hasn't been updated
             if (prBody === "") {
+              console.log('PR body is empty');
               message = "🚫 **Description Is Missing**\n\nThis pull request does not include a description. Please add:" + commonContent;
-            } else if (placeholderRegex.test(prBody)) {
+            } else if (isPlaceholder) {
+              console.log('PR body contains placeholder template');
               message = "🚫 **Placeholder Description Detected**\n\nYour PR description still contains the default template. Please update it with:" + commonContent;
+            } else {
+              console.log('PR body passed validation checks');
             }
 
             if (message) {
-              // Post a comment
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pr.number,
-                body: message
-              });
+              console.log('Posting comment due to invalid PR description');
 
-              // Fail the job to block merging
-              core.setFailed("PR description is invalid (missing or placeholder text).");
+              try {
+                // Post a comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: message
+                });
+
+                console.log('Comment posted successfully');
+
+                // Fail the job to block merging
+                core.setFailed("PR description is invalid (missing or placeholder text).");
+
+                // For github-script, we need to throw an error to ensure the job fails
+                throw new Error("PR description is invalid (missing or placeholder text).");
+              } catch (error) {
+                console.error('Error occurred:', error);
+                core.setFailed(`Error: ${error.message}`);
+                throw error;
+              }
+            } else {
+              console.log('PR description is valid, continuing...');
             }
