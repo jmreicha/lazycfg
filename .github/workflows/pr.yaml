@@ -52,7 +52,36 @@ jobs:
               console.log('Posting comment due to invalid PR description');
 
               try {
-                // Post a comment
+                // Unique signature to identify our bot comments
+                const BOT_SIGNATURE = "<!-- PR-Description-Validator -->";
+                message = message + "\n\n" + BOT_SIGNATURE;
+
+                // First check for existing comments from this workflow
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number
+                });
+
+                // Find any previous comments from our bot
+                const botComments = comments.filter(comment =>
+                  comment.body && comment.body.includes(BOT_SIGNATURE)
+                );
+
+                // Delete any existing bot comments
+                if (botComments.length > 0) {
+                  console.log(`Found ${botComments.length} previous bot comments. Deleting...`);
+                  for (const comment of botComments) {
+                    await github.rest.issues.deleteComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      comment_id: comment.id
+                    });
+                    console.log(`Deleted comment ID: ${comment.id}`);
+                  }
+                }
+
+                // Post the new comment
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -73,5 +102,38 @@ jobs:
                 throw error;
               }
             } else {
-              console.log('PR description is valid, continuing...');
+              // Clean up any existing comments if validation now passes
+              try {
+                // Unique signature to identify our bot comments
+                const BOT_SIGNATURE = "<!-- PR-Description-Validator -->";
+
+                // Check for existing comments from this workflow
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number
+                });
+
+                // Find any previous comments from our bot
+                const botComments = comments.filter(comment =>
+                  comment.body && comment.body.includes(BOT_SIGNATURE)
+                );
+
+                // Delete any existing bot comments since validation now passes
+                if (botComments.length > 0) {
+                  console.log(`Found ${botComments.length} previous bot comments. Cleaning up...`);
+                  for (const comment of botComments) {
+                    await github.rest.issues.deleteComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      comment_id: comment.id
+                    });
+                    console.log(`Deleted comment ID: ${comment.id}`);
+                  }
+                }
+
+                console.log('PR description is valid, continuing...');
+              } catch (error) {
+                console.error('Error cleaning up comments:', error);
+              }
             }
