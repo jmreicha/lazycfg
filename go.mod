@@ -3,11 +3,11 @@ module github.com/jmreicha/lazycfg
 go 1.23.5
 
 require (
-	github.com/alecthomas/kong v1.10.0
+	github.com/alecthomas/kong v1.12.1
 	github.com/fatih/color v1.18.0
 	github.com/lithammer/dedent v1.1.0
-	github.com/onsi/ginkgo/v2 v2.23.4
-	github.com/onsi/gomega v1.37.0
+	github.com/onsi/ginkgo/v2 v2.25.1
+	github.com/onsi/gomega v1.38.1
 )
 
 require (
