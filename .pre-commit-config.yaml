@@ -36,8 +36,7 @@ repos:
     rev: lychee-v0.22.0
     hooks:
       - id: lychee
-        args: ["--include-fragments", "--no-progress", "."]
-        pass_filenames: false
+        args: ["--include-fragments", "--no-progress"]
 
   - repo: https://github.com/errata-ai/vale
     rev: v3.0.7
