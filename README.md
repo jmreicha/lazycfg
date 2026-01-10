@@ -59,7 +59,9 @@ brew install steveyegge/beads/bd
 4. Install pre-commit hooks:
 
 ```bash
-pre-commit install
+prek install
+# Or with pre-commit
+# pre-commit install
 ```
 
 5. Verify your setup:
@@ -77,7 +79,7 @@ pre-commit --version
 
 ### Working with Beads
 
-This project uses [beads](https://github.com/steveyegge/beads) for issue tracking. Beads is a git-backed, distributed issue tracker optimized for AI agents.
+This project uses [beads](https://github.com/steveyegge/beads) for local issue tracking. Beads is a git-backed, distributed issue tracker optimized for AI agents.
 
 **Essential commands:**
 
@@ -111,22 +113,3 @@ bd sync
 6. Commit with conventional commit format: `git commit -m "feat: your feature"`
 7. Sync beads: `bd sync`
 8. Push changes: `git push`
-
-### Commit Message Format
-
-This project uses conventional commits:
-
-```
-<type>(<scope>): <description>
-
-Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore
-```
-
-Examples:
-- `feat: add user authentication`
-- `fix: resolve memory leak in config parser`
-- `docs: update installation instructions`
-
-## Contributing
-
-See [AGENTS.md](AGENTS.md) for detailed development guidelines and tooling information.
