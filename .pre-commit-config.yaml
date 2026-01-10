@@ -40,10 +40,8 @@ repos:
           [
             "--include-fragments",
             "--no-progress",
-            "--scheme",
-            "https",
-            "--scheme",
-            "http",
+            "--exclude-path",
+            "^docs/",
             ".",
           ]
         pass_filenames: false
