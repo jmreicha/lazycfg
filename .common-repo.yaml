@@ -1,0 +1,9 @@
+# Skills
+
+- repo:
+    url: https://github.com/philschmid/mcp-cli
+    ref: v0.1.3
+    with:
+      - include: ["SKILL.md"]
+      - rename:
+          - "SKILL.md": ".claude/skills/mcp-cli/SKILL.md"
