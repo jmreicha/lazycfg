@@ -1,6 +1,6 @@
 # lazycfg
 
-A command line tool to simplify creating and managing complicted configurations.
+A command line tool to simplify the creation and management of complicted configurations.
 
 **Why?**
 
@@ -17,47 +17,3 @@ configuration which you may want but don't know exist.
 
 `lazycfg` aims to simplify all of this setup by providing a simple command line
 interface to handle this for you so you can focus on more important things.
-
-## Getting Started
-
-By default, `lazycfg` won't try to make too many assumptions, running `lazycfg
-configure` will prompt you to select the type of configuration you want to
-manage.
-
-```bash
-lazycfg configure
-```
-
-This behavior can also be controlled with the `--config-type` flag, passing in
-the specific types of configs to build.
-
-## Features
-
-Lazycfg currently supports configurations for the following tools and services:
-
-- AWS CLI
-- Granted
-- Kubernetes
-- Steampipe
-
-## Local Development
-
-To get started with local development, you will need a few dependencies in order
-for all pre-commit hooks to work:
-
-```bash
-go install github.com/securego/gosec/v2/cmd/gosec@latest
-```
-
-To run the cli:
-
-```bash
-go run cmd/lazycfg:w
-```
-
-### TODO
-
-- Set up CI for running tests, building, and releasing
-- Add debug flag and debug logging (logrus?)
-- TUI with bubbletea for configure command
-- Binary builds

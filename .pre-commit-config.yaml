@@ -8,6 +8,7 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      - id: check-added-large-files
       - id: check-json
       - id: check-merge-conflict
       - id: check-yaml
@@ -23,12 +24,24 @@ repos:
     rev: v3.6.2
     hooks:
       - id: prettier
-        stages: [pre-commit]
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.1.0
     hooks:
       - id: codespell
+        args: ["--skip=*.yaml"]
+
+  - repo: https://github.com/lycheeverse/lychee
+    rev: lychee-v0.17.0
+    hooks:
+      - id: lychee
+        args: ["--include-fragments", "--no-progress", "."]
+        pass_filenames: false
+
+  - repo: https://github.com/errata-ai/vale
+    rev: v3.0.7
+    hooks:
+      - id: vale
 
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.9
