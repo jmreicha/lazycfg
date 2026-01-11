@@ -21,6 +21,34 @@ Based on [Anthropic's guide to long-running agents](https://www.anthropic.com/en
 
 This project relies on the following tools being present in the local development environment `bd (beads)`, `prek`, `mcp-cli`, `go`, `common-repo`.
 
+### MCP Servers
+
+This project uses MCP (Model Context Protocol) servers to enhance development workflows. **Agents should proactively use MCP servers when implementing changes.**
+
+Available MCP servers (run `mcp-cli` to list):
+
+- **context7** - Query documentation for libraries and APIs
+- **grep** - Search GitHub for real-world code examples and usage patterns
+
+**When to use MCP servers:**
+
+1. **Before implementing unfamiliar APIs or patterns** - Use `grep/searchGitHub` to find real-world examples
+   - Example: `mcp-cli grep/searchGitHub '{"query": ".goreleaser.yaml", "language": "yaml"}'`
+   - Search for actual code patterns, not keywords (e.g., "func main()" not "golang tutorial")
+
+2. **When working with external libraries** - Use `context7/query-docs` to look up API documentation
+   - First resolve library: `mcp-cli context7/resolve-library-id '{"query": "goreleaser", "libraryName": "goreleaser"}'`
+   - Then query docs: `mcp-cli context7/query-docs '{"libraryId": "...", "query": "configuration"}'`
+
+3. **When uncertain about syntax or configuration** - Use grep to see how others solve similar problems
+   - Example: Find GitHub Actions workflows, configuration files, or implementation patterns
+
+**Best practices:**
+
+- Use MCP servers early in the implementation process to gather context
+- Prefer real-world examples over guessing syntax or patterns
+- Search for literal code patterns in grep (like "async function", "import React"), not prose descriptions
+
 ### Development Commands
 
 ## Testing
