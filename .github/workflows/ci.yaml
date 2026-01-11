@@ -47,5 +47,20 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     steps:
-      - id: test
-        run: echo "Test"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5
+        with:
+          go-version-file: .go-version
+          cache: true
+      - name: Run tests
+        run: go test -v -race -coverprofile=coverage.out ./...
+      - name: Generate coverage report
+        if: success()
+        run: go tool cover -func=coverage.out
+      - name: Upload coverage artifact
+        if: success()
+        uses: actions/upload-artifact@ea054f24ef0e66c2d6b937df3fb8b294e2a13f62 # v4
+        with:
+          name: coverage-report
+          path: coverage.out
+          retention-days: 30
