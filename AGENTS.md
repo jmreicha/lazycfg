@@ -75,7 +75,7 @@ Pre-commit hooks (configured in `.pre-commit-config.yaml`) automatically run: fm
 - Emit detailed, structured logs at key boundaries.
 - Make errors explicit and informative.
 
-## Commit Message Requirements
+### Commit Message Requirements
 
 All commits must follow the **conventional commit** pattern. See the [conventional-commits skill](.claude/skills/conventional-commits/SKILL.md) for detailed guidance.
 
@@ -89,7 +89,7 @@ Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build
 
 Examples: `feat: add user auth`, `fix: resolve memory leak`, `docs: update install instructions`
 
-## Committing Guidelines
+### Committing Guidelines
 
 1. **NEVER commit directly to main** - Always create a feature branch for your work (e.g., `feat/issue-name` or `fix/issue-name`)
 2. **Run tests/pre-commit before every commit** - Catches formatting, linting, and prose issues
@@ -98,7 +98,7 @@ Examples: `feat: add user auth`, `fix: resolve memory leak`, `docs: update insta
 5. **When fixing tests** - Understand what's being validated, fix the underlying issue, make expectations flexible
 6. **Keep summaries brief** - 1-2 sentences, no code samples unless requested
 
-## Documentation Style Guide
+### Documentation Style Guide
 
 - Be concise. Avoid unnecessary and verbose explanations. Don't bold or emphasize wording.
 - Follow the Go [Style Guide](https://google.github.io/styleguide/go/) and [Best Practices](https://google.github.io/styleguide/go/best-practices) docs.
@@ -112,6 +112,25 @@ Examples: `feat: add user auth`, `fix: resolve memory leak`, `docs: update insta
 ### Comments
 
 Write simple, concise commentary. Only comment on what is not obvious to a skilled programmer by reading the code. Comments should contain proper grammar and punctuation and should be prose-like, rather than choppy partial sentences. A human reading the comments should feel like they are reading a well-written professional paper.
+
+### Zero Narration
+
+Do not narrate actions. Tool calls are structured output - the user sees them directly. Text output wastes context.
+
+Never output:
+
+- Action announcements ("Let me...", "I'll now...", "I'm going to...")
+- Summaries of what was done
+- Confirmations of success (visible from tool output)
+- Explanations of routine operations
+
+Only output text when:
+
+- Asking a question that requires user input
+- Reporting an error that blocks progress
+- A decision point requires user choice
+
+Otherwise: execute silently.
 
 ## Personal preferences
 
