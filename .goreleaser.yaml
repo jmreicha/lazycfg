@@ -1,0 +1,85 @@
+version: 2
+
+# Project metadata
+project_name: lazycfg
+
+# Build configuration
+builds:
+  - id: lazycfg
+    main: ./cmd/lazycfg
+    binary: lazycfg
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    flags:
+      - -trimpath
+
+# Archive configuration
+archives:
+  - id: default
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE*
+      - README*
+      - CHANGELOG*
+
+# Checksum configuration
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+# SBOM configuration
+sboms:
+  - id: archive
+    artifacts: archive
+
+# Changelog configuration
+changelog:
+  use: github
+  sort: asc
+  abbrev: 0
+  groups:
+    - title: "Features"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "Documentation"
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: "Other changes"
+      order: 999
+  filters:
+    exclude:
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - "merge conflict"
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+
+# GitHub release configuration
+release:
+  github:
+    owner: jmreicha
+    name: lazycfg
+  draft: false
+  prerelease: auto
+  mode: append
+  name_template: "{{.ProjectName}} {{.Version}}"
+  header: |
+    ## Release {{.Version}}
+
+    **Full Changelog**: https://github.com/jmreicha/lazycfg/compare/{{ .PreviousTag }}...{{ .Tag }}

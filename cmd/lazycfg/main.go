@@ -9,6 +9,13 @@ import (
 	"github.com/jmreicha/lazycfg/internal/cmd/generate"
 )
 
+// Build information set via ldflags
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 // CLI represents the command-line interface structure
 type CLI struct {
 	// Flags
@@ -76,8 +83,7 @@ func main() {
 			FlagsLast: true,
 		}),
 		kong.Vars{
-			// TODO(jmreicha): See if there is a way to dynamically set this
-			"version": "v1.0.0",
+			"version": version,
 		},
 	)
 
