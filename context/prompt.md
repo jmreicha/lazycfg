@@ -8,14 +8,20 @@ Complete the issue shown below following the project guidelines.
 
 ## Process
 
-1. **Understand the requirement**
+1. **Create a branch**
+
+- Check current branch: `git branch`
+- If on main, create feature branch: `git checkout -b feat/issue-name` or `git checkout -b fix/issue-name`
+- NEVER work directly on main
+
+2. **Understand the requirement**
 
 - Run 'bd show $bead' to understand the issue
 - Read the issue details carefully
 - Check acceptance criteria if present
 - Review any referenced files or context
 
-2. **Review**
+3. **Review**
 
 - Use any relevant MCP servers to understand documentation, code, etc.
 - Read the "Recent Learnings" section below
@@ -23,13 +29,13 @@ Complete the issue shown below following the project guidelines.
 - Avoid repeating past mistakes
 - Apply successful patterns from history
 
-3. **Make changes**
+4. **Make changes**
 
 - Follow coding standards in AGENTS.md
 - Make small, atomic commits
 - Write clear conventional commit messages
 
-4. **Test your changes**
+5. **Test your changes**
 
 - Create unit tests for your fix (create any test files if needed)
 - Create any integration tests if applicable
@@ -37,13 +43,13 @@ Complete the issue shown below following the project guidelines.
 - Verify no regressions
 - Fix any and all failures before continuing
 
-5. **Report findings** (optional)
+6. **Report findings** (optional)
 
 - If you discover important learnings, wrap them in tags:
 - `<findings>Your learning here</findings>`
 - Be specific and actionable
 
-6. **Signal completion**
+7. **Signal completion**
 
 - Stage ONLY your code changes (NOT .beads/):
 - DO NOT push or create PR - the script will handle this
@@ -52,7 +58,7 @@ Complete the issue shown below following the project guidelines.
 
 ## Guidelines
 
-- Do NOT commit to main directly
+- NEVER commit to main directly. Always work on a feature branch
 - Do NOT include .beads/ in your commit - run 'git restore .beads/' before staging
 - Do NOT push or create PR - the script handles git push and gh pr create
 - Do NOT run 'bd close' - the script handles closing the bead after PR is created

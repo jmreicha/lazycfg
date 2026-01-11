@@ -91,11 +91,12 @@ Examples: `feat: add user auth`, `fix: resolve memory leak`, `docs: update insta
 
 ## Committing Guidelines
 
-1. **Run tests/pre-commit before every commit** - Catches formatting, linting, and prose issues
-2. **NEVER commit/push without explicit user approval**
-3. **Avoid hardcoding values that change** - No version numbers, dates, or timestamps in tests. Use runtime checks.
-4. **When fixing tests** - Understand what's being validated, fix the underlying issue, make expectations flexible
-5. **Keep summaries brief** - 1-2 sentences, no code samples unless requested
+1. **NEVER commit directly to main** - Always create a feature branch for your work (e.g., `feat/issue-name` or `fix/issue-name`)
+2. **Run tests/pre-commit before every commit** - Catches formatting, linting, and prose issues
+3. **NEVER commit/push without explicit user approval**
+4. **Avoid hardcoding values that change** - No version numbers, dates, or timestamps in tests. Use runtime checks.
+5. **When fixing tests** - Understand what's being validated, fix the underlying issue, make expectations flexible
+6. **Keep summaries brief** - 1-2 sentences, no code samples unless requested
 
 ## Documentation Style Guide
 
@@ -138,10 +139,9 @@ Use these rules to apply my own personal style and preferences to your responses
 3. **Update issue status** - Close finished work, update in-progress items
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
-   git pull --rebase
+   git pull --rebase origin main  # Rebase on latest main
    bd sync
-   git push
-   git status  # MUST show "up to date with origin"
+   git status  # Verify push succeeded
    ```
 5. **Clean up** - Clear stashes, prune remote branches
 6. **Verify** - All changes committed AND pushed
