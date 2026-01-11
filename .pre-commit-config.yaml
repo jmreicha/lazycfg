@@ -35,14 +35,14 @@ repos:
     rev: v2.1.0
     hooks:
       - id: codespell
-        args: ["--skip=*.yaml"]
+        args: ["--skip=*.yaml,.beads/issues.jsonl"]
 
   - repo: https://github.com/lycheeverse/lychee
     rev: lychee-v0.22.0
     hooks:
       - id: lychee
         args: ["--include-fragments", "--no-progress"]
-        types: [markdown]
+        types: [markdown, yaml]
 
   - repo: https://github.com/errata-ai/vale
     rev: v3.0.7
