@@ -47,21 +47,22 @@ cd lazycfg
 task check-tools
 ```
 
-3. Bootstrap dependencies and tools:
+3. Install missing tools (if any):
+
+```bash
+# Automatically install missing tools (uses Homebrew on macOS)
+task install-tools
+
+# Or manually install tools as shown by check-tools output
+```
+
+4. Bootstrap dependencies:
 
 ```bash
 task bootstrap
 ```
 
-4. Install beads (issue tracker) if not already installed:
-
-```bash
-# macOS/Linux
-curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
-
-# Or with Homebrew
-brew install steveyegge/beads/bd
-```
+**Note:** `task bootstrap` will automatically run `task install-tools` first.
 
 5. Install pre-commit hooks:
 
@@ -69,19 +70,6 @@ brew install steveyegge/beads/bd
 prek install
 # Or with pre-commit
 # pre-commit install
-```
-
-6. Verify your setup:
-
-```bash
-# Check all tools at once
-task check-tools
-
-# Or check individually
-go version
-task --version
-bd version
-pre-commit --version
 ```
 
 ### Working with Beads
@@ -133,6 +121,7 @@ Common tasks:
 
 ```bash
 task check-tools     # Check if required CLI tools are installed
+task install-tools   # Install missing required tools automatically
 task bootstrap       # Bootstrap and set up dependencies and tools
 task build           # Build the binary
 task fmt             # Format Go code
