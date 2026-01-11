@@ -331,3 +331,53 @@ tasks:
     deps: [build]
     cmds:
       - '"{{.BUILD_DIR}}/{{.BINARY_NAME}}" {{.CLI_ARGS}}'
+
+  iterate:
+    desc: Run autonomous iteration script to complete beads issues
+    cmds:
+      - |
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Autonomous Iteration Script"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "Usage: task iterate [-- options]"
+        echo ""
+        echo "Options:"
+        echo "  --issue-id ID          Work on specific issue"
+        echo "  --max-iterations N     Maximum iterations (default: 10)"
+        echo ""
+        echo "Environment Variables:"
+        echo "  AI_AGENT               AI agent command (default: 'opencode run')"
+        echo "  OPENCODE_TIMEOUT       Timeout in seconds (default: 1800 = 30 min)"
+        echo "  MAX_ITERATIONS         Override default max iterations"
+        echo ""
+        echo "Examples:"
+        echo "  task iterate                                    # Run with defaults"
+        echo "  task iterate -- --max-iterations 10             # Limit iterations"
+        echo "  task iterate -- --issue-id lazycfg-abc          # Specific issue"
+        echo "  AI_AGENT='aider --yes' task iterate             # Use aider"
+        echo "  OPENCODE_TIMEOUT=3600 task iterate              # 1 hour timeout"
+        echo ""
+        echo "The script will:"
+        echo "  1. Get next ready issue from bd (beads)"
+        echo "  2. Invoke AI agent with full context (issue + instructions + learnings)"
+        echo "  3. Monitor for completion marker: <promise>COMPLETE</promise>"
+        echo "  4. Extract findings from: <findings>...</findings>"
+        echo "  5. Retry up to 3 times per issue if marker not found"
+        echo "  6. Mark failed issues as 'blocked' after 3 attempts"
+        echo "  7. Continue to next issue automatically"
+        echo ""
+        echo "Press Ctrl+C to stop at any time"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        ./script/iterate.sh {{.CLI_ARGS}}
+
+  iterate:run:
+    desc: Run iterate script (shorthand, skips banner)
+    cmds:
+      - ./script/iterate.sh {{.CLI_ARGS}}
+
+  iterate:help:
+    desc: Show iterate script help
+    cmds:
+      - ./script/iterate.sh --help
