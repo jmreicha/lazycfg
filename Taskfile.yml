@@ -1,0 +1,95 @@
+version: "3"
+
+vars:
+  BINARY_NAME: lazycfg
+  BUILD_DIR: dist
+  GO_VERSION: 1.23.5
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  bootstrap:
+    desc: Bootstrap and set up dependencies and tools
+    cmds:
+      - echo "Installing Go dependencies..."
+      - go mod download
+      - go mod verify
+      - echo "Installing development tools..."
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      - echo "Bootstrap complete!"
+
+  deps:
+    desc: Download and verify Go module dependencies
+    cmds:
+      - go mod download
+      - go mod verify
+
+  build:
+    desc: Build the binary
+    deps: [deps]
+    cmds:
+      - echo "Building binary..."
+      - mkdir -p "{{.BUILD_DIR}}"
+      - go build -o "{{.BUILD_DIR}}/{{.BINARY_NAME}}" ./cmd/lazycfg
+      - echo "Built successfully - {{.BUILD_DIR}}/{{.BINARY_NAME}}"
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - echo "Formatting Go code..."
+      - go fmt ./...
+      - echo "Formatting complete!"
+
+  lint:
+    desc: Run linters
+    cmds:
+      - echo "Running golangci-lint..."
+      - golangci-lint run ./...
+      - echo "Linting complete!"
+
+  test:
+    desc: Run tests
+    cmds:
+      - echo "Running tests..."
+      - go test ./... -v
+      - echo "Tests complete!"
+
+  test-coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - echo "Running tests with coverage..."
+      - go test ./... -coverprofile=coverage.out
+      - go tool cover -html=coverage.out -o coverage.html
+      - echo "Coverage report generated at coverage.html"
+
+  check:
+    desc: Run fmt, lint, and test
+    cmds:
+      - task fmt
+      - task lint
+      - task test
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - echo "Cleaning build artifacts..."
+      - rm -rf "{{.BUILD_DIR}}"
+      - rm -f coverage.out coverage.html
+      - echo "Clean complete!"
+
+  install:
+    desc: Install the binary to GOPATH/bin
+    deps: [build]
+    cmds:
+      - echo "Installing binary..."
+      - go install ./cmd/lazycfg
+      - echo "Installed successfully!"
+
+  dev:
+    desc: Build and run the binary
+    deps: [build]
+    cmds:
+      - '"{{.BUILD_DIR}}/{{.BINARY_NAME}}" {{.CLI_ARGS}}'

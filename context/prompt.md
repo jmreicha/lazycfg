@@ -33,8 +33,7 @@ Complete the issue shown below following the project guidelines.
 
 - Create unit tests for your fix (create any test files if needed)
 - Create any integration tests if applicable
-- Run lints and other validations to check for issues
-- Run tests: `go test ./...`
+- Run checks: `task check` (runs fmt, lint, and test)
 - Verify no regressions
 - Fix any and all failures before continuing
 
