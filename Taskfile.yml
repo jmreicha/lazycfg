@@ -11,9 +11,75 @@ tasks:
     cmds:
       - task --list
 
+  check-tools:
+    desc: Check if required CLI tools are installed
+    silent: true
+    cmds:
+      - |
+        echo "Checking required tools..."
+        MISSING=()
+
+        # Check Go
+        if ! command -v go &> /dev/null; then
+          MISSING+=("go - https://go.dev/doc/install")
+        else
+          echo "✓ go $(go version | awk '{print $3}')"
+        fi
+
+        # Check golangci-lint
+        if ! command -v golangci-lint &> /dev/null; then
+          MISSING+=("golangci-lint - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest")
+        else
+          echo "✓ golangci-lint $(golangci-lint version --format=short 2>/dev/null || echo 'installed')"
+        fi
+
+        # Check bd (beads)
+        if ! command -v bd &> /dev/null; then
+          MISSING+=("bd (beads) - https://github.com/steveyegge/beads")
+        else
+          echo "✓ bd $(bd version 2>/dev/null || echo 'installed')"
+        fi
+
+        # Check pre-commit
+        if ! command -v pre-commit &> /dev/null; then
+          MISSING+=("pre-commit - https://pre-commit.com/#install")
+        else
+          echo "✓ pre-commit $(pre-commit --version | awk '{print $2}')"
+        fi
+
+        # Check prek
+        if ! command -v prek &> /dev/null; then
+          echo "⚠ prek (optional) - configuration management tool"
+        else
+          echo "✓ prek installed"
+        fi
+
+        # Check mcp-cli
+        if ! command -v mcp &> /dev/null; then
+          echo "⚠ mcp-cli (optional) - MCP server interface"
+        else
+          echo "✓ mcp-cli installed"
+        fi
+
+        # Report missing tools
+        if [ ${#MISSING[@]} -ne 0 ]; then
+          echo ""
+          echo "❌ Missing required tools:"
+          for tool in "${MISSING[@]}"; do
+            echo "  - $tool"
+          done
+          echo ""
+          echo "Run 'task bootstrap' to install Go tools, or check the links above for installation instructions."
+          exit 1
+        else
+          echo ""
+          echo "✅ All required tools are installed!"
+        fi
+
   bootstrap:
     desc: Bootstrap and set up dependencies and tools
     cmds:
+      - task check-tools
       - echo "Installing Go dependencies..."
       - go mod download
       - go mod verify
