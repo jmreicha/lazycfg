@@ -9,9 +9,9 @@
 set -euo pipefail
 
 # Configuration
-MAX_ITERATIONS="${MAX_ITERATIONS:-10}"
-AI_AGENT="${AI_AGENT:-opencode run --format json}" # Default to opencode, override via env
-STREAM_OUTPUT="${STREAM_OUTPUT:-false}"            # Set to true to stream AI output in real-time
+MAX_ITERATIONS="${MAX_ITERATIONS:-3}"
+AI_AGENT="${AI_AGENT:-opencode run}"    # Default to opencode, override via env
+STREAM_OUTPUT="${STREAM_OUTPUT:-false}" # Set to true to stream AI output in real-time
 PROGRESS_FILE="context/progress.txt"
 PROMPT_FILE="context/prompt.md"
 FINDINGS_MARKER="<findings>"
@@ -77,13 +77,13 @@ Iterate - Autonomous coding loop for beads
 Usage: $0 [OPTIONS]
 
 Options:
-  --max-iterations N    Maximum iterations (default: 10)
+  --max-iterations N    Maximum iterations (default: 3)
   --issue-id ID        Work on specific issue
   -h, --help           Show this help
 
 Environment Variables:
   MAX_ITERATIONS       Override default max iterations
-  AI_AGENT             AI agent command (default: "opencode run --format json")
+  AI_AGENT             AI agent command (default: "opencode run")
   OPENCODE_TIMEOUT     Timeout in seconds (default: 1800)
   STREAM_OUTPUT        Set to true to stream AI output in real-time (default: false)
 
@@ -195,16 +195,10 @@ PROMPT
   # Invoke AI agent with timeout and capture output
   set +e # Don't exit on error
 
-  # Handle streaming output if enabled and using JSON format
-  if [[ "$STREAM_OUTPUT" == "true" ]] && [[ "$AI_AGENT" == *"--format json"* ]]; then
+  # Stream output if enabled, otherwise capture silently
+  if [[ "$STREAM_OUTPUT" == "true" ]]; then
     echo -e "${BLUE}Streaming AI agent output...${NC}\n"
-    timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" | while IFS= read -r line; do
-      # Extract and display text content from JSON events in real-time
-      text=$(echo "$line" | jq -r 'select(.type == "text") | .part.text' 2>/dev/null || echo "")
-      if [[ -n "$text" ]]; then
-        echo "$text"
-      fi
-    done
+    timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file"
   else
     timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" >/dev/null
   fi
@@ -213,15 +207,7 @@ PROMPT
   set -e
 
   local output
-  local raw_output
-  raw_output=$(cat "$output_file")
-
-  # Extract text from JSON output if using --format json
-  if [[ "$AI_AGENT" == *"--format json"* ]]; then
-    output=$(echo "$raw_output" | jq -r 'select(.type == "text") | .part.text' 2>/dev/null | tr '\n' ' ' || echo "$raw_output")
-  else
-    output="$raw_output"
-  fi
+  output=$(cat "$output_file")
 
   rm -f "$output_file"
 
