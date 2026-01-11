@@ -1,5 +1,7 @@
 // Package util provides legacy utility functions.
 // This package is deprecated and will be replaced by the new provider-based architecture.
+//
+//nolint:revive // Deprecated package, naming exception allowed
 package util
 
 import (
