@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"testing"
 )
 
@@ -83,7 +84,8 @@ func TestRegistry_DuplicateRegistration(t *testing.T) {
 		t.Error("expected error for duplicate registration, got nil")
 	}
 
-	if _, ok := err.(*ErrProviderExists); !ok {
+	var errExists *ErrProviderExists
+	if !errors.As(err, &errExists) {
 		t.Errorf("expected ErrProviderExists, got %T", err)
 	}
 }
@@ -114,7 +116,8 @@ func TestRegistry_GetNotFound(t *testing.T) {
 		t.Error("expected error for nonexistent provider, got nil")
 	}
 
-	if _, ok := err.(*ErrProviderNotFound); !ok {
+	var errNotFound *ErrProviderNotFound
+	if !errors.As(err, &errNotFound) {
 		t.Errorf("expected ErrProviderNotFound, got %T", err)
 	}
 }

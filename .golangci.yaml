@@ -1,35 +1,107 @@
 version: "2"
 
+run:
+  timeout: 5m
+  concurrency: 4
+  skip-dirs:
+    - vendor
+    - third_party
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*\\.gen\\.go$"
+
 linters:
-  # Default set of linters.
-  # The value can be: `standard`, `all`, `none`, or `fast`.
   default: none
-
-  # Enable specific linters.
   enable:
-    - gosec # security checks
-    - govet # better 'go vet'
-    - revive # better 'golint'
-    - staticcheck # unused code
-    - errcheck # find unchecked errors
+    # Core linters (original set)
+    - errcheck # Check for unchecked errors
+    - gosec # Security checks
+    - govet # Reports suspicious constructs
+    - revive # Better golint replacement
+    - staticcheck # Go static analysis
 
-formatters:
-  # Enable specific formatter.
-  # Default: [] (uses standard Go formatting)
-  enable:
-    - gofmt
-    - gofumpt # better 'go fmt'
-    - goimports # import management
+    # Code quality
+    - gocyclo # Cyclomatic complexity
+    - ineffassign # Detects ineffectual assignments
+    - misspell # Spelling mistakes
+    - unused # Check for unused code
+
+    # Style and best practices
+    - bodyclose # Check HTTP response body closed
+    - errorlint # Error wrapping for Go 1.13+
+    - copyloopvar # Check for loop variable copies
+    - goconst # Repeated strings to constants
+    - gocritic # Opinionated checks
+    - nolintlint # Reports ill-formed nolint directives
+    - unconvert # Remove unnecessary type conversions
+
+    # Performance
+    - prealloc # Find slice declarations for preallocate
+
+    # Testing
+    - testifylint # Checks testify usage
+
+    # Maintainability
+    - gochecknoinits # No init functions
+    - unparam # Unused function parameters
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    enable:
+      - shadow
+      - nilness
+
+  gocyclo:
+    min-complexity: 15
+
+  gosec:
+    excludes:
+      - G104 # Audit unhandled errors
+
+  revive:
+    rules:
+      - name: var-naming
+        disabled: false
+      - name: package-comments
+        disabled: false
+      - name: exported
+        disabled: false
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - hugeParam
+
+output:
+  formats:
+    text:
+      path: stdout
+      print-issued-lines: true
+      print-linter-name: true
+  show-stats: true
 
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+  fix: false
   exclude-rules:
-    # Exclude var-naming check for deprecated util package
     - path: internal/cmd/util
       linters:
         - revive
       text: "avoid meaningless package names"
-# TODO: lint struct alignment for better memory management
-# linters-settings:
-# maligned:
-# print struct with more effective memory layout or not, false by default
-# suggest-new: true
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec
+    - text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*print(f|ln)?|os\\.(Un)?Setenv). is not checked"
+      linters:
+        - errcheck
