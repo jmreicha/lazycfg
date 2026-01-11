@@ -123,7 +123,7 @@ func (bm *BackupManager) List(provider string) ([]*BackupMetadata, error) {
 		return nil, fmt.Errorf("failed to read backup directory: %w", err)
 	}
 
-	var backups []*BackupMetadata
+	backups := make([]*BackupMetadata, 0, len(entries))
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
 			continue
