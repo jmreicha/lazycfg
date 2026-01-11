@@ -127,7 +127,7 @@ This reverts commit abc123.
 
 ## Scope (Optional)
 
-Scope provides additional context about what part of the codebase changed:
+While not necessary this is strongly preferred. Scope provides additional context about what part of the codebase changed:
 
 ```
 feat(auth): add two-factor authentication
@@ -310,30 +310,31 @@ a shared helper. No behavior changes.
 
 ### Do:
 
-- ✅ Use present tense imperative mood ("add" not "added")
-- ✅ Keep first line under 50 characters when possible
-- ✅ Reference issues/PRs in footer
-- ✅ Explain "why" in body, not "what" (code shows what)
-- ✅ Break up large changes into multiple commits
-- ✅ Make commits atomic (one logical change per commit)
+- Make commit messages short and concise
+- Use present tense imperative mood ("add" not "added")
+- Keep first line under 50 characters when possible
+- Reference issues/PRs in footer
+- Explain "why" in body, not "what" (code shows what)
+- Break up large changes into multiple commits
+- Make commits atomic (one logical change per commit)
 
 ### Don't:
 
-- ❌ Use vague descriptions ("fix stuff", "updates")
-- ❌ Combine multiple unrelated changes in one commit
-- ❌ Capitalize first letter of description
-- ❌ End description with period
-- ❌ Use past tense ("added", "fixed")
-- ❌ Commit broken code (each commit should work)
+- Use vague descriptions ("fix stuff", "updates")
+- Combine multiple unrelated changes in one commit
+- Capitalize first letter of description
+- End description with period
+- Use past tense ("added", "fixed")
+- Commit broken code (each commit should work)
 
 ## Summary
 
 Conventional Commits provide:
 
-- ✅ Clear, consistent commit history
-- ✅ Better collaboration through explicit intent
-- ✅ Easier code review and git history navigation
-- ✅ Improved project documentation through structured messages
+- Clear, consistent commit history
+- Better collaboration through explicit intent
+- Easier code review and git history navigation
+- Improved project documentation through structured messages
 
 **Key formula:**
 
