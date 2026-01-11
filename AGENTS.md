@@ -77,17 +77,17 @@ Pre-commit hooks (configured in `.pre-commit-config.yaml`) automatically run: fm
 
 ## Commit Message Requirements
 
-All commits must follow the **conventional commit** pattern:
+All commits must follow the **conventional commit** pattern. See the [conventional-commits skill](.claude/skills/conventional-commits/SKILL.md) for detailed guidance.
+
+**Quick reference:**
 
 ```
 <type>(<scope>): <description>
 ```
 
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 
 Examples: `feat: add user auth`, `fix: resolve memory leak`, `docs: update install instructions`
-
-Breaking changes: `feat!: description` or `BREAKING CHANGE:` in footer
 
 ## Committing Guidelines
 
