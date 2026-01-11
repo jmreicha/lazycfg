@@ -243,7 +243,11 @@ while [[ $iteration -le $MAX_ITERATIONS ]]; do
   fi
 
   # Show issue details
-  echo -e "\n${BLUE}Issue: $current_issue${NC}"
+  echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
+  echo -e "${BLUE}Issue Details:${NC}"
+  echo -e "${BLUE}═══════════════════════════════════════${NC}"
+  bd show "$current_issue" 2>/dev/null || echo "Issue not found"
+  echo ""
 
   # Initialize attempt counter if not set
   if [[ -z "${issue_attempts[$current_issue]:-}" ]]; then
