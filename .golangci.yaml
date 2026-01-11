@@ -21,8 +21,9 @@ linters:
     - staticcheck # Go static analysis
 
     # Code quality
-    - gocyclo # Cyclomatic complexity
+    - gochecksumtype # Exhaustiveness checks on sum types
     - gocognit # Cognitive complexity
+    - gocyclo # Cyclomatic complexity
     - ineffassign # Detects ineffectual assignments
     - misspell # Spelling mistakes
     - unused # Check for unused code
@@ -31,17 +32,22 @@ linters:
     - asciicheck # Ensure ASCII identifiers
     - bidichk # Dangerous unicode sequences
     - bodyclose # Check HTTP response body closed
-    - errorlint # Error wrapping for Go 1.13+
     - copyloopvar # Check for loop variable copies
+    - dogsled # Detects too many blank identifiers
+    - errorlint # Error wrapping for Go 1.13+
     - goconst # Repeated strings to constants
     - gocritic # Opinionated checks
     - goprintffuncname # Printf naming convention
+    - importas # Enforces consistent import aliases
+    - intrange # Suggests integer ranges in loops (Go 1.22+)
+    - mirror # Checks bytes/strings mirror patterns
     - nolintlint # Reports ill-formed nolint directives
+    - nosprintfhostport # Checks Sprintf for host:port URLs
     - unconvert # Remove unnecessary type conversions
 
     # Performance
-    - prealloc # Find slice declarations for preallocate
     - perfsprint # Optimize fmt.Sprintf usage
+    - prealloc # Find slice declarations for preallocate
 
     # Testing
     - testifylint # Checks testify usage
@@ -53,6 +59,7 @@ linters:
     - errname # Error naming conventions
     - gochecknoinits # No init functions
     - godot # Comment punctuation
+    - gomodguard # Manage go.mod directives
     - nakedret # Naked returns in long functions
     - predeclared # Shadowing predeclared identifiers
     - unparam # Unused function parameters
@@ -75,15 +82,35 @@ linters:
     - rowserrcheck # Check sql.Rows.Err
     - sqlclosecheck # Check sql resource closing
 
+formatters:
+  enable:
+    - gofmt # Standard Go formatter
+    - goimports # Manages imports and formatting
+
 linters-settings:
+  dogsled:
+    max-blank-identifiers: 2
+
   errcheck:
     check-type-assertions: true
     check-blank: true
 
+  goimports:
+    local-prefixes: github.com/jmreicha/lazycfg
+
+  gomodguard:
+    blocked:
+      modules:
+        - github.com/pkg/errors:
+            recommendations:
+              - errors
+              - fmt
+            reason: "Use standard library errors package"
+
   govet:
     enable:
-      - shadow
       - nilness
+      - shadow
       - sortslice
       - unusedwrite
 
