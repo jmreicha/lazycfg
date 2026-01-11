@@ -18,31 +18,49 @@ tasks:
       - |
         echo "Checking required tools..."
         MISSING=()
+        HAS_BREW=false
+
+        # Check if brew is available
+        if command -v brew &> /dev/null; then
+          HAS_BREW=true
+        fi
 
         # Check Go
         if ! command -v go &> /dev/null; then
-          MISSING+=("go - https://go.dev/doc/install")
+          if [ "$HAS_BREW" = true ]; then
+            MISSING+=("go|brew install go")
+          else
+            MISSING+=("go|https://go.dev/doc/install")
+          fi
         else
           echo "✓ go $(go version | awk '{print $3}')"
         fi
 
         # Check golangci-lint
         if ! command -v golangci-lint &> /dev/null; then
-          MISSING+=("golangci-lint - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest")
+          MISSING+=("golangci-lint|go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest")
         else
           echo "✓ golangci-lint $(golangci-lint version --format=short 2>/dev/null || echo 'installed')"
         fi
 
         # Check bd (beads)
         if ! command -v bd &> /dev/null; then
-          MISSING+=("bd (beads) - https://github.com/steveyegge/beads")
+          if [ "$HAS_BREW" = true ]; then
+            MISSING+=("bd|brew install steveyegge/beads/bd")
+          else
+            MISSING+=("bd|curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash")
+          fi
         else
           echo "✓ bd $(bd version 2>/dev/null || echo 'installed')"
         fi
 
         # Check pre-commit
         if ! command -v pre-commit &> /dev/null; then
-          MISSING+=("pre-commit - https://pre-commit.com/#install")
+          if [ "$HAS_BREW" = true ]; then
+            MISSING+=("pre-commit|brew install pre-commit")
+          else
+            MISSING+=("pre-commit|pip install pre-commit (https://pre-commit.com/#install)")
+          fi
         else
           echo "✓ pre-commit $(pre-commit --version | awk '{print $2}')"
         fi
@@ -65,26 +83,135 @@ tasks:
         if [ ${#MISSING[@]} -ne 0 ]; then
           echo ""
           echo "❌ Missing required tools:"
-          for tool in "${MISSING[@]}"; do
+          for entry in "${MISSING[@]}"; do
+            tool="${entry%%|*}"
+            install="${entry#*|}"
             echo "  - $tool"
+            echo "    Install: $install"
           done
           echo ""
-          echo "Run 'task bootstrap' to install Go tools, or check the links above for installation instructions."
+          echo "Run 'task install-tools' to auto-install missing tools (if supported)"
+          echo "Or run 'task bootstrap' to install Go-based tools only"
           exit 1
         else
           echo ""
           echo "✅ All required tools are installed!"
         fi
 
+  install-tools:
+    desc: Install missing required tools automatically
+    cmds:
+      - |
+        echo "Installing missing tools..."
+        HAS_BREW=false
+        INSTALLED=()
+        FAILED=()
+
+        # Check if brew is available
+        if command -v brew &> /dev/null; then
+          HAS_BREW=true
+          echo "✓ Homebrew detected"
+        else
+          echo "⚠ Homebrew not found - limited auto-install support"
+        fi
+
+        # Install Go
+        if ! command -v go &> /dev/null; then
+          echo "Installing Go..."
+          if [ "$HAS_BREW" = true ]; then
+            if brew install go; then
+              INSTALLED+=("go")
+            else
+              FAILED+=("go")
+            fi
+          else
+            echo "  ❌ Cannot auto-install Go without Homebrew"
+            echo "  → Install from: https://go.dev/doc/install"
+            FAILED+=("go")
+          fi
+        fi
+
+        # Install golangci-lint (requires Go)
+        if ! command -v golangci-lint &> /dev/null; then
+          if command -v go &> /dev/null; then
+            echo "Installing golangci-lint..."
+            if go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; then
+              INSTALLED+=("golangci-lint")
+            else
+              FAILED+=("golangci-lint")
+            fi
+          else
+            echo "  ⚠ Skipping golangci-lint (Go not available)"
+            FAILED+=("golangci-lint")
+          fi
+        fi
+
+        # Install bd (beads)
+        if ! command -v bd &> /dev/null; then
+          echo "Installing bd (beads)..."
+          if [ "$HAS_BREW" = true ]; then
+            if brew install steveyegge/beads/bd; then
+              INSTALLED+=("bd")
+            else
+              FAILED+=("bd")
+            fi
+          else
+            echo "  Attempting install via curl..."
+            if curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash; then
+              INSTALLED+=("bd")
+            else
+              FAILED+=("bd")
+            fi
+          fi
+        fi
+
+        # Install pre-commit
+        if ! command -v pre-commit &> /dev/null; then
+          echo "Installing pre-commit..."
+          if [ "$HAS_BREW" = true ]; then
+            if brew install pre-commit; then
+              INSTALLED+=("pre-commit")
+            else
+              FAILED+=("pre-commit")
+            fi
+          else
+            echo "  ❌ Cannot auto-install pre-commit without Homebrew or pip"
+            echo "  → Install from: https://pre-commit.com/#install"
+            FAILED+=("pre-commit")
+          fi
+        fi
+
+        # Summary
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        if [ ${#INSTALLED[@]} -gt 0 ]; then
+          echo "✅ Successfully installed:"
+          for tool in "${INSTALLED[@]}"; do
+            echo "  - $tool"
+          done
+        fi
+
+        if [ ${#FAILED[@]} -gt 0 ]; then
+          echo "❌ Failed to install:"
+          for tool in "${FAILED[@]}"; do
+            echo "  - $tool"
+          done
+          echo ""
+          echo "Run 'task check-tools' to see installation instructions"
+          exit 1
+        fi
+
+        echo ""
+        echo "✅ All tools installed successfully!"
+        echo "Run 'task check-tools' to verify"
+
   bootstrap:
     desc: Bootstrap and set up dependencies and tools
     cmds:
-      - task check-tools
+      - task install-tools
       - echo "Installing Go dependencies..."
       - go mod download
       - go mod verify
-      - echo "Installing development tools..."
-      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       - echo "Bootstrap complete!"
 
   deps:
