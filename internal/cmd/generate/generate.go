@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	// Default paths
+	// Default paths.
 	defaultHome                = os.Getenv("HOME")
 	defaultAwsConfigPath       = filepath.Join(defaultHome, ".aws", "config")
 	defaultGrantedConfigPath   = filepath.Join(defaultHome, ".granted", "config")
@@ -38,7 +38,7 @@ var grantedConfigTemplateDarwin string
 //go:embed templates/granted_config_linux.tmpl
 var grantedConfigTemplateLinux string
 
-// getOSSpecificTemplate returns the appropriate template for the current operating system
+// getOSSpecificTemplate returns the appropriate template for the current operating system.
 func getOSTemplateGranted() string {
 	switch runtime.GOOS {
 	case "darwin":

@@ -31,6 +31,7 @@ func TestBackupManager_Backup(t *testing.T) {
 
 	if metadata == nil {
 		t.Fatal("expected metadata, got nil")
+		return
 	}
 
 	if metadata.Provider != "testprovider" {

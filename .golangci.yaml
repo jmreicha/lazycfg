@@ -22,28 +22,58 @@ linters:
 
     # Code quality
     - gocyclo # Cyclomatic complexity
+    - gocognit # Cognitive complexity
     - ineffassign # Detects ineffectual assignments
     - misspell # Spelling mistakes
     - unused # Check for unused code
 
     # Style and best practices
+    - asciicheck # Ensure ASCII identifiers
+    - bidichk # Dangerous unicode sequences
     - bodyclose # Check HTTP response body closed
     - errorlint # Error wrapping for Go 1.13+
     - copyloopvar # Check for loop variable copies
     - goconst # Repeated strings to constants
     - gocritic # Opinionated checks
+    - goprintffuncname # Printf naming convention
     - nolintlint # Reports ill-formed nolint directives
     - unconvert # Remove unnecessary type conversions
 
     # Performance
     - prealloc # Find slice declarations for preallocate
+    - perfsprint # Optimize fmt.Sprintf usage
 
     # Testing
     - testifylint # Checks testify usage
+    - thelper # Detect test helpers without t.Helper()
 
     # Maintainability
+    - dupl # Detect duplicate code
+    - dupword # Duplicate words in comments
+    - errname # Error naming conventions
     - gochecknoinits # No init functions
+    - godot # Comment punctuation
+    - nakedret # Naked returns in long functions
+    - predeclared # Shadowing predeclared identifiers
     - unparam # Unused function parameters
+    - usestdlibvars # Use stdlib constants
+    - whitespace # Unnecessary whitespace
+
+    # Concurrency and context
+    - contextcheck # Non-inherited context usage
+
+    # Error handling
+    - nilerr # Return nil on error check
+    - nilnil # Simultaneous nil error and nil value
+
+    # Security and reliability
+    - durationcheck # Duration multiplication
+    - exhaustive # Exhaustive enum switches
+    - forcetypeassert # Find forced type assertions
+    - makezero # Slice with non-zero initial length
+    - noctx # Missing context.Context
+    - rowserrcheck # Check sql.Rows.Err
+    - sqlclosecheck # Check sql resource closing
 
 linters-settings:
   errcheck:
@@ -54,9 +84,14 @@ linters-settings:
     enable:
       - shadow
       - nilness
+      - sortslice
+      - unusedwrite
 
   gocyclo:
     min-complexity: 15
+
+  gocognit:
+    min-complexity: 20
 
   gosec:
     excludes:
@@ -70,14 +105,48 @@ linters-settings:
         disabled: false
       - name: exported
         disabled: false
+      - name: indent-error-flow
+        disabled: false
+      - name: error-return
+        disabled: false
+      - name: error-naming
+        disabled: false
+      - name: context-as-argument
+        disabled: false
+      - name: unused-parameter
+        disabled: false
 
   gocritic:
     enabled-tags:
       - diagnostic
       - style
       - performance
+      - opinionated
     disabled-checks:
       - hugeParam
+      - whyNoLint
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+    ignore-tests: true
+
+  dupl:
+    threshold: 100
+
+  nakedret:
+    max-func-lines: 30
+
+  exhaustive:
+    default-signifies-exhaustive: true
+
+  godot:
+    scope: all
+    capital: true
+
+  whitespace:
+    multi-if: false
+    multi-func: false
 
 output:
   formats:
@@ -92,6 +161,7 @@ issues:
   max-same-issues: 0
   new: false
   fix: false
+  exclude-use-default: false
   exclude-rules:
     - path: internal/cmd/util
       linters:
@@ -100,8 +170,22 @@ issues:
     - path: _test\.go
       linters:
         - gocyclo
+        - gocognit
         - errcheck
         - gosec
+        - dupl
+        - funlen
+    - path: cmd/
+      linters:
+        - gochecknoinits
     - text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*print(f|ln)?|os\\.(Un)?Setenv). is not checked"
       linters:
         - errcheck
+    - text: "use of `fmt\\.Sprintf` can be simplified"
+      linters:
+        - perfsprint
+      path: _test\.go
+    # Exclude exhaustive checks for known incomplete switches
+    - linters:
+        - exhaustive
+      text: "missing cases in switch"

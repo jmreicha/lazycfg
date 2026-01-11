@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -32,7 +33,7 @@ func (r *Registry) Register(provider Provider) error {
 	}
 
 	if _, exists := r.providers[name]; exists {
-		return &ErrProviderExists{Name: name}
+		return &ProviderExistsError{Name: name}
 	}
 
 	r.providers[name] = provider
@@ -40,14 +41,14 @@ func (r *Registry) Register(provider Provider) error {
 }
 
 // Get retrieves a provider by name.
-// Returns ErrProviderNotFound if the provider doesn't exist.
+// Returns ProviderNotFoundError if the provider doesn't exist.
 func (r *Registry) Get(name string) (Provider, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	provider, ok := r.providers[name]
 	if !ok {
-		return nil, &ErrProviderNotFound{Name: name}
+		return nil, &ProviderNotFoundError{Name: name}
 	}
 	return provider, nil
 }
@@ -87,23 +88,23 @@ func (r *Registry) Clear() {
 }
 
 // ErrInvalidProviderName is returned when a provider has an empty name.
-var ErrInvalidProviderName = fmt.Errorf("provider name cannot be empty")
+var ErrInvalidProviderName = errors.New("provider name cannot be empty")
 
-// ErrProviderExists is returned when attempting to register a provider
+// ProviderExistsError is returned when attempting to register a provider
 // with a name that's already registered.
-type ErrProviderExists struct {
+type ProviderExistsError struct {
 	Name string
 }
 
-func (e *ErrProviderExists) Error() string {
+func (e *ProviderExistsError) Error() string {
 	return fmt.Sprintf("provider %q is already registered", e.Name)
 }
 
-// ErrProviderNotFound is returned when a requested provider doesn't exist.
-type ErrProviderNotFound struct {
+// ProviderNotFoundError is returned when a requested provider doesn't exist.
+type ProviderNotFoundError struct {
 	Name string
 }
 
-func (e *ErrProviderNotFound) Error() string {
+func (e *ProviderNotFoundError) Error() string {
 	return fmt.Sprintf("provider %q not found", e.Name)
 }

@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-// RunConfiguration handles the configuration logic and takes user input
+// RunConfiguration handles the configuration logic and takes user input.
 func RunConfiguration() error {
 	reader := bufio.NewReader(os.Stdin)
 

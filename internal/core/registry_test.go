@@ -84,9 +84,9 @@ func TestRegistry_DuplicateRegistration(t *testing.T) {
 		t.Error("expected error for duplicate registration, got nil")
 	}
 
-	var errExists *ErrProviderExists
+	var errExists *ProviderExistsError
 	if !errors.As(err, &errExists) {
-		t.Errorf("expected ErrProviderExists, got %T", err)
+		t.Errorf("expected ProviderExistsError, got %T", err)
 	}
 }
 
@@ -116,9 +116,9 @@ func TestRegistry_GetNotFound(t *testing.T) {
 		t.Error("expected error for nonexistent provider, got nil")
 	}
 
-	var errNotFound *ErrProviderNotFound
+	var errNotFound *ProviderNotFoundError
 	if !errors.As(err, &errNotFound) {
-		t.Errorf("expected ErrProviderNotFound, got %T", err)
+		t.Errorf("expected ProviderNotFoundError, got %T", err)
 	}
 }
 

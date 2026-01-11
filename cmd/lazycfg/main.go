@@ -8,7 +8,7 @@ import (
 	"github.com/jmreicha/lazycfg/internal/cli"
 )
 
-// Build information set via ldflags
+// Build information set via ldflags.
 var (
 	version = "dev"
 	commit  = "none"
