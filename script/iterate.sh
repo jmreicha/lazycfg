@@ -32,32 +32,6 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Check if running inside OpenCode (detect recursive invocation)
-if [[ "${AI_AGENT}" == *"opencode"* ]] && pgrep -f "opencode" >/dev/null 2>&1; then
-  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${YELLOW}⚠  WARNING: OpenCode process detected${NC}"
-  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${YELLOW}You appear to be running this script from within OpenCode.${NC}"
-  echo -e "${YELLOW}This will cause recursive invocation issues.${NC}"
-  echo -e ""
-  echo -e "${BLUE}Options:${NC}"
-  echo -e "  1. Run from terminal outside OpenCode"
-  echo -e "  2. Use a different AI agent: ${GREEN}AI_AGENT='claude --dangerously-skip-permissions' ./script/iterate.sh${NC}"
-  echo -e "  3. Test with mock agent: ${GREEN}AI_AGENT='echo Test' ./script/iterate.sh${NC}"
-  echo -e ""
-
-  # Only prompt if running interactively
-  if [[ -t 0 ]]; then
-    echo -e "${YELLOW}Press Ctrl+C to cancel, or any key to continue anyway...${NC}"
-    read -n 1 -s -r
-    echo ""
-  else
-    echo -e "${RED}Non-interactive session detected - this will likely fail!${NC}"
-    echo -e "${YELLOW}Continuing anyway...${NC}"
-    echo ""
-  fi
-fi
-
 # Parse arguments
 ISSUE_ID=""
 while [[ $# -gt 0 ]]; do
@@ -269,27 +243,7 @@ while [[ $iteration -le $MAX_ITERATIONS ]]; do
   fi
 
   # Show issue details
-  echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
-  echo -e "${BLUE}Issue Details:${NC}"
-  echo -e "${BLUE}═══════════════════════════════════════${NC}"
-  bd show "$current_issue" 2>/dev/null || echo "Issue not found"
-
-  # Show instructions
-  echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
-  echo -e "${BLUE}Instructions:${NC}"
-  echo -e "${BLUE}═══════════════════════════════════════${NC}"
-  cat "$PROMPT_FILE" 2>/dev/null || echo "No prompt file found"
-
-  # Show recent learnings
-  echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
-  echo -e "${BLUE}Recent Learnings:${NC}"
-  echo -e "${BLUE}═══════════════════════════════════════${NC}"
-  tail -30 "$PROGRESS_FILE" 2>/dev/null || echo "No history yet"
-
-  # Invoke OpenCode autonomously
-  echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
-  echo -e "${BLUE}Autonomous Execution:${NC}"
-  echo -e "${BLUE}═══════════════════════════════════════${NC}"
+  echo -e "\n${BLUE}Issue: $current_issue${NC}"
 
   # Initialize attempt counter if not set
   if [[ -z "${issue_attempts[$current_issue]:-}" ]]; then
