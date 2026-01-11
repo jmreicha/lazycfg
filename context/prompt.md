@@ -15,17 +15,19 @@ Complete the issue shown below following the project guidelines.
 - Check acceptance criteria if present
 - Review any referenced files or context
 
-2. **Review learnings**
+2. **Review**
 
+- Use any relevant MCP servers to understand documentation, code, etc.
 - Read the "Recent Learnings" section below
 - Investigate the codebase to find the root cause
 - Avoid repeating past mistakes
 - Apply successful patterns from history
 
 3. **Make changes**
-   - Follow coding standards in AGENTS.md
-   - Make small, atomic commits
-   - Write clear conventional commit messages
+
+- Follow coding standards in AGENTS.md
+- Make small, atomic commits
+- Write clear conventional commit messages
 
 4. **Test your changes**
 
