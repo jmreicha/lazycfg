@@ -26,11 +26,12 @@ This project requires the following tools:
 
 - **Go** 1.23+ - [Install Go](https://go.dev/doc/install)
 - **Task** - [Install Task](https://taskfile.dev/installation/)
-- **pre-commit** - [Install pre-commit](https://pre-commit.com/#install)
+- **golangci-lint** - Go linter
+- **pre-commit** - Pre-commit hook framework
 - **bd (beads)** - Issue tracker for git
-- **prek** - git hook management tool
-- **mcp-cli** - MCP server interface
-- **common-repo** - Repository tooling
+- **common-repo** - Repository configuration management
+- **prek** (optional) - Pre-commit hook management tool
+- **mcp-cli** (optional) - MCP server interface
 
 ### Installation
 
