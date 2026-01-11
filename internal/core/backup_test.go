@@ -115,7 +115,7 @@ func TestBackupManager_List(t *testing.T) {
 	bm := NewBackupManager(filepath.Join(tmpDir, "backups"))
 
 	// Create test files and backups with small delays to ensure unique timestamps
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		testFile := filepath.Join(tmpDir, fmt.Sprintf("test%d.conf", i))
 		if err := os.WriteFile(testFile, []byte("content"), 0o600); err != nil {
 			t.Fatalf("failed to create test file: %v", err)
@@ -159,7 +159,7 @@ func TestBackupManager_Clean(t *testing.T) {
 	bm := NewBackupManager(filepath.Join(tmpDir, "backups"))
 
 	// Create test files and backups with delays to ensure unique timestamps
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		testFile := filepath.Join(tmpDir, fmt.Sprintf("test%d.conf", i))
 		if err := os.WriteFile(testFile, []byte("content"), 0o600); err != nil {
 			t.Fatalf("failed to create test file: %v", err)
