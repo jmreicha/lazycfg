@@ -9,13 +9,20 @@
 set -euo pipefail
 
 # Configuration
-MAX_ITERATIONS="${MAX_ITERATIONS:-50}"
+MAX_ITERATIONS="${MAX_ITERATIONS:-10}"
+AI_AGENT="${AI_AGENT:-opencode run}" # Default to opencode, override via env
 PROGRESS_FILE="context/progress.txt"
 PROMPT_FILE="context/prompt.md"
 FINDINGS_MARKER="<findings>"
 FINDINGS_END_MARKER="</findings>"
 COMPLETION_MARKER="<promise>COMPLETE</promise>"
 AGENTS_MD="AGENTS.md"
+MAX_ATTEMPTS_PER_ISSUE=3
+OPENCODE_TIMEOUT="${OPENCODE_TIMEOUT:-1800}" # Default 30 mins, override via env
+declare -A issue_attempts                    # Track retry count per issue ID
+declare -a successful_attempts=()            # Track attempts for completed issues (for avg calculation)
+issues_completed=0
+issues_failed=0
 
 # Colors
 RED='\033[0;31m'
@@ -28,50 +35,55 @@ NC='\033[0m'
 ISSUE_ID=""
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --max-iterations)
-      MAX_ITERATIONS="$2"
-      shift 2
-      ;;
-    --issue-id)
-      ISSUE_ID="$2"
-      shift 2
-      ;;
-    -h|--help)
-      cat <<HELP
+  --max-iterations)
+    MAX_ITERATIONS="$2"
+    shift 2
+    ;;
+  --issue-id)
+    ISSUE_ID="$2"
+    shift 2
+    ;;
+  -h | --help)
+    cat <<HELP
 Iterate - Autonomous coding loop for beads
 
 Usage: $0 [OPTIONS]
 
 Options:
-  --max-iterations N    Maximum iterations (default: 50)
+  --max-iterations N    Maximum iterations (default: 10)
   --issue-id ID        Work on specific issue
   -h, --help           Show this help
 
 Environment Variables:
   MAX_ITERATIONS       Override default max iterations
+  AI_AGENT             AI agent command (default: "opencode run")
+  OPENCODE_TIMEOUT     Timeout in seconds (default: 1800)
 
 Examples:
-  $0                           # Run with defaults
-  $0 --max-iterations 100      # Custom max
-  $0 --issue-id abc123         # Specific issue
-  MAX_ITERATIONS=25 $0         # Override with env
+  $0                                      # Run with defaults (opencode)
+  $0 --max-iterations 100                 # Custom max
+  $0 --issue-id abc123                    # Specific issue
+  MAX_ITERATIONS=25 $0                    # Override with env
+  AI_AGENT="claude" $0                    # Use different AI agent
+  AI_AGENT="aider --yes" $0               # Use aider with auto-yes
+  OPENCODE_TIMEOUT=3600 $0                # 1 hour timeout
 
 Runs an AI agent in a loop to autonomously complete beads issues.
 HELP
-      exit 0
-      ;;
-    *)
-      echo "Unknown option: $1"
-      echo "Try '$0 --help' for more information."
-      exit 1
-      ;;
+    exit 0
+    ;;
+  *)
+    echo "Unknown option: $1"
+    echo "Try '$0 --help' for more information."
+    exit 1
+    ;;
   esac
 done
 
 # Ensure progress file exists
 mkdir -p context
 if [[ ! -f "$PROGRESS_FILE" ]]; then
-  cat > "$PROGRESS_FILE" <<INIT
+  cat >"$PROGRESS_FILE" <<INIT
 # Autonomous Loop Progress
 
 This file tracks learnings from autonomous work sessions.
@@ -102,7 +114,7 @@ append_finding() {
   if grep -q "$finding" "$AGENTS_MD" 2>/dev/null; then
     return
   fi
-  echo "- $finding" >> "$AGENTS_MD"
+  echo "- $finding" >>"$AGENTS_MD"
   echo -e "${GREEN}📝 Recorded finding${NC}"
 }
 
@@ -110,7 +122,7 @@ append_finding() {
 record_improvements() {
   local improvements="$1"
 
-  cat >> "$PROGRESS_FILE" <<IMPROV
+  cat >>"$PROGRESS_FILE" <<IMPROV
 
 ### $(date '+%Y-%m-%d %H:%M:%S')
 
@@ -118,6 +130,87 @@ $improvements
 
 ---
 IMPROV
+}
+
+# Invoke OpenCode autonomously for current issue
+invoke_opencode() {
+  local issue_id="$1"
+  local output_file
+  output_file=$(mktemp)
+
+  # Build prompt: issue details + instructions + recent learnings
+  local prompt
+  prompt=$(
+    cat <<PROMPT
+# Beads Issue to Complete
+
+$(bd show "$issue_id" 2>/dev/null || echo "Issue: $issue_id")
+
+---
+
+# Instructions
+
+$(cat "$PROMPT_FILE" 2>/dev/null || echo "")
+
+---
+
+# Recent Learnings (Last 30 lines)
+
+$(tail -30 "$PROGRESS_FILE" 2>/dev/null || echo "No history yet")
+
+PROMPT
+  )
+
+  echo -e "\n${YELLOW}🚀 Invoking AI agent (timeout: ${OPENCODE_TIMEOUT}s)...${NC}"
+  echo -e "${BLUE}Agent: ${AI_AGENT}${NC}\n"
+
+  # Invoke AI agent with timeout and capture output
+  set +e # Don't exit on error
+  timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file"
+  local exit_code="${PIPESTATUS[0]}"
+  set -e
+
+  local output
+  output=$(cat "$output_file")
+  rm -f "$output_file"
+
+  # Check for timeout
+  if [[ $exit_code -eq 124 ]]; then
+    echo -e "\n${RED}⚠ AI agent timed out after ${OPENCODE_TIMEOUT} seconds ($(($OPENCODE_TIMEOUT / 60)) minutes)${NC}"
+    return 1
+  fi
+
+  # Check exit code
+  if [[ $exit_code -ne 0 ]]; then
+    echo -e "\n${RED}⚠ AI agent exited with code $exit_code${NC}"
+    return 1
+  fi
+
+  # Check for completion marker
+  if echo "$output" | grep -q "$COMPLETION_MARKER"; then
+    echo -e "\n${GREEN}✓ Completion marker found${NC}"
+
+    # Extract and save findings
+    local findings
+    findings=$(echo "$output" | sed -n "/$FINDINGS_MARKER/,/$FINDINGS_END_MARKER/p" | sed "/$FINDINGS_MARKER/d;/$FINDINGS_END_MARKER/d")
+
+    if [[ -n "$findings" ]]; then
+      echo -e "${BLUE}📝 Extracting findings...${NC}"
+      # Append findings to AGENTS.md (one per line)
+      while IFS= read -r finding; do
+        [[ -n "$finding" ]] && append_finding "$finding"
+      done <<<"$findings"
+    fi
+
+    # Mark issue complete
+    echo -e "${GREEN}✓ Marking issue complete${NC}"
+    bd update "$issue_id" --status done 2>/dev/null || true
+
+    return 0
+  else
+    echo -e "\n${YELLOW}⚠ Completion marker NOT found${NC}"
+    return 1
+  fi
 }
 
 # Main loop
@@ -156,18 +249,54 @@ while [[ $iteration -le $MAX_ITERATIONS ]]; do
   echo -e "${BLUE}═══════════════════════════════════════${NC}"
   tail -30 "$PROGRESS_FILE" 2>/dev/null || echo "No history yet"
 
-  # Agent works here
-  echo -e "\n${YELLOW}Press Enter when work is complete (or Ctrl+C to stop)...${NC}"
-  read -r
+  # Invoke OpenCode autonomously
+  echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
+  echo -e "${BLUE}Autonomous Execution:${NC}"
+  echo -e "${BLUE}═══════════════════════════════════════${NC}"
 
-  # Check for completion
-  echo -e "Did you complete this issue? (y/n)"
-  read -r completed
+  # Initialize attempt counter if not set
+  if [[ -z "${issue_attempts[$current_issue]:-}" ]]; then
+    issue_attempts[$current_issue]=0
+  fi
 
-  if [[ "$completed" == "y" ]]; then
-    echo -e "${GREEN}✓ Marking issue complete${NC}"
-    bd update "$current_issue" --status done 2>/dev/null || true
+  # Increment attempt counter
+  ((issue_attempts[$current_issue]++))
+  attempts="${issue_attempts[$current_issue]}"
+
+  echo -e "${YELLOW}Attempt $attempts/$MAX_ATTEMPTS_PER_ISSUE for $current_issue${NC}"
+
+  # Invoke OpenCode
+  if invoke_opencode "$current_issue"; then
+    # Success - move to next issue
+    echo -e "${GREEN}✓ Issue $current_issue completed successfully${NC}"
+
+    # Track metrics
+    successful_attempts+=("$attempts")
+    ((issues_completed++))
+
+    # Clear retry counter
+    unset "issue_attempts[$current_issue]"
     current_issue=""
+  else
+    # Failed - check retry limit
+    if [[ $attempts -ge $MAX_ATTEMPTS_PER_ISSUE ]]; then
+      echo -e "${RED}✗ Max attempts ($MAX_ATTEMPTS_PER_ISSUE) reached for $current_issue${NC}"
+
+      # Tag issue with failure comment
+      echo -e "${YELLOW}Adding comment and marking as blocked...${NC}"
+      bd comment "$current_issue" "⚠️ Autonomous execution failed after $MAX_ATTEMPTS_PER_ISSUE attempts. Needs manual review." 2>/dev/null || true
+      bd update "$current_issue" --status blocked 2>/dev/null || true
+
+      # Track metrics
+      ((issues_failed++))
+
+      echo -e "${YELLOW}Moving to next issue (marked $current_issue as blocked)${NC}"
+      unset "issue_attempts[$current_issue]"
+      current_issue=""
+    else
+      echo -e "${YELLOW}Will retry $current_issue (attempt $((attempts + 1))/$MAX_ATTEMPTS_PER_ISSUE)${NC}"
+      # Don't clear current_issue - will retry next iteration
+    fi
   fi
 
   ((iteration++))
@@ -176,23 +305,27 @@ done
 # Session summary
 end_time=$(date +%s)
 duration=$((end_time - start_time))
-duration_formatted=$(printf '%02d:%02d:%02d' $((duration/3600)) $((duration%3600/60)) $((duration%60)))
+duration_formatted=$(printf '%02d:%02d:%02d' $((duration / 3600)) $((duration % 3600 / 60)) $((duration % 60)))
+
+# Calculate average attempts for successful issues
+avg_attempts="N/A"
+if [[ ${#successful_attempts[@]} -gt 0 ]]; then
+  sum=0
+  for attempt in "${successful_attempts[@]}"; do
+    sum=$((sum + attempt))
+  done
+  avg_attempts=$(awk "BEGIN {printf \"%.1f\", $sum / ${#successful_attempts[@]}}")
+fi
 
 echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}Loop Complete${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "Iterations: $((iteration - 1))"
 echo -e "Duration: $duration_formatted"
-
-# Record improvements
-echo -e "\n${BLUE}Record learnings (optional):${NC}"
-echo -e "What improvements for next time? (press Enter to skip)"
-read -r improvements
-
-if [[ -n "$improvements" ]]; then
-  record_improvements "$improvements"
-  echo -e "${GREEN}✓ Improvements recorded${NC}"
-fi
+echo -e "\n${BLUE}Issue Statistics:${NC}"
+echo -e "  Completed: ${GREEN}$issues_completed${NC}"
+echo -e "  Failed: ${RED}$issues_failed${NC}"
+echo -e "  Avg attempts (successful): $avg_attempts"
 
 # Sync beads
 echo -e "\n${BLUE}Syncing beads...${NC}"
