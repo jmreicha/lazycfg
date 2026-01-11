@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 )
@@ -61,7 +62,7 @@ func (e *Engine) Execute(ctx context.Context, opts *ExecuteOptions) (map[string]
 	}
 
 	if len(providers) == 0 {
-		return nil, fmt.Errorf("no providers to execute")
+		return nil, errors.New("no providers to execute")
 	}
 
 	e.logger.Info("starting generation", "provider_count", len(providers))

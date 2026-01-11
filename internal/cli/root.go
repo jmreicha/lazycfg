@@ -11,13 +11,13 @@ import (
 )
 
 var (
-	// Global flags
+	// Global flags.
 	cfgFile  string
 	verbose  bool
 	dryRun   bool
 	noBackup bool
 
-	// Shared components
+	// Shared components.
 	registry      *core.Registry
 	backupManager *core.BackupManager
 	config        *core.Config

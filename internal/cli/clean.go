@@ -3,6 +3,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -19,7 +20,7 @@ Examples:
   lazycfg clean aws kubernetes`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				return fmt.Errorf("must specify at least one provider to clean")
+				return errors.New("must specify at least one provider to clean")
 			}
 
 			ctx := context.Background()
