@@ -28,7 +28,7 @@ This project requires the following tools:
 - **Task** - [Install Task](https://taskfile.dev/installation/)
 - **pre-commit** - [Install pre-commit](https://pre-commit.com/#install)
 - **bd (beads)** - Issue tracker for git
-- **prek** - Configuration management tool
+- **prek** - git hook management tool
 - **mcp-cli** - MCP server interface
 - **common-repo** - Repository tooling
 
@@ -54,19 +54,6 @@ This will:
 - Auto-install missing tools (uses Homebrew on macOS)
 - Install pre-commit hooks (via prek or pre-commit)
 - Download and verify Go dependencies
-
-**Or step-by-step:**
-
-```bash
-# Check what's missing
-task check-tools
-
-# Install missing tools and hooks
-task install-tools
-
-# Install Go dependencies
-task bootstrap
-```
 
 ### Working with Beads
 
