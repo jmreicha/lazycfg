@@ -1,3 +1,5 @@
+// Package configure provides legacy configuration setup functionality.
+// This package is deprecated and will be replaced by the new provider-based architecture.
 package configure
 
 import (

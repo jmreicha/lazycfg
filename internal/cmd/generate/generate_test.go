@@ -6,38 +6,38 @@ import (
 	"testing"
 
 	"github.com/jmreicha/lazycfg/internal/cmd/generate"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 )
 
 func TestGenerate(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Generate Suite")
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "Generate Suite")
 }
 
-var _ = Describe("Generate", func() {
-	AfterEach(func() {
+var _ = ginkgo.Describe("Generate", func() {
+	ginkgo.AfterEach(func() {
 		// Clean up generated files after each test
-		os.Remove(generate.GrantedConfigPath)
-		os.Remove(generate.GrantedConfigPath + ".test")
+		_ = os.Remove(generate.GrantedConfigPath)
+		_ = os.Remove(generate.GrantedConfigPath + ".test")
 	})
 
-	Describe("CreateGrantedConfiguration", func() {
-		It("should create a granted config file with OS-specific content", func() {
+	ginkgo.Describe("CreateGrantedConfiguration", func() {
+		ginkgo.It("should create a granted config file with OS-specific content", func() {
 			// When
 			err := generate.CreateGrantedConfiguration(generate.GrantedConfigPath)
 
 			// Then
-			Expect(err).NotTo(HaveOccurred())
-			Expect(generate.GrantedConfigPath).To(BeARegularFile())
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(generate.GrantedConfigPath).To(gomega.BeARegularFile())
 
 			// Verify the content of the file
 			content, err := os.ReadFile(generate.GrantedConfigPath)
-			Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			// Common configuration should be present regardless of OS
-			Expect(string(content)).To(ContainSubstring(`DefaultBrowser = "STDOUT"`))
-			Expect(string(content)).To(ContainSubstring(`DisableUsageTips = true`))
+			gomega.Expect(string(content)).To(gomega.ContainSubstring(`DefaultBrowser = "STDOUT"`))
+			gomega.Expect(string(content)).To(gomega.ContainSubstring(`DisableUsageTips = true`))
 
 			// OS-specific configuration based on runtime
 			switch runtime.GOOS {
@@ -50,7 +50,7 @@ var _ = Describe("Generate", func() {
 			}
 		})
 
-		It("should create a config file at a custom location", func() {
+		ginkgo.It("should create a config file at a custom location", func() {
 			// Given
 			customPath := generate.GrantedConfigPath + ".test"
 
@@ -58,8 +58,8 @@ var _ = Describe("Generate", func() {
 			err := generate.CreateGrantedConfiguration(customPath)
 
 			// Then
-			Expect(err).NotTo(HaveOccurred())
-			Expect(customPath).To(BeARegularFile())
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(customPath).To(gomega.BeARegularFile())
 		})
 	})
 })
