@@ -10,7 +10,8 @@ set -euo pipefail
 
 # Configuration
 MAX_ITERATIONS="${MAX_ITERATIONS:-10}"
-AI_AGENT="${AI_AGENT:-opencode run}" # Default to opencode, override via env
+AI_AGENT="${AI_AGENT:-opencode run --format json}" # Default to opencode, override via env
+STREAM_OUTPUT="${STREAM_OUTPUT:-false}"            # Set to true to stream AI output in real-time
 PROGRESS_FILE="context/progress.txt"
 PROMPT_FILE="context/prompt.md"
 FINDINGS_MARKER="<findings>"
@@ -33,44 +34,44 @@ NC='\033[0m'
 
 # Check if running inside OpenCode (detect recursive invocation)
 if [[ "${AI_AGENT}" == *"opencode"* ]] && pgrep -f "opencode" >/dev/null 2>&1; then
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${YELLOW}⚠  WARNING: OpenCode process detected${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${YELLOW}You appear to be running this script from within OpenCode.${NC}"
-    echo -e "${YELLOW}This will cause recursive invocation issues.${NC}"
-    echo -e ""
-    echo -e "${BLUE}Options:${NC}"
-    echo -e "  1. Run from terminal outside OpenCode"
-    echo -e "  2. Use a different AI agent: ${GREEN}AI_AGENT='claude --dangerously-skip-permissions' ./script/iterate.sh${NC}"
-    echo -e "  3. Test with mock agent: ${GREEN}AI_AGENT='echo Test' ./script/iterate.sh${NC}"
-    echo -e ""
+  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${YELLOW}⚠  WARNING: OpenCode process detected${NC}"
+  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${YELLOW}You appear to be running this script from within OpenCode.${NC}"
+  echo -e "${YELLOW}This will cause recursive invocation issues.${NC}"
+  echo -e ""
+  echo -e "${BLUE}Options:${NC}"
+  echo -e "  1. Run from terminal outside OpenCode"
+  echo -e "  2. Use a different AI agent: ${GREEN}AI_AGENT='claude --dangerously-skip-permissions' ./script/iterate.sh${NC}"
+  echo -e "  3. Test with mock agent: ${GREEN}AI_AGENT='echo Test' ./script/iterate.sh${NC}"
+  echo -e ""
 
-    # Only prompt if running interactively
-    if [[ -t 0 ]]; then
-        echo -e "${YELLOW}Press Ctrl+C to cancel, or any key to continue anyway...${NC}"
-        read -n 1 -s -r
-        echo ""
-    else
-        echo -e "${RED}Non-interactive session detected - this will likely fail!${NC}"
-        echo -e "${YELLOW}Continuing anyway...${NC}"
-        echo ""
-    fi
+  # Only prompt if running interactively
+  if [[ -t 0 ]]; then
+    echo -e "${YELLOW}Press Ctrl+C to cancel, or any key to continue anyway...${NC}"
+    read -n 1 -s -r
+    echo ""
+  else
+    echo -e "${RED}Non-interactive session detected - this will likely fail!${NC}"
+    echo -e "${YELLOW}Continuing anyway...${NC}"
+    echo ""
+  fi
 fi
 
 # Parse arguments
 ISSUE_ID=""
 while [[ $# -gt 0 ]]; do
-    case $1 in
-    --max-iterations)
-        MAX_ITERATIONS="$2"
-        shift 2
-        ;;
-    --issue-id)
-        ISSUE_ID="$2"
-        shift 2
-        ;;
-    -h | --help)
-        cat <<HELP
+  case $1 in
+  --max-iterations)
+    MAX_ITERATIONS="$2"
+    shift 2
+    ;;
+  --issue-id)
+    ISSUE_ID="$2"
+    shift 2
+    ;;
+  -h | --help)
+    cat <<HELP
 Iterate - Autonomous coding loop for beads
 
 Usage: $0 [OPTIONS]
@@ -82,8 +83,9 @@ Options:
 
 Environment Variables:
   MAX_ITERATIONS       Override default max iterations
-  AI_AGENT             AI agent command (default: "opencode run")
+  AI_AGENT             AI agent command (default: "opencode run --format json")
   OPENCODE_TIMEOUT     Timeout in seconds (default: 1800)
+  STREAM_OUTPUT        Set to true to stream AI output in real-time (default: false)
 
 Examples:
   $0                                                   # Run with defaults (opencode)
@@ -92,23 +94,24 @@ Examples:
   MAX_ITERATIONS=25 $0                                 # Override with env
   AI_AGENT="claude --dangerously-skip-permissions" $0  # Use Claude CLI
   OPENCODE_TIMEOUT=3600 $0                             # 1 hour timeout
+  STREAM_OUTPUT=true $0                                # Enable output streaming
 
 Runs an AI agent in a loop to autonomously complete beads issues.
 HELP
-        exit 0
-        ;;
-    *)
-        echo "Unknown option: $1"
-        echo "Try '$0 --help' for more information."
-        exit 1
-        ;;
-    esac
+    exit 0
+    ;;
+  *)
+    echo "Unknown option: $1"
+    echo "Try '$0 --help' for more information."
+    exit 1
+    ;;
+  esac
 done
 
 # Ensure progress file exists
 mkdir -p context
 if [[ ! -f "$PROGRESS_FILE" ]]; then
-    cat >"$PROGRESS_FILE" <<INIT
+  cat >"$PROGRESS_FILE" <<INIT
 # Autonomous Loop Progress
 
 This file tracks learnings from autonomous work sessions.
@@ -126,28 +129,28 @@ echo -e "${BLUE}Max iterations: $MAX_ITERATIONS${NC}"
 
 # Get next ready issue
 get_next_issue() {
-    if [[ -n "$ISSUE_ID" ]]; then
-        echo "$ISSUE_ID"
-        return
-    fi
-    bd ready --json 2>/dev/null | jq -r '.[0].id // empty' || echo ""
+  if [[ -n "$ISSUE_ID" ]]; then
+    echo "$ISSUE_ID"
+    return
+  fi
+  bd ready --json 2>/dev/null | jq -r '.[0].id // empty' || echo ""
 }
 
 # Append findings to AGENTS.md
 append_finding() {
-    local finding="$1"
-    if grep -q "$finding" "$AGENTS_MD" 2>/dev/null; then
-        return
-    fi
-    echo "- $finding" >>"$AGENTS_MD"
-    echo -e "${GREEN}📝 Recorded finding${NC}"
+  local finding="$1"
+  if grep -q "$finding" "$AGENTS_MD" 2>/dev/null; then
+    return
+  fi
+  echo "- $finding" >>"$AGENTS_MD"
+  echo -e "${GREEN}📝 Recorded finding${NC}"
 }
 
 # Write session improvements to progress.txt
 record_improvements() {
-    local improvements="$1"
+  local improvements="$1"
 
-    cat >>"$PROGRESS_FILE" <<IMPROV
+  cat >>"$PROGRESS_FILE" <<IMPROV
 
 ### $(date '+%Y-%m-%d %H:%M:%S')
 
@@ -159,14 +162,14 @@ IMPROV
 
 # Invoke OpenCode autonomously for current issue
 invoke_opencode() {
-    local issue_id="$1"
-    local output_file
-    output_file=$(mktemp)
+  local issue_id="$1"
+  local output_file
+  output_file=$(mktemp)
 
-    # Build prompt: issue details + instructions + recent learnings
-    local prompt
-    prompt=$(
-        cat <<PROMPT
+  # Build prompt: issue details + instructions + recent learnings
+  local prompt
+  prompt=$(
+    cat <<PROMPT
 # Beads Issue to Complete
 
 $(bd show "$issue_id" 2>/dev/null || echo "Issue: $issue_id")
@@ -184,58 +187,81 @@ $(cat "$PROMPT_FILE" 2>/dev/null || echo "")
 $(tail -30 "$PROGRESS_FILE" 2>/dev/null || echo "No history yet")
 
 PROMPT
-    )
+  )
 
-    echo -e "\n${YELLOW}🚀 Invoking AI agent (timeout: ${OPENCODE_TIMEOUT}s)...${NC}"
-    echo -e "${BLUE}Agent: ${AI_AGENT}${NC}\n"
+  echo -e "\n${YELLOW}🚀 Invoking AI agent (timeout: ${OPENCODE_TIMEOUT}s)...${NC}"
+  echo -e "${BLUE}Agent: ${AI_AGENT}${NC}\n"
 
-    # Invoke AI agent with timeout and capture output
-    set +e # Don't exit on error
-    timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file"
-    local exit_code="${PIPESTATUS[0]}"
-    set -e
+  # Invoke AI agent with timeout and capture output
+  set +e # Don't exit on error
 
-    local output
-    output=$(cat "$output_file")
-    rm -f "$output_file"
+  # Handle streaming output if enabled and using JSON format
+  if [[ "$STREAM_OUTPUT" == "true" ]] && [[ "$AI_AGENT" == *"--format json"* ]]; then
+    echo -e "${BLUE}Streaming AI agent output...${NC}\n"
+    timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" | while IFS= read -r line; do
+      # Extract and display text content from JSON events in real-time
+      text=$(echo "$line" | jq -r 'select(.type == "text") | .part.text' 2>/dev/null || echo "")
+      if [[ -n "$text" ]]; then
+        echo "$text"
+      fi
+    done
+  else
+    timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" >/dev/null
+  fi
 
-    # Check for timeout
-    if [[ $exit_code -eq 124 ]]; then
-        echo -e "\n${RED}⚠ AI agent timed out after ${OPENCODE_TIMEOUT} seconds ($(($OPENCODE_TIMEOUT / 60)) minutes)${NC}"
-        return 1
+  local exit_code="${PIPESTATUS[0]}"
+  set -e
+
+  local output
+  local raw_output
+  raw_output=$(cat "$output_file")
+
+  # Extract text from JSON output if using --format json
+  if [[ "$AI_AGENT" == *"--format json"* ]]; then
+    output=$(echo "$raw_output" | jq -r 'select(.type == "text") | .part.text' 2>/dev/null | tr '\n' ' ' || echo "$raw_output")
+  else
+    output="$raw_output"
+  fi
+
+  rm -f "$output_file"
+
+  # Check for timeout
+  if [[ $exit_code -eq 124 ]]; then
+    echo -e "\n${RED}⚠ AI agent timed out after ${OPENCODE_TIMEOUT} seconds ($(($OPENCODE_TIMEOUT / 60)) minutes)${NC}"
+    return 1
+  fi
+
+  # Check exit code
+  if [[ $exit_code -ne 0 ]]; then
+    echo -e "\n${RED}⚠ AI agent exited with code $exit_code${NC}"
+    return 1
+  fi
+
+  # Check for completion marker
+  if echo "$output" | grep -q "$COMPLETION_MARKER"; then
+    echo -e "\n${GREEN}✓ Completion marker found${NC}"
+
+    # Extract and save findings
+    local findings
+    findings=$(echo "$output" | sed -n "/$FINDINGS_MARKER/,/$FINDINGS_END_MARKER/p" | sed "/$FINDINGS_MARKER/d;/$FINDINGS_END_MARKER/d")
+
+    if [[ -n "$findings" ]]; then
+      echo -e "${BLUE}📝 Extracting findings...${NC}"
+      # Append findings to AGENTS.md (one per line)
+      while IFS= read -r finding; do
+        [[ -n "$finding" ]] && append_finding "$finding"
+      done <<<"$findings"
     fi
 
-    # Check exit code
-    if [[ $exit_code -ne 0 ]]; then
-        echo -e "\n${RED}⚠ AI agent exited with code $exit_code${NC}"
-        return 1
-    fi
+    # Mark issue complete
+    echo -e "${GREEN}✓ Marking issue complete${NC}"
+    bd update "$issue_id" --status done 2>/dev/null || true
 
-    # Check for completion marker
-    if echo "$output" | grep -q "$COMPLETION_MARKER"; then
-        echo -e "\n${GREEN}✓ Completion marker found${NC}"
-
-        # Extract and save findings
-        local findings
-        findings=$(echo "$output" | sed -n "/$FINDINGS_MARKER/,/$FINDINGS_END_MARKER/p" | sed "/$FINDINGS_MARKER/d;/$FINDINGS_END_MARKER/d")
-
-        if [[ -n "$findings" ]]; then
-            echo -e "${BLUE}📝 Extracting findings...${NC}"
-            # Append findings to AGENTS.md (one per line)
-            while IFS= read -r finding; do
-                [[ -n "$finding" ]] && append_finding "$finding"
-            done <<<"$findings"
-        fi
-
-        # Mark issue complete
-        echo -e "${GREEN}✓ Marking issue complete${NC}"
-        bd update "$issue_id" --status done 2>/dev/null || true
-
-        return 0
-    else
-        echo -e "\n${YELLOW}⚠ Completion marker NOT found${NC}"
-        return 1
-    fi
+    return 0
+  else
+    echo -e "\n${YELLOW}⚠ Completion marker NOT found${NC}"
+    return 1
+  fi
 }
 
 # Main loop
@@ -244,87 +270,87 @@ current_issue=""
 start_time=$(date +%s)
 
 while [[ $iteration -le $MAX_ITERATIONS ]]; do
-    echo -e "\n${YELLOW}━━━ Iteration $iteration/$MAX_ITERATIONS ━━━${NC}\n"
+  echo -e "\n${YELLOW}━━━ Iteration $iteration/$MAX_ITERATIONS ━━━${NC}\n"
 
-    # Get issue
+  # Get issue
+  if [[ -z "$current_issue" ]]; then
+    current_issue=$(get_next_issue)
     if [[ -z "$current_issue" ]]; then
-        current_issue=$(get_next_issue)
-        if [[ -z "$current_issue" ]]; then
-            echo -e "${GREEN}✓ No more issues${NC}"
-            break
-        fi
-        echo -e "${BLUE}Issue: $current_issue${NC}"
+      echo -e "${GREEN}✓ No more issues${NC}"
+      break
     fi
+    echo -e "${BLUE}Issue: $current_issue${NC}"
+  fi
 
-    # Show issue details
-    echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
-    echo -e "${BLUE}Issue Details:${NC}"
-    echo -e "${BLUE}═══════════════════════════════════════${NC}"
-    bd show "$current_issue" 2>/dev/null || echo "Issue not found"
+  # Show issue details
+  echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
+  echo -e "${BLUE}Issue Details:${NC}"
+  echo -e "${BLUE}═══════════════════════════════════════${NC}"
+  bd show "$current_issue" 2>/dev/null || echo "Issue not found"
 
-    # Show instructions
-    echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
-    echo -e "${BLUE}Instructions:${NC}"
-    echo -e "${BLUE}═══════════════════════════════════════${NC}"
-    cat "$PROMPT_FILE" 2>/dev/null || echo "No prompt file found"
+  # Show instructions
+  echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
+  echo -e "${BLUE}Instructions:${NC}"
+  echo -e "${BLUE}═══════════════════════════════════════${NC}"
+  cat "$PROMPT_FILE" 2>/dev/null || echo "No prompt file found"
 
-    # Show recent learnings
-    echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
-    echo -e "${BLUE}Recent Learnings:${NC}"
-    echo -e "${BLUE}═══════════════════════════════════════${NC}"
-    tail -30 "$PROGRESS_FILE" 2>/dev/null || echo "No history yet"
+  # Show recent learnings
+  echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
+  echo -e "${BLUE}Recent Learnings:${NC}"
+  echo -e "${BLUE}═══════════════════════════════════════${NC}"
+  tail -30 "$PROGRESS_FILE" 2>/dev/null || echo "No history yet"
 
-    # Invoke OpenCode autonomously
-    echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
-    echo -e "${BLUE}Autonomous Execution:${NC}"
-    echo -e "${BLUE}═══════════════════════════════════════${NC}"
+  # Invoke OpenCode autonomously
+  echo -e "\n${BLUE}═══════════════════════════════════════${NC}"
+  echo -e "${BLUE}Autonomous Execution:${NC}"
+  echo -e "${BLUE}═══════════════════════════════════════${NC}"
 
-    # Initialize attempt counter if not set
-    if [[ -z "${issue_attempts[$current_issue]:-}" ]]; then
-        issue_attempts[$current_issue]=0
-    fi
+  # Initialize attempt counter if not set
+  if [[ -z "${issue_attempts[$current_issue]:-}" ]]; then
+    issue_attempts[$current_issue]=0
+  fi
 
-    # Increment attempt counter
-    ((issue_attempts[$current_issue]++))
-    attempts="${issue_attempts[$current_issue]}"
+  # Increment attempt counter
+  issue_attempts[$current_issue]=$((${issue_attempts[$current_issue]} + 1))
+  attempts="${issue_attempts[$current_issue]}"
 
-    echo -e "${YELLOW}Attempt $attempts/$MAX_ATTEMPTS_PER_ISSUE for $current_issue${NC}"
+  echo -e "${YELLOW}Attempt $attempts/$MAX_ATTEMPTS_PER_ISSUE for $current_issue${NC}"
 
-    # Invoke OpenCode
-    if invoke_opencode "$current_issue"; then
-        # Success - move to next issue
-        echo -e "${GREEN}✓ Issue $current_issue completed successfully${NC}"
+  # Invoke OpenCode
+  if invoke_opencode "$current_issue"; then
+    # Success - move to next issue
+    echo -e "${GREEN}✓ Issue $current_issue completed successfully${NC}"
 
-        # Track metrics
-        successful_attempts+=("$attempts")
-        ((issues_completed++))
+    # Track metrics
+    successful_attempts+=("$attempts")
+    issues_completed=$((issues_completed + 1))
 
-        # Clear retry counter
-        unset "issue_attempts[$current_issue]"
-        current_issue=""
+    # Clear retry counter
+    unset "issue_attempts[$current_issue]"
+    current_issue=""
+  else
+    # Failed - check retry limit
+    if [[ $attempts -ge $MAX_ATTEMPTS_PER_ISSUE ]]; then
+      echo -e "${RED}✗ Max attempts ($MAX_ATTEMPTS_PER_ISSUE) reached for $current_issue${NC}"
+
+      # Tag issue with failure comment
+      echo -e "${YELLOW}Adding comment and marking as blocked...${NC}"
+      bd comment "$current_issue" "⚠️ Autonomous execution failed after $MAX_ATTEMPTS_PER_ISSUE attempts. Needs manual review." 2>/dev/null || true
+      bd update "$current_issue" --status blocked 2>/dev/null || true
+
+      # Track metrics
+      issues_failed=$((issues_failed + 1))
+
+      echo -e "${YELLOW}Moving to next issue (marked $current_issue as blocked)${NC}"
+      unset "issue_attempts[$current_issue]"
+      current_issue=""
     else
-        # Failed - check retry limit
-        if [[ $attempts -ge $MAX_ATTEMPTS_PER_ISSUE ]]; then
-            echo -e "${RED}✗ Max attempts ($MAX_ATTEMPTS_PER_ISSUE) reached for $current_issue${NC}"
-
-            # Tag issue with failure comment
-            echo -e "${YELLOW}Adding comment and marking as blocked...${NC}"
-            bd comment "$current_issue" "⚠️ Autonomous execution failed after $MAX_ATTEMPTS_PER_ISSUE attempts. Needs manual review." 2>/dev/null || true
-            bd update "$current_issue" --status blocked 2>/dev/null || true
-
-            # Track metrics
-            ((issues_failed++))
-
-            echo -e "${YELLOW}Moving to next issue (marked $current_issue as blocked)${NC}"
-            unset "issue_attempts[$current_issue]"
-            current_issue=""
-        else
-            echo -e "${YELLOW}Will retry $current_issue (attempt $((attempts + 1))/$MAX_ATTEMPTS_PER_ISSUE)${NC}"
-            # Don't clear current_issue - will retry next iteration
-        fi
+      echo -e "${YELLOW}Will retry $current_issue (attempt $((attempts + 1))/$MAX_ATTEMPTS_PER_ISSUE)${NC}"
+      # Don't clear current_issue - will retry next iteration
     fi
+  fi
 
-    ((iteration++))
+  iteration=$((iteration + 1))
 done
 
 # Session summary
@@ -335,11 +361,11 @@ duration_formatted=$(printf '%02d:%02d:%02d' $((duration / 3600)) $((duration % 
 # Calculate average attempts for successful issues
 avg_attempts="N/A"
 if [[ ${#successful_attempts[@]} -gt 0 ]]; then
-    sum=0
-    for attempt in "${successful_attempts[@]}"; do
-        sum=$((sum + attempt))
-    done
-    avg_attempts=$(awk "BEGIN {printf \"%.1f\", $sum / ${#successful_attempts[@]}}")
+  sum=0
+  for attempt in "${successful_attempts[@]}"; do
+    sum=$((sum + attempt))
+  done
+  avg_attempts=$(awk "BEGIN {printf \"%.1f\", $sum / ${#successful_attempts[@]}}")
 fi
 
 echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
