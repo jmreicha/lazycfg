@@ -98,7 +98,7 @@ tasks:
         fi
 
   install-tools:
-    desc: Install missing required tools automatically
+    desc: Install missing required tools and pre-commit hooks automatically
     cmds:
       - |
         echo "Installing missing tools..."
@@ -202,7 +202,33 @@ tasks:
 
         echo ""
         echo "✅ All tools installed successfully!"
-        echo "Run 'task check-tools' to verify"
+
+        # Install pre-commit hooks if pre-commit is available
+        if command -v pre-commit &> /dev/null; then
+          echo ""
+          echo "Installing pre-commit hooks..."
+          if command -v prek &> /dev/null; then
+            if prek install; then
+              echo "✅ Pre-commit hooks installed via prek"
+            else
+              echo "⚠ prek install failed, trying pre-commit install"
+              if pre-commit install; then
+                echo "✅ Pre-commit hooks installed"
+              else
+                echo "⚠ Failed to install pre-commit hooks"
+              fi
+            fi
+          else
+            if pre-commit install; then
+              echo "✅ Pre-commit hooks installed"
+            else
+              echo "⚠ Failed to install pre-commit hooks"
+            fi
+          fi
+        fi
+
+        echo ""
+        echo "Run 'task check-tools' to verify your setup"
 
   bootstrap:
     desc: Bootstrap and set up dependencies and tools

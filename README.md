@@ -41,35 +41,31 @@ git clone git@github.com:jmreicha/lazycfg.git
 cd lazycfg
 ```
 
-2. Check required tools:
+2. Bootstrap the development environment:
 
 ```bash
-task check-tools
-```
-
-3. Install missing tools (if any):
-
-```bash
-# Automatically install missing tools (uses Homebrew on macOS)
-task install-tools
-
-# Or manually install tools as shown by check-tools output
-```
-
-4. Bootstrap dependencies:
-
-```bash
+# One command to install everything
 task bootstrap
 ```
 
-**Note:** `task bootstrap` will automatically run `task install-tools` first.
+This will:
 
-5. Install pre-commit hooks:
+- Check for required tools (go, golangci-lint, bd, pre-commit)
+- Auto-install missing tools (uses Homebrew on macOS)
+- Install pre-commit hooks (via prek or pre-commit)
+- Download and verify Go dependencies
+
+**Or step-by-step:**
 
 ```bash
-prek install
-# Or with pre-commit
-# pre-commit install
+# Check what's missing
+task check-tools
+
+# Install missing tools and hooks
+task install-tools
+
+# Install Go dependencies
+task bootstrap
 ```
 
 ### Working with Beads
@@ -121,7 +117,7 @@ Common tasks:
 
 ```bash
 task check-tools     # Check if required CLI tools are installed
-task install-tools   # Install missing required tools automatically
+task install-tools   # Install missing tools and pre-commit hooks
 task bootstrap       # Bootstrap and set up dependencies and tools
 task build           # Build the binary
 task fmt             # Format Go code
