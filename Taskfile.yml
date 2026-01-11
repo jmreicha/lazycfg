@@ -7,7 +7,6 @@ vars:
 
 tasks:
   default:
-    desc: Show available tasks
     cmds:
       - task --list
 
@@ -73,8 +72,8 @@ tasks:
         fi
 
         # Check mcp-cli
-        if ! command -v mcp &> /dev/null; then
-          echo "⚠ mcp-cli (optional) - MCP server interface"
+        if ! command -v mcp-cli &> /dev/null; then
+          echo "⚠ mcp-cli - MCP server interface"
         else
           echo "✓ mcp-cli installed"
         fi
