@@ -41,13 +41,19 @@ git clone git@github.com:jmreicha/lazycfg.git
 cd lazycfg
 ```
 
-2. Bootstrap dependencies and tools:
+2. Check required tools:
+
+```bash
+task check-tools
+```
+
+3. Bootstrap dependencies and tools:
 
 ```bash
 task bootstrap
 ```
 
-3. Install beads (issue tracker):
+4. Install beads (issue tracker) if not already installed:
 
 ```bash
 # macOS/Linux
@@ -57,7 +63,7 @@ curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/insta
 brew install steveyegge/beads/bd
 ```
 
-4. Install pre-commit hooks:
+5. Install pre-commit hooks:
 
 ```bash
 prek install
@@ -65,19 +71,16 @@ prek install
 # pre-commit install
 ```
 
-5. Verify your setup:
+6. Verify your setup:
 
 ```bash
-# Check Go installation
+# Check all tools at once
+task check-tools
+
+# Or check individually
 go version
-
-# Check Task installation
 task --version
-
-# Check beads installation
 bd version
-
-# Check pre-commit
 pre-commit --version
 ```
 
@@ -129,6 +132,7 @@ task --list
 Common tasks:
 
 ```bash
+task check-tools     # Check if required CLI tools are installed
 task bootstrap       # Bootstrap and set up dependencies and tools
 task build           # Build the binary
 task fmt             # Format Go code
