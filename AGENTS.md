@@ -31,7 +31,9 @@ TODO: Use common go testing patterns
 
 ### Test Coverage
 
-## Code Quality & Pre-commit
+## Code Quality & Style
+
+### Pre-commit
 
 Pre-commit hooks (configured in `.pre-commit-config.yaml`) automatically run: fmt, validate, tests, conventional commit validation, trailing whitespace/YAML checks and other lints.
 
@@ -39,6 +41,11 @@ Pre-commit hooks (configured in `.pre-commit-config.yaml`) automatically run: fm
 
 - Commit message >100 chars or wrong format
 - Code not formatted
+
+### Logging and Errors
+
+- Emit detailed, structured logs at key boundaries.
+- Make errors explicit and informative.
 
 ## Commit Message Requirements
 
@@ -77,7 +84,7 @@ Breaking changes: `feat!: description` or `BREAKING CHANGE:` in footer
 
 Write simple, concise commentary. Only comment on what is not obvious to a skilled programmer by reading the code. Comments should contain proper grammar and punctuation and should be prose-like, rather than choppy partial sentences. A human reading the comments should feel like they are reading a well-written professional paper.
 
-## Personal preferences and findings
+## Personal preferences
 
 Use these rules to apply my own personal style and preferences to your responses and behaviors.
 
@@ -118,3 +125,5 @@ Use these rules to apply my own personal style and preferences to your responses
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
+
+## Findings

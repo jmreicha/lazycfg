@@ -1,0 +1,49 @@
+# Ralph Wiggum Loop Progress Tracker
+
+This file tracks the progress and learnings from autonomous Ralph Wiggum loop executions.
+It serves as memory for the agent to improve over time by learning from past iterations.
+
+## Format
+
+Each entry should include:
+- **Date/Time**: When the loop ran
+- **Issue ID**: The beads issue being worked on
+- **Iterations**: Number of iterations taken
+- **Outcome**: Success/Failure/Partial
+- **Key Learnings**: What worked well or what didn't
+- **Improvements**: Suggestions for next time
+
+---
+
+## Progress Log
+
+### Example Entry (Template)
+
+**Date**: 2026-01-11
+**Issue**: example-123
+**Iterations**: 15 / 50
+**Outcome**: Success
+**Duration**: 2.5 hours
+
+**What Worked**:
+- Clear, specific issue description made task easier
+- Small atomic commits helped track progress
+- Running tests after each change caught bugs early
+
+**What Didn't Work**:
+- Initial approach to error handling was too complex
+- Needed to refactor after iteration 8
+
+**Key Learnings**:
+- Always check existing patterns in codebase before implementing new ones
+- Review AGENTS.md guidelines before starting
+- Test edge cases explicitly
+
+**Improvements for Next Time**:
+- Add more detailed acceptance criteria to issues
+- Review similar code before starting implementation
+- Consider error handling approach earlier in the process
+
+---
+
+<!-- New entries will be added below by the ralph-loop script -->

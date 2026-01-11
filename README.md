@@ -113,3 +113,29 @@ bd sync
 6. Commit with conventional commit format: `git commit -m "feat: your feature"`
 7. Sync beads: `bd sync`
 8. Push changes: `git push`
+
+### Autonomous Iteration
+
+For autonomous development, use the iteration loop to work through beads issues:
+
+```bash
+# Run with default settings (max 50 iterations)
+./script/iterate.sh
+
+# Custom max iterations
+./script/iterate.sh --max-iterations 100
+
+# Work on specific issue
+./script/iterate.sh --issue-id <issue-id>
+
+# With environment variable
+MAX_ITERATIONS=25 ./script/iterate.sh
+```
+
+The loop:
+
+- Pulls ready tasks from beads
+- Shows issue details and historical learnings from `context/progress.txt`
+- Records improvements after each session
+- Updates beads issue status
+- Continues until complete or max iterations reached
