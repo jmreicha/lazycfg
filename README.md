@@ -25,6 +25,7 @@ interface to handle this for you so you can focus on more important things.
 This project requires the following tools:
 
 - **Go** 1.23+ - [Install Go](https://go.dev/doc/install)
+- **Task** - [Install Task](https://taskfile.dev/installation/)
 - **pre-commit** - [Install pre-commit](https://pre-commit.com/#install)
 - **bd (beads)** - Issue tracker for git
 - **prek** - Configuration management tool
@@ -40,10 +41,10 @@ git clone git@github.com:jmreicha/lazycfg.git
 cd lazycfg
 ```
 
-2. Install Go dependencies:
+2. Bootstrap dependencies and tools:
 
 ```bash
-go mod download
+task bootstrap
 ```
 
 3. Install beads (issue tracker):
@@ -69,6 +70,9 @@ prek install
 ```bash
 # Check Go installation
 go version
+
+# Check Task installation
+task --version
 
 # Check beads installation
 bd version
@@ -109,10 +113,30 @@ bd sync
 2. Create or claim an issue
 3. Create a feature branch: `git checkout -b feature/your-feature`
 4. Make your changes
-5. Run tests: `go test ./...`
+5. Run checks: `task check` (runs fmt, lint, and test)
 6. Commit with conventional commit format: `git commit -m "feat: your feature"`
 7. Sync beads: `bd sync`
 8. Push changes: `git push`
+
+### Available Tasks
+
+View all available tasks with:
+
+```bash
+task --list
+```
+
+Common tasks:
+
+```bash
+task bootstrap       # Bootstrap and set up dependencies and tools
+task build           # Build the binary
+task fmt             # Format Go code
+task lint            # Run linters
+task test            # Run tests
+task check           # Run fmt, lint, and test
+task clean           # Clean build artifacts
+```
 
 ### Autonomous Iteration
 
