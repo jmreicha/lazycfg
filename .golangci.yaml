@@ -21,6 +21,13 @@ formatters:
     - gofumpt # better 'go fmt'
     - goimports # import management
 
+issues:
+  exclude-rules:
+    # Exclude var-naming check for deprecated util package
+    - path: internal/cmd/util
+      linters:
+        - revive
+      text: "avoid meaningless package names"
 # TODO: lint struct alignment for better memory management
 # linters-settings:
 # maligned:
