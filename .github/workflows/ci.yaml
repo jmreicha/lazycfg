@@ -59,7 +59,7 @@ jobs:
         run: go tool cover -func=coverage.out
       - name: Upload coverage artifact
         if: success()
-        uses: actions/upload-artifact@ea054f24ef0e66c2d6b937df3fb8b294e2a13f62 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: coverage-report
           path: coverage.out
