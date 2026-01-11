@@ -1,3 +1,5 @@
+// Package util provides legacy utility functions.
+// This package is deprecated and will be replaced by the new provider-based architecture.
 package util
 
 import (
@@ -41,13 +43,21 @@ func BackupConfig(filePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open source file: %w", err)
 	}
-	defer srcFile.Close()
+	defer func() {
+		if cerr := srcFile.Close(); cerr != nil {
+			fmt.Printf("warning: failed to close source file: %v\n", cerr)
+		}
+	}()
 
 	dstFile, err := os.Create(filepath.Clean(backupFilePath))
 	if err != nil {
 		return fmt.Errorf("failed to create backup file: %w", err)
 	}
-	defer dstFile.Close()
+	defer func() {
+		if cerr := dstFile.Close(); cerr != nil {
+			fmt.Printf("warning: failed to close destination file: %v\n", cerr)
+		}
+	}()
 
 	if _, err := io.Copy(dstFile, srcFile); err != nil {
 		return fmt.Errorf("failed to copy file contents: %w", err)
