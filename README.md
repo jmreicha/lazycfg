@@ -120,17 +120,23 @@ task clean           # Clean build artifacts
 For autonomous development, use the iteration loop to work through beads issues:
 
 ```bash
-# Run with default settings (max 50 iterations)
-./script/iterate.sh
+# Run with default settings (picks the first open issue)
+task iterate
 
 # Custom max iterations
-./script/iterate.sh --max-iterations 100
+task iterate -- --max-iterations 10
 
 # Work on specific issue
-./script/iterate.sh --issue-id <issue-id>
+task iterate -- --issue-id <issue-id>
 
 # With environment variable
-MAX_ITERATIONS=25 ./script/iterate.sh
+MAX_ITERATIONS=25 task iterate
+
+# Use different AI agent
+AI_AGENT='claude' task iterate
+
+# Adjust timeout (default 30 minutes)
+OPENCODE_TIMEOUT=3600 task iterate
 ```
 
 The loop:
