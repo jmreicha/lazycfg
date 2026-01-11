@@ -141,7 +141,6 @@ Use these rules to apply my own personal style and preferences to your responses
    ```bash
    git pull --rebase origin main  # Rebase on latest main
    bd sync
-   git push -u origin <branch-name>  # Push your feature branch
    git status  # Verify push succeeded
    ```
 5. **Clean up** - Clear stashes, prune remote branches

@@ -58,7 +58,7 @@ Complete the issue shown below following the project guidelines.
 
 ## Guidelines
 
-- **NEVER commit to main directly** - Always work on a feature branch
+- NEVER commit to main directly. Always work on a feature branch
 - Do NOT include .beads/ in your commit - run 'git restore .beads/' before staging
 - Do NOT push or create PR - the script handles git push and gh pr create
 - Do NOT run 'bd close' - the script handles closing the bead after PR is created
