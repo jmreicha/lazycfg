@@ -64,6 +64,13 @@ tasks:
           echo "✓ pre-commit $(pre-commit --version | awk '{print $2}')"
         fi
 
+        # Check common-repo
+        if ! command -v common-repo &> /dev/null; then
+          MISSING+=("common-repo|curl -fsSL https://raw.githubusercontent.com/common-repo/common-repo/main/install.sh | sh")
+        else
+          echo "✓ common-repo $(common-repo --version 2>/dev/null | head -1 || echo 'installed')"
+        fi
+
         # Check prek
         if ! command -v prek &> /dev/null; then
           echo "⚠ prek (optional) - configuration management tool"
@@ -72,8 +79,8 @@ tasks:
         fi
 
         # Check mcp-cli
-        if ! command -v mcp-cli &> /dev/null; then
-          echo "⚠ mcp-cli - MCP server interface"
+        if ! command -v mcp &> /dev/null; then
+          echo "⚠ mcp-cli (optional) - MCP server interface"
         else
           echo "✓ mcp-cli installed"
         fi
@@ -177,6 +184,19 @@ tasks:
             echo "  ❌ Cannot auto-install pre-commit without Homebrew or pip"
             echo "  → Install from: https://pre-commit.com/#install"
             FAILED+=("pre-commit")
+          fi
+        fi
+
+        # Install common-repo
+        if ! command -v common-repo &> /dev/null; then
+          echo "Installing common-repo..."
+          if curl -fsSL https://raw.githubusercontent.com/common-repo/common-repo/main/install.sh | sh; then
+            # Add to PATH for current session
+            export PATH="$HOME/.local/bin:$PATH"
+            INSTALLED+=("common-repo")
+          else
+            echo "  ❌ Failed to install common-repo"
+            FAILED+=("common-repo")
           fi
         fi
 

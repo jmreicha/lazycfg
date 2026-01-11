@@ -28,6 +28,10 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.x"
+      - name: Install common-repo
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/common-repo/common-repo/main/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Install lychee
         run: |
           curl -sL https://github.com/lycheeverse/lychee/releases/latest/download/lychee-x86_64-unknown-linux-gnu.tar.gz | tar xz
