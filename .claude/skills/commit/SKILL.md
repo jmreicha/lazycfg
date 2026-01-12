@@ -1,9 +1,9 @@
 ---
-name: conventional-commits
+name: commit
 description: Use when creating Git commits to ensure they follow the Conventional Commits specification. Provides guidance on commit message structure, types, scopes, and best practices for clear, consistent commit messages.
 ---
 
-# Conventional Commits
+# Commit
 
 This skill provides guidance for writing Git commits that follow the Conventional Commits specification (v1.0.0).
 

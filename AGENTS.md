@@ -14,6 +14,7 @@ Based on [Anthropic's guide to long-running agents](https://www.anthropic.com/en
 - **If corrected, acknowledge and fix** - Don't defend substitutions that contradict the source
 - **Work on one task at a time** - Avoid scope creep and doing too much at once
 - **Documentation is part of implementation** - When adding functionality, update all related docs (module docs, function docs, user-facing docs) in the same change. Don't defer documentation to later.
+- **Research before implementation** - Use the research skill at the start of feature planning to gather context from documentation, real-world code, and community knowledge. Don't guess patterns when you can research them.
 
 ## Environment and Tooling
 
@@ -49,6 +50,39 @@ Available MCP servers (run `mcp-cli` to list):
 - Prefer real-world examples over guessing syntax or patterns
 - Search for literal code patterns in grep (like "async function", "import React"), not prose descriptions
 
+**For systematic research during planning:**
+
+- Use the [research skill](.claude/skills/research/SKILL.md) which coordinates context7 and grep searches
+- The skill provides structured findings and handles fallbacks when MCP is unavailable
+
+### Research Skill
+
+When planning new features, use the [research skill](.claude/skills/research/SKILL.md) to autonomously gather context from multiple sources.
+
+**The skill helps you:**
+
+- Query library documentation (context7)
+- Find real-world code examples (grep/searchGitHub)
+- Understand common patterns and trade-offs
+- Make informed implementation decisions
+
+**When to use:**
+
+- Try to use whenever implementing new functionality
+- Working with unfamiliar libraries or patterns
+- Evaluating architectural approaches
+- Need to understand how others solved similar problems
+
+**Research process:**
+
+1. Ask user clarifying questions about requirements
+2. Request any specific documentation links from user
+3. Execute multi-phase research (docs → code examples → web if needed)
+4. Present structured findings with recommendations
+5. Get user approval before implementation
+
+**Important:** Always notify the user if MCP servers are unavailable during research.
+
 ### Development Commands
 
 ## Testing
@@ -75,9 +109,9 @@ Pre-commit hooks (configured in `.pre-commit-config.yaml`) automatically run: fm
 - Emit detailed, structured logs at key boundaries.
 - Make errors explicit and informative.
 
-## Commit Message Requirements
+### Commit Message Requirements
 
-All commits must follow the **conventional commit** pattern. See the [conventional-commits skill](.claude/skills/conventional-commits/SKILL.md) for detailed guidance.
+All commits must follow the **conventional commit** pattern. See the [commits skill](.claude/skills/commit/SKILL.md) for detailed guidance.
 
 **Quick reference:**
 
@@ -89,7 +123,7 @@ Common types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build
 
 Examples: `feat: add user auth`, `fix: resolve memory leak`, `docs: update install instructions`
 
-## Committing Guidelines
+### Committing Guidelines
 
 1. **NEVER commit directly to main** - Always create a feature branch for your work (e.g., `feat/issue-name` or `fix/issue-name`)
 2. **Run tests/pre-commit before every commit** - Catches formatting, linting, and prose issues
@@ -98,7 +132,7 @@ Examples: `feat: add user auth`, `fix: resolve memory leak`, `docs: update insta
 5. **When fixing tests** - Understand what's being validated, fix the underlying issue, make expectations flexible
 6. **Keep summaries brief** - 1-2 sentences, no code samples unless requested
 
-## Documentation Style Guide
+### Documentation Style Guide
 
 - Be concise. Avoid unnecessary and verbose explanations. Don't bold or emphasize wording.
 - Follow the Go [Style Guide](https://google.github.io/styleguide/go/) and [Best Practices](https://google.github.io/styleguide/go/best-practices) docs.
@@ -112,6 +146,25 @@ Examples: `feat: add user auth`, `fix: resolve memory leak`, `docs: update insta
 ### Comments
 
 Write simple, concise commentary. Only comment on what is not obvious to a skilled programmer by reading the code. Comments should contain proper grammar and punctuation and should be prose-like, rather than choppy partial sentences. A human reading the comments should feel like they are reading a well-written professional paper.
+
+### Zero Narration
+
+Do not narrate actions. Tool calls are structured output - the user sees them directly. Text output wastes context.
+
+Never output:
+
+- Action announcements ("Let me...", "I'll now...", "I'm going to...")
+- Summaries of what was done
+- Confirmations of success (visible from tool output)
+- Explanations of routine operations
+
+Only output text when:
+
+- Asking a question that requires user input
+- Reporting an error that blocks progress
+- A decision point requires user choice
+
+Otherwise: execute silently.
 
 ## Personal preferences
 

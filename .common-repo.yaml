@@ -1,4 +1,4 @@
-# Skills
+# AI agent skills
 
 - repo:
     url: https://github.com/philschmid/mcp-cli
@@ -7,3 +7,11 @@
       - include: ["SKILL.md"]
       - rename:
           - "SKILL.md": ".claude/skills/mcp-cli/SKILL.md"
+
+- repo:
+    url: https://github.com/jmreicha/configs
+    ref: main
+    with:
+      - include: ["skills/research/SKILL.md"]
+      - rename:
+          - "skills/research/SKILL.md": ".claude/skills/research/SKILL.md"
