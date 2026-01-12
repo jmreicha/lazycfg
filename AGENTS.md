@@ -122,6 +122,41 @@ Examples: `feat: add user auth`, `fix: resolve memory leak`, `docs: update insta
 - **When fixing tests** - Understand what's being validated, fix the underlying issue, make expectations flexible
 - **Keep summaries brief** - 1-2 sentences, no code samples unless requested
 
+### Pull Request Workflow
+
+When work on a feature branch is complete, follow this workflow to create a pull request:
+
+1. **Ensure branch is up to date** - Rebase on main and resolve any conflicts
+2. **Run quality gates** - Execute tests, linters, and builds to ensure all checks pass
+3. **Push feature branch** - Push your feature branch to the remote repository with `git push -u origin <branch-name>`
+4. **Create pull request** - Use `gh pr create` to open a pull request:
+   - Provide a clear title following conventional commit format
+   - Include a detailed description explaining why the changes are needed
+   - Link to related issues or tickets
+   - Example: `gh pr create --title "feat: add user authentication" --body "$(cat <<'EOF'
+
+## Summary
+
+- Implement JWT-based authentication
+- Add login and logout endpoints
+- Update middleware to verify tokens
+
+## References
+
+- Fixes #123
+  EOF
+  )"`
+
+5. **Wait for CI checks** - The PR workflow validates the description and runs CI checks
+6. **Address review feedback** - Make changes on the feature branch and push to update the PR
+
+**PR Description Requirements:**
+
+- Must include a clear explanation of why changes are needed
+- Should reference related issues or tickets
+- Cannot be empty or contain only the default template
+- The PR workflow will automatically validate and comment if requirements are not met
+
 ### Documentation Style Guide
 
 - Be concise. Avoid unnecessary and verbose explanations. Don't bold or emphasize wording.
@@ -173,28 +208,33 @@ Use these rules to apply my own personal style and preferences to your responses
 
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until the PR is created.
 
 **MANDATORY WORKFLOW:**
 
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+4. **Ensure branch is synced with main** - Rebase on latest main and resolve conflicts:
    ```bash
-   git pull --rebase origin main  # Rebase on latest main
+   git pull --rebase origin main
+   ```
+5. **PUSH FEATURE BRANCH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git push -u origin <branch-name>
    bd sync
    git status  # Verify push succeeded
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+6. **CREATE PULL REQUEST** - Use `gh pr create` with clear title and detailed description
+7. **Clean up** - Clear stashes, prune remote branches
+8. **Verify** - All changes committed, pushed, and PR created
+9. **Hand off** - Provide PR URL and context for next session
 
 **CRITICAL RULES:**
 
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+- Work is NOT complete until PR is created
+- NEVER stop before pushing and creating PR - that leaves work incomplete
+- NEVER say "ready to push when you are" - YOU must push and create the PR
+- If push or PR creation fails, resolve and retry until it succeeds
 
 ## Findings
