@@ -14,6 +14,7 @@ Based on [Anthropic's guide to long-running agents](https://www.anthropic.com/en
 - **If corrected, acknowledge and fix** - Don't defend substitutions that contradict the source
 - **Work on one task at a time** - Avoid scope creep and doing too much at once
 - **Documentation is part of implementation** - When adding functionality, update all related docs (module docs, function docs, user-facing docs) in the same change. Don't defer documentation to later.
+- **Research before implementation** - Use the research skill at the start of feature planning to gather context from documentation, real-world code, and community knowledge. Don't guess patterns when you can research them.
 
 ## Environment and Tooling
 
@@ -49,6 +50,39 @@ Available MCP servers (run `mcp-cli` to list):
 - Prefer real-world examples over guessing syntax or patterns
 - Search for literal code patterns in grep (like "async function", "import React"), not prose descriptions
 
+**For systematic research during planning:**
+
+- Use the [research skill](.claude/skills/research/SKILL.md) which coordinates context7 and grep searches
+- The skill provides structured findings and handles fallbacks when MCP is unavailable
+
+### Research Skill
+
+When planning new features, use the [research skill](.claude/skills/research/SKILL.md) to autonomously gather context from multiple sources.
+
+**The skill helps you:**
+
+- Query library documentation (context7)
+- Find real-world code examples (grep/searchGitHub)
+- Understand common patterns and trade-offs
+- Make informed implementation decisions
+
+**When to use:**
+
+- Try to use whenever implementing new functionality
+- Working with unfamiliar libraries or patterns
+- Evaluating architectural approaches
+- Need to understand how others solved similar problems
+
+**Research process:**
+
+1. Ask user clarifying questions about requirements
+2. Request any specific documentation links from user
+3. Execute multi-phase research (docs → code examples → web if needed)
+4. Present structured findings with recommendations
+5. Get user approval before implementation
+
+**Important:** Always notify the user if MCP servers are unavailable during research.
+
 ### Development Commands
 
 ## Testing
@@ -77,7 +111,7 @@ Pre-commit hooks (configured in `.pre-commit-config.yaml`) automatically run: fm
 
 ### Commit Message Requirements
 
-All commits must follow the **conventional commit** pattern. See the [conventional-commits skill](.claude/skills/conventional-commits/SKILL.md) for detailed guidance.
+All commits must follow the **conventional commit** pattern. See the [commits skill](.claude/skills/commit/SKILL.md) for detailed guidance.
 
 **Quick reference:**
 
