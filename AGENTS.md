@@ -20,11 +20,11 @@ Based on [Anthropic's guide to long-running agents](https://www.anthropic.com/en
 
 ### Tools
 
-This project relies on the following tools being present in the local development environment `bd (beads)`, `prek`, `mcp-cli`, `go`, `common-repo`.
+This project relies on a number of tools being present in the local development environment `bd (beads)`, `prek`, `mcp-cli`, `go`, `common-repo`.
 
 ### MCP Servers
 
-This project uses MCP (Model Context Protocol) servers to enhance development workflows. **Agents should proactively use MCP servers when implementing changes.**
+This project uses MCP (Model Context Protocol) servers to enhance development workflows. **Agents should attempt to use specific skills first and fall back to using MCP servers to save token usage when implementing changes.**
 
 Available MCP servers (run `mcp-cli` to list):
 
@@ -83,16 +83,6 @@ When planning new features, use the [research skill](.claude/skills/research/SKI
 
 **Important:** Always notify the user if MCP servers are unavailable during research.
 
-### Development Commands
-
-## Testing
-
-TODO: Use common go testing patterns
-
-### Writing E2E CLI Tests
-
-### Test Coverage
-
 ## Code Quality & Style
 
 ### Pre-commit
@@ -113,7 +103,7 @@ Pre-commit hooks (configured in `.pre-commit-config.yaml`) automatically run: fm
 
 All commits must follow the **conventional commit** pattern. See the [commits skill](.claude/skills/commit/SKILL.md) for detailed guidance.
 
-**Quick reference:**
+Quick reference:
 
 ```
 <type>(<scope>): <description>
@@ -125,18 +115,18 @@ Examples: `feat: add user auth`, `fix: resolve memory leak`, `docs: update insta
 
 ### Committing Guidelines
 
-1. **NEVER commit directly to main** - Always create a feature branch for your work (e.g., `feat/issue-name` or `fix/issue-name`)
-2. **Run tests/pre-commit before every commit** - Catches formatting, linting, and prose issues
-3. **NEVER commit/push without explicit user approval**
-4. **Avoid hardcoding values that change** - No version numbers, dates, or timestamps in tests. Use runtime checks.
-5. **When fixing tests** - Understand what's being validated, fix the underlying issue, make expectations flexible
-6. **Keep summaries brief** - 1-2 sentences, no code samples unless requested
+- **NEVER commit directly to main** - Always create a feature branch for your work (e.g., `feat/issue-name` or `fix/issue-name`)
+- **Run tests/pre-commit before every commit** - Catches formatting, linting, and prose issues
+- **NEVER commit/push without explicit user approval**
+- **Avoid hardcoding values that change** - No version numbers, dates, or timestamps in tests. Use runtime checks.
+- **When fixing tests** - Understand what's being validated, fix the underlying issue, make expectations flexible
+- **Keep summaries brief** - 1-2 sentences, no code samples unless requested
 
 ### Documentation Style Guide
 
 - Be concise. Avoid unnecessary and verbose explanations. Don't bold or emphasize wording.
 - Follow the Go [Style Guide](https://google.github.io/styleguide/go/) and [Best Practices](https://google.github.io/styleguide/go/best-practices) docs.
-- Avoid AI writing patterns - See `context/ai-writing-patterns.md` for the list of phrases to avoid. Run `cargo xtask check-prose .` to scan for violations
+- Avoid common AI writing patterns
 - Link to files/documentation appropriately
 - No emojis or hype language
 - No specific numbers that will change (versions, coverage percentages)
