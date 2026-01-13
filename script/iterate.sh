@@ -322,8 +322,4 @@ echo -e "  Completed: ${GREEN}$issues_completed${NC}"
 echo -e "  Failed: ${RED}$issues_failed${NC}"
 echo -e "  Avg attempts (successful): $avg_attempts"
 
-# Sync beads
-echo -e "\n${BLUE}Syncing beads...${NC}"
-bd sync 2>&1 || echo -e "${YELLOW}⚠ bd sync had issues - you may need to sync manually${NC}"
-
 echo -e "${GREEN}Done!${NC}"
