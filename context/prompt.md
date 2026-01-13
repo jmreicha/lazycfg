@@ -11,7 +11,13 @@ Complete the issue shown below following the project guidelines.
 1. **Check for existing work**
 
 - Check if PR already exists for this issue: `gh pr list --search "in:title issue-name"`
-- If PR exists, check its status: `gh pr view <pr-number> --json statusCheckRollup`
+- If PR exists, check its status and review state: `gh pr view <pr-number> --json reviewDecision,reviews`
+- If review state is "CHANGES_REQUESTED":
+  - Check review comments: `gh pr view <pr-number> --comments`
+  - Address each requested change
+  - Make the necessary code changes
+  - Push changes to update the PR
+  - Optionally reply to comments when addressed: `gh pr comment <pr-number> --body "Addressed in <commit-sha>"`
 - Review failing checks and error messages
 - If checks are failing, fix issues in a separate commit and push to update the PR
 - If no PR exists, check if branch exists: `git branch -a | grep feat/issue-name`
@@ -74,6 +80,8 @@ Complete the issue shown below following the project guidelines.
 ## Guidelines
 
 - ALWAYS check for existing PR first before creating a new branch
+- If PR review state is "CHANGES_REQUESTED", address ALL requested changes before continuing
+- If PR review state is "APPROVED" or "COMMENTED" (without changes requested), no action needed on comments
 - NEVER commit to main directly. Always work on a feature branch
 - Do NOT include .beads/ in your commit - run 'git restore .beads/' before staging
 - Do NOT run 'bd close' - the script handles closing the bead after PR is created
@@ -83,6 +91,7 @@ Complete the issue shown below following the project guidelines.
 - PR description must explain why changes are needed (not just what changed)
 - All lint and test violations MUST be fixed before committing
 - Write meaningful tests that cover the changes
+- When addressing review comments, make changes in separate commits (not amend) and push to update the PR
 
 See AGENTS.md for:
 
