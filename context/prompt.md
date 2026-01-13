@@ -8,19 +8,20 @@ Complete the issue shown below following the project guidelines.
 
 ## Process
 
-1. **Check for existing PR**
+1. **Check for existing work**
 
 - Check if PR already exists for this issue: `gh pr list --search "in:title issue-name"`
 - If PR exists, check its status: `gh pr view <pr-number> --json statusCheckRollup`
 - Review failing checks and error messages
 - If checks are failing, fix issues in a separate commit and push to update the PR
-- If no PR exists, proceed to create a branch
+- If no PR exists, check if branch exists: `git branch -a | grep feat/issue-name`
+- If branch exists remotely, checkout and continue: `git checkout feat/issue-name`
 
-2. **Create a branch**
+2. **Create a branch (if needed)**
 
 - Check current branch: `git branch`
-- If on main, create feature branch: `git checkout -b feat/issue-name` or `git checkout -b fix/issue-name`
-- If PR exists, checkout existing branch: `git checkout <branch-name>`
+- If on main and no feature branch exists, create one: `git checkout -b feat/issue-name` or `git checkout -b fix/issue-name`
+- If already on a feature branch for this issue, continue working on it
 - NEVER work directly on main
 
 3. **Understand the requirement**
@@ -62,7 +63,6 @@ Complete the issue shown below following the project guidelines.
 - Stage ONLY your code changes (NOT .beads/): `git restore .beads/`
 - Ensure branch is synced with main: `git pull --rebase origin main`
 - Push feature branch: `git push -u origin <branch-name>`
-- Sync beads: `bd sync`
 - Create or update pull request: `gh pr create --title "type: description" --body "Detailed explanation"`
 - Verify all PR checks pass: `gh pr checks`
 - If checks fail, fix issues in a separate commit and push to update PR
