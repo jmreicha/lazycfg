@@ -55,8 +55,10 @@ Complete the issue shown below following the project guidelines.
 
 7. **Report findings** (optional)
 
-- If you discover important learnings, add them to the `## Findings` section in AGENTS.md
+- If you discover important learnings, wrap them in tags:
+- `<findings>Your learning here</findings>`
 - Be specific and actionable
+- Add the findings to the `## Findings` section in AGENTS.md
 
 8. **Complete and push**
 
