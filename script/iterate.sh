@@ -309,7 +309,8 @@ if [[ ${#successful_attempts[@]} -gt 0 ]]; then
   for attempt in "${successful_attempts[@]}"; do
     sum=$((sum + attempt))
   done
-  avg_attempts=$(awk "BEGIN {printf \"%.1f\", $sum / ${#successful_attempts[@]}}")
+  count=${#successful_attempts[@]}
+  avg_attempts=$(awk "BEGIN {printf \"%.1f\", $sum / $count}")
 fi
 
 echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
