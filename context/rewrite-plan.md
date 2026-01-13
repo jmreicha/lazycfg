@@ -41,10 +41,10 @@ Complete rewrite of lazycfg with a plugin-based modular architecture. The goal i
         ┌─────────┴─────────┬───────────────┐
         │                   │               │
 ┌───────▼────────┐  ┌───────▼────────┐  ┌──▼──────────┐
-│ AWS Provider   │  │  K8s Provider  │  │SSH Provider │
-│ - Granted cfg  │  │ - kubeconfig   │  │- ssh config │
-│ - AWS profiles │  │ - EKS clusters │  │- known hosts│
-│ - Steampipe    │  │ - contexts     │  │             │
+│ SSH Provider   │  │  K8s Provider  │  │AWS Provider │
+│ - ssh config   │  │ - kubeconfig   │  │- Granted cfg│
+│                │  │ - contexts     │  │- Steampipe  │
+│                │  │                │  │- AWS profiles│
 └────────────────┘  └────────────────┘  └─────────────┘
 ```
 
@@ -120,11 +120,11 @@ lazycfg/
 │   │   ├── kubernetes/
 │   │   │   ├── provider.go         # K8s provider implementation
 │   │   │   ├── kubeconfig.go       # Kubeconfig management
-│   │   │   ├── eks.go              # EKS integration
 │   │   │   └── config.go           # K8s-specific config
 │   │   └── ssh/
 │   │       ├── provider.go         # SSH provider implementation
-│   │       ├── sshconfig.go        # SSH config management
+│   │       ├── parser.go           # SSH config parser
+│   │       ├── generator.go        # SSH config generator
 │   │       └── config.go           # SSH-specific config
 │   └── util/
 │       ├── file.go                 # File operations
@@ -140,56 +140,74 @@ lazycfg/
 
 ## Implementation Roadmap
 
+### Implementation Strategy
+
+**Why SSH Provider First?**
+
+The implementation order has been adjusted to build the SSH provider before AWS and Kubernetes providers. This approach provides several key benefits:
+
+1. **Architecture validation**: SSH config is a well-defined, text-based format - ideal for proving the provider plugin system works correctly
+2. **Minimal dependencies**: No external SDKs or cloud service requirements, fewer moving parts, faster development cycle
+3. **Clear scope**: Straightforward config structure compared to AWS multi-tool complexity (Granted, Steampipe, profiles, SSO)
+4. **Independent testing**: No AWS accounts or credentials needed for development and testing
+5. **Faster iteration**: Quick feedback on provider interface design decisions and patterns
+
+This "simplest-first" approach allows us to validate and refine the core plugin architecture before tackling more complex providers.
+
 ### Phase 0: Foundation (Week 1)
 
 **Goal**: Establish core architecture and interfaces
 
-- [ ] Define core interfaces (Provider, Config, Registry)
-- [ ] Implement provider registry
-- [ ] Create core engine with lifecycle management
-- [ ] Set up CLI framework (cobra or kong)
-- [ ] Implement config loading (flags + YAML)
-- [ ] Add backup/restore functionality
-- [ ] Write comprehensive tests for core
+- [x] Define core interfaces (Provider, Config, Registry)
+- [x] Implement provider registry
+- [x] Create core engine with lifecycle management
+- [x] Set up CLI framework (using Cobra)
+- [x] Implement config loading (flags + YAML)
+- [x] Add backup/restore functionality
+- [x] Write comprehensive tests for core
 
-### Phase 1: AWS Provider (Week 2)
+**Status**: ✅ Complete
 
-**Goal**: Replicate and improve existing AWS/Granted functionality
+### Phase 1: SSH Provider (Week 2)
 
-- [ ] Implement AWS provider skeleton
-- [ ] Port Granted config generation
-- [ ] Add Steampipe config generation
-- [ ] Implement AWS profile discovery
-- [ ] Add SSO configuration support
-- [ ] Create AWS-specific CLI commands
-- [ ] Write provider tests
-- [ ] Add E2E tests for AWS workflows
+**Goal**: Validate provider architecture with simple, well-defined SSH config generation
+
+- [ ] Implement SSH provider skeleton (`internal/providers/ssh/`)
+- [ ] Build SSH config parser (handle Host blocks, directives, comments, Include statements)
+- [ ] Implement config generation for `~/.ssh/config`
+- [ ] Implement backup/restore functionality
+- [ ] Wire SSH provider to CLI (register in registry, add flags)
+- [ ] Implement SSH provider configuration struct with validation
+- [ ] Write comprehensive tests (unit, integration, E2E)
+
+**Scope**: Focus on SSH config generation only. Known_hosts and SSH key management are deferred to later phases.
 
 ### Phase 2: Kubernetes Provider (Week 3)
 
-**Goal**: Implement comprehensive K8s config management
+**Goal**: Implement basic kubeconfig management without cloud provider dependencies
 
 - [ ] Implement K8s provider skeleton
-- [ ] Build kubeconfig parser
+- [ ] Build kubeconfig parser (YAML-based)
 - [ ] Implement kubeconfig merging logic
-- [ ] Add EKS cluster discovery
-- [ ] Integrate with AWS provider for EKS auth
 - [ ] Add context management
-- [ ] Support secure auth with aws-vault
 - [ ] Write provider tests
 - [ ] Add E2E tests for K8s workflows
 
-### Phase 3: SSH Provider (Week 4)
+**Scope**: Basic kubeconfig management only. EKS cluster discovery and AWS integration are deferred to Phase 3.
 
-**Goal**: Add SSH configuration management
+### Phase 3: AWS Provider (Week 4)
 
-- [ ] Implement SSH provider skeleton
-- [ ] Build SSH config parser
-- [ ] Implement config generation
-- [ ] Add known_hosts management
-- [ ] Support SSH key management
+**Goal**: Implement complex AWS tooling with Granted, Steampipe, and cloud integrations
+
+- [ ] Implement AWS provider skeleton
+- [ ] Port Granted config generation (OS-specific templates)
+- [ ] Add Steampipe config generation (aggregator connections)
+- [ ] Implement AWS profile discovery
+- [ ] Add SSO configuration support
+- [ ] Create AWS-specific CLI commands
+- [ ] Add EKS integration to K8s provider
 - [ ] Write provider tests
-- [ ] Add E2E tests for SSH workflows
+- [ ] Add E2E tests for AWS workflows
 
 ### Phase 4: Polish & Extensions (Week 5)
 
@@ -220,6 +238,9 @@ lazycfg/
 ### CLI-First Approach
 
 ```bash
+# Generate SSH config
+lazycfg generate ssh
+
 # Generate AWS/Granted config
 lazycfg generate aws --sso-start-url https://example.awsapps.com/start
 
@@ -227,7 +248,7 @@ lazycfg generate aws --sso-start-url https://example.awsapps.com/start
 lazycfg generate all --config lazycfg.yaml
 
 # Clean specific provider
-lazycfg clean aws
+lazycfg clean ssh
 
 # Dry run
 lazycfg generate kubernetes --dry-run
@@ -241,6 +262,16 @@ backup: true
 verbose: false
 
 providers:
+  ssh:
+    enabled: true
+    hosts:
+      - name: clab
+        hostname: clab
+        user: jmreicha
+      - name: sulaco
+        hostname: sulaco
+        user: jmreicha
+
   aws:
     enabled: true
     sso_start_url: https://example.awsapps.com/start
@@ -256,11 +287,6 @@ providers:
   kubernetes:
     enabled: true
     merge_configs: true
-    use_aws_vault: false
-
-  ssh:
-    enabled: true
-    backup_interval: 7d
 ```
 
 ## Technical Decisions
@@ -327,7 +353,7 @@ Since this is a complete rewrite:
 
 - [ ] All existing functionality replicated
 - [ ] Plugin architecture in place and tested
-- [ ] 3 providers implemented (AWS, K8s, SSH)
+- [ ] 3 providers implemented (SSH, K8s, AWS)
 - [ ] Test coverage >80%
 - [ ] Documentation complete
 - [ ] Installation packages available
