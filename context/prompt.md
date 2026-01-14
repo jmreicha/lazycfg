@@ -78,7 +78,7 @@ Complete the issue shown below following the project guidelines.
 - Ensure branch is synced with main: `git pull --rebase origin main`
 - Push feature branch: `git push -u origin <branch-name>`
 - Create or update pull request: `gh pr create --title "type: description" --body "Detailed explanation"`
-- Verify all PR checks pass: `gh pr checks`
+- Check PR status: `gh pr checks` (do NOT use --watch flag as tests can take several minutes)
 - If checks fail, fix issues in a separate commit and push to update PR
 - When task is complete, output: `<promise>COMPLETE</promise>`
 - Update issue status if appropriate
@@ -94,6 +94,7 @@ Complete the issue shown below following the project guidelines.
 - Do NOT run 'bd close' - the script handles closing the bead after PR is created
 - MUST push feature branch and create PR before signaling completion
 - MUST verify all PR checks pass before signaling completion
+- NEVER use 'gh pr checks --watch' as it blocks indefinitely - use 'gh pr checks' without --watch
 - If PR checks fail, fix issues in a separate commit (not amend)
 - PR description must explain why changes are needed (not just what changed)
 - All lint and test violations MUST be fixed before committing

@@ -184,9 +184,10 @@ PROMPT
     # Always save to debug log in /tmp
     if [[ "$STREAM_OUTPUT" == "true" ]]; then
         echo -e "${BLUE}Streaming AI agent output...${NC}\n"
-        timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" | tee "$debug_log"
+        timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" "$debug_log"
     else
-        timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" | tee "$debug_log" >/dev/null
+        timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" >"$output_file" 2>&1
+        cp "$output_file" "$debug_log"
     fi
 
     local exit_code="${PIPESTATUS[0]}"
@@ -215,7 +216,7 @@ PROMPT
 
         # Extract and save findings
         local findings
-        findings=$(echo "$output" | sed -n "/$FINDINGS_MARKER/,/$FINDINGS_END_MARKER/p" | sed "/$FINDINGS_MARKER/d;/$FINDINGS_END_MARKER/d")
+        findings=$(echo "$output" | sed -n '/<findings>/,/<\/findings>/p' | sed '/<findings>/d;/<\/findings>/d')
 
         if [[ -n "$findings" ]]; then
             echo -e "${BLUE}📝 Extracting findings...${NC}"
