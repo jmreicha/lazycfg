@@ -82,6 +82,13 @@ HELP
   esac
 done
 
+# Validate required environment variables
+if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+  echo -e "${RED}Error: GITHUB_TOKEN environment variable is not set${NC}"
+  echo "Please set GITHUB_TOKEN and try again."
+  exit 1
+fi
+
 # Ensure progress file exists
 mkdir -p context
 if [[ ! -f "$PROGRESS_FILE" ]]; then
