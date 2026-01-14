@@ -16,11 +16,12 @@ Based on [Anthropic's guide to long-running agents](https://www.anthropic.com/en
 - **Documentation is part of implementation** - When adding functionality, update all related docs (module docs, function docs, user-facing docs) in the same change. Don't defer documentation to later.
 - **Research before implementation** - Use the research skill at the start of feature planning to gather context from documentation, real-world code, and community knowledge. Don't guess patterns when you can research them.
 
+## Plan Mode
+
+- Make the plan extremely concise. Sacrifice grammar for the sake of concision.
+- At the end of each plan, give me a list of unresolved questions to answer, if any.
+
 ## Environment and Tooling
-
-### Tools
-
-This project relies on a number of tools being present in the local development environment `bd (beads)`, `prek`, `mcp-cli`, `go`, `common-repo`.
 
 ### MCP Servers
 
