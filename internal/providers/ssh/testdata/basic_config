@@ -1,0 +1,16 @@
+# Basic SSH Configuration
+
+Host example.com
+    HostName example.com
+    User ubuntu
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+
+Host *.test.local
+    User testuser
+    Port 2222
+    IdentityFile ~/.ssh/test_key
+
+Host *
+    ServerAliveInterval 60
+    ServerAliveCountMax 3

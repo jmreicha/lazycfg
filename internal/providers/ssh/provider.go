@@ -5,8 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/kevinburke/ssh_config"
 )
 
 const providerName = "ssh"
@@ -108,12 +111,6 @@ func (p *Provider) Validate(_ context.Context) error {
 // Generate creates the configuration files for this provider.
 // Returns a Result containing details about what was generated.
 func (p *Provider) Generate(_ context.Context, opts *core.GenerateOptions) (*core.Result, error) {
-	// TODO: Implement generation logic
-	// - Create SSH configuration files based on provider config
-	// - Handle dry-run mode
-	// - Handle force mode for overwriting existing files
-	// - Track created/skipped files
-
 	result := &core.Result{
 		Provider:     p.Name(),
 		FilesCreated: []string{},
@@ -122,10 +119,74 @@ func (p *Provider) Generate(_ context.Context, opts *core.GenerateOptions) (*cor
 		Metadata:     make(map[string]interface{}),
 	}
 
-	// For now, return a placeholder result
+	if p.config == nil || len(p.config.Hosts) == 0 {
+		result.Warnings = append(result.Warnings, "no hosts configured")
+		return result, nil
+	}
+
+	configPath := filepath.Join(p.config.ConfigPath, "config")
+
+	// Check if config file already exists
+	_, err := os.Stat(configPath)
+	fileExists := err == nil
+
+	if fileExists && !opts.Force && !opts.DryRun {
+		result.FilesSkipped = append(result.FilesSkipped, configPath)
+		result.Warnings = append(result.Warnings, "config file exists, use --force to overwrite")
+		return result, nil
+	}
+
+	// Parse existing config or create new one
+	var cfg *ssh_config.Config
+	if fileExists {
+		cfg, err = ParseConfig(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse existing config: %w", err)
+		}
+	} else {
+		cfg = &ssh_config.Config{}
+	}
+
+	// Add or update hosts from configuration
+	hostsAdded := 0
+	hostsUpdated := 0
+	for _, host := range p.config.Hosts {
+		existingHost := FindHostExact(cfg, host.Host)
+		if existingHost != nil {
+			if err := UpdateHost(cfg, host); err != nil {
+				result.Warnings = append(result.Warnings, fmt.Sprintf("failed to update host %s: %v", host.Host, err))
+				continue
+			}
+			hostsUpdated++
+		} else {
+			if err := AddHost(cfg, host); err != nil {
+				result.Warnings = append(result.Warnings, fmt.Sprintf("failed to add host %s: %v", host.Host, err))
+				continue
+			}
+			hostsAdded++
+		}
+	}
+
 	if opts.DryRun {
 		result.Warnings = append(result.Warnings, "dry-run mode: no files were actually created")
+		result.Metadata["hosts_to_add"] = hostsAdded
+		result.Metadata["hosts_to_update"] = hostsUpdated
+		return result, nil
 	}
+
+	// Ensure config directory exists
+	if err := os.MkdirAll(p.config.ConfigPath, 0700); err != nil {
+		return nil, fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// Write config
+	if err := WriteConfig(cfg, configPath); err != nil {
+		return nil, fmt.Errorf("failed to write config: %w", err)
+	}
+
+	result.FilesCreated = append(result.FilesCreated, configPath)
+	result.Metadata["hosts_added"] = hostsAdded
+	result.Metadata["hosts_updated"] = hostsUpdated
 
 	return result, nil
 }
