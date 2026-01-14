@@ -8,7 +8,13 @@ Complete the issue shown below following the project guidelines.
 
 ## Process
 
-1. **Check for existing work**
+1. **Verify issue is actionable**
+
+- Check if issue status is blocked: The issue details will show if status is "blocked"
+- If status is blocked, immediately exit with message: "Issue is blocked and requires manual review. Skipping autonomous execution."
+- Do NOT attempt to work on blocked issues - they need manual intervention
+
+2. **Check for existing work**
 
 - Check if PR already exists for this issue: `gh pr list --search "in:title issue-name"`
 - If PR exists, check its status and review state: `gh pr view <pr-number> --json reviewDecision,reviews`
@@ -23,21 +29,21 @@ Complete the issue shown below following the project guidelines.
 - If no PR exists, check if branch exists: `git branch -a | grep feat/issue-name`
 - If branch exists remotely, checkout and continue: `git checkout feat/issue-name`
 
-2. **Create a branch (if needed)**
+3. **Create a branch (if needed)**
 
 - Check current branch: `git branch`
 - If on main and no feature branch exists, create one: `git checkout -b feat/issue-name` or `git checkout -b fix/issue-name`
 - If already on a feature branch for this issue, continue working on it
 - NEVER work directly on main
 
-3. **Understand the requirement**
+4. **Understand the requirement**
 
 - Run 'bd show $bead' to understand the issue
 - Read the issue details carefully
 - Check acceptance criteria if present
 - Review any referenced files or context
 
-4. **Review**
+5. **Review**
 
 - Use any relevant MCP servers to understand documentation, code, etc.
 - Read the "Recent Learnings" section below
@@ -45,13 +51,13 @@ Complete the issue shown below following the project guidelines.
 - Avoid repeating past mistakes
 - Apply successful patterns from history
 
-5. **Make changes**
+6. **Make changes**
 
 - Follow coding standards in AGENTS.md
 - Make small, atomic commits
 - Write clear conventional commit messages
 
-6. **Test your changes**
+7. **Test your changes**
 
 - Create unit tests for your fix (create any test files if needed)
 - Create any integration tests if applicable
@@ -59,14 +65,14 @@ Complete the issue shown below following the project guidelines.
 - Verify no regressions
 - Fix any and all failures before continuing
 
-7. **Report findings** (optional)
+8. **Report findings** (optional)
 
 - If you discover important learnings, wrap them in tags:
 - `<findings>Your learning here</findings>`
 - Be specific and actionable
 - Add the findings to the `## Findings` section in AGENTS.md
 
-8. **Complete and push**
+9. **Complete and push**
 
 - Stage ONLY your code changes (NOT .beads/): `git restore .beads/`
 - Ensure branch is synced with main: `git pull --rebase origin main`
@@ -79,6 +85,7 @@ Complete the issue shown below following the project guidelines.
 
 ## Guidelines
 
+- IMMEDIATELY check if issue status is "blocked" at the start - if blocked, exit with message and do NOT proceed
 - ALWAYS check for existing PR first before creating a new branch
 - If PR review state is "CHANGES_REQUESTED", address ALL requested changes before continuing
 - If PR review state is "APPROVED" or "COMMENTED" (without changes requested), no action needed on comments
