@@ -1,0 +1,14 @@
+# SSH Config with Comments
+# This is a test configuration
+
+# Production servers
+Host prod-*
+    User admin
+    Port 22
+    # Use production key
+    IdentityFile ~/.ssh/prod_key
+
+# Development servers
+Host dev-*
+    User developer
+    Port 2222
