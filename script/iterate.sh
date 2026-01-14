@@ -181,13 +181,12 @@ PROMPT
     set +e # Don't exit on error
 
     # Stream output if enabled, otherwise capture silently
-    # Always save to debug log in /tmp
+    # Always save to debug log in /tmp (streamable for tail -f)
     if [[ "$STREAM_OUTPUT" == "true" ]]; then
         echo -e "${BLUE}Streaming AI agent output...${NC}\n"
         timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" "$debug_log"
     else
-        timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" >"$output_file" 2>&1
-        cp "$output_file" "$debug_log"
+        timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" "$debug_log" >/dev/null
     fi
 
     local exit_code="${PIPESTATUS[0]}"
