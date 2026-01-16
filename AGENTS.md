@@ -14,7 +14,7 @@ Based on [Anthropic's guide to long-running agents](https://www.anthropic.com/en
 - **If corrected, acknowledge and fix** - Don't defend substitutions that contradict the source
 - **Work on one task at a time** - Avoid scope creep and doing too much at once
 - **Documentation is part of implementation** - When adding functionality, update all related docs (module docs, function docs, user-facing docs) in the same change. Don't defer documentation to later.
-- **Research before implementation** - Use the research skill at the start of feature planning to gather context from documentation, real-world code, and community knowledge. Don't guess patterns when you can research them.
+- **Research before implementation** - For new features or unfamiliar APIs, use the research skill at the start of planning to gather context from documentation, real-world code, and community knowledge. Skip this for small, obvious changes.
 
 ## Plan Mode
 
@@ -58,7 +58,7 @@ Available MCP servers (run `mcp-cli` to list):
 
 ### Research Skill
 
-When planning new features, use the [research skill](.claude/skills/research/SKILL.md) to autonomously gather context from multiple sources.
+When planning new features or making architectural changes, use the [research skill](.claude/skills/research/SKILL.md) to gather context from multiple sources.
 
 **The skill helps you:**
 
@@ -69,15 +69,15 @@ When planning new features, use the [research skill](.claude/skills/research/SKI
 
 **When to use:**
 
-- Try to use whenever implementing new functionality
-- Working with unfamiliar libraries or patterns
+- Implementing new functionality with unknown patterns
+- Working with unfamiliar libraries or APIs
 - Evaluating architectural approaches
-- Need to understand how others solved similar problems
+- Needing real-world examples before deciding
 
 **Research process:**
 
-1. Ask user clarifying questions about requirements
-2. Request any specific documentation links from user
+1. Ask clarifying questions about requirements
+2. Request documentation links from the user if they have them
 3. Execute multi-phase research (docs → code examples → web if needed)
 4. Present structured findings with recommendations
 5. Get user approval before implementation
@@ -205,11 +205,11 @@ Use these rules to apply my own personal style and preferences to your responses
 - Look for flimsy tests, check for TODOs/stubs when reviewing changes.
 - NEVER accept failing tests as "okay" or "acceptable". All tests must pass before declaring success.
 - If any test fails, investigate and fix the root cause. No exceptions.
-- ALWAYS rebase on main and resolve conflicts before pushing changes.
+- ALWAYS rebase on main and resolve conflicts before pushing changes to a remote branch.
 
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until the PR is created.
+**When ending a work session with code changes intended for review**, you MUST complete ALL steps below. Work is NOT complete until the PR is created.
 
 **MANDATORY WORKFLOW:**
 
@@ -220,7 +220,7 @@ Use these rules to apply my own personal style and preferences to your responses
    ```bash
    git pull --rebase origin main
    ```
-5. **PUSH FEATURE BRANCH TO REMOTE** - This is MANDATORY:
+5. **PUSH FEATURE BRANCH TO REMOTE** - This is mandatory for changes intended for review:
    ```bash
    git push -u origin <branch-name>
    bd sync
@@ -233,8 +233,8 @@ Use these rules to apply my own personal style and preferences to your responses
 
 **CRITICAL RULES:**
 
-- Work is NOT complete until PR is created
-- NEVER stop before pushing and creating PR - that leaves work incomplete
+- Work is NOT complete until a PR is created for reviewable changes
+- NEVER stop before pushing and creating a PR for reviewable changes
 - NEVER say "ready to push when you are" - YOU must push and create the PR
 - If push or PR creation fails, resolve and retry until it succeeds
 
