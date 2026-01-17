@@ -50,10 +50,7 @@ Complete the issue using the following the project guidelines and steps.
 - Investigate the codebase to find the root cause
 - Avoid repeating past mistakes
 - Apply successful patterns from history
-- Cap exploration at 10 file reads and 5 searches; after that, pick the next concrete change and implement it.
 - If you have already identified the target files, stop reading and start editing.
-- If you repeat a read/search of the same file or pattern, treat it as a stall and move to implementation.
-- Maximum 5 minutes in analysis before making the first code change.
 
 6. **Make changes**
 
