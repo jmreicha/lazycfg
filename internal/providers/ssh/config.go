@@ -24,6 +24,9 @@ type Config struct {
 	// ConfigPath is the path to the SSH configuration directory
 	ConfigPath string `yaml:"config_path"`
 
+	// GlobalOptions defines top-level SSH options (Host *).
+	GlobalOptions map[string]string `yaml:"global_options"`
+
 	// Hosts contains SSH host configurations
 	Hosts []HostConfig `yaml:"hosts"`
 }
@@ -41,6 +44,9 @@ type HostConfig struct {
 
 	// User is the SSH username
 	User string `yaml:"user"`
+
+	// IdentityAgent is the path to the SSH agent socket
+	IdentityAgent string `yaml:"identity_agent"`
 
 	// IdentityFile is the path to the SSH private key
 	IdentityFile string `yaml:"identity_file"`
@@ -75,9 +81,10 @@ func ConfigFromMap(raw map[string]interface{}) (*Config, error) {
 // DefaultConfig returns the default SSH provider configuration.
 func DefaultConfig() *Config {
 	return &Config{
-		Enabled:    true,
-		ConfigPath: defaultConfigPath(),
-		Hosts:      []HostConfig{},
+		Enabled:       true,
+		ConfigPath:    defaultConfigPath(),
+		GlobalOptions: defaultGlobalOptions(),
+		Hosts:         []HostConfig{},
 	}
 }
 
@@ -88,4 +95,15 @@ func defaultConfigPath() string {
 	}
 
 	return filepath.Join(home, ".ssh")
+}
+
+func defaultGlobalOptions() map[string]string {
+	return map[string]string{
+		"AddKeysToAgent":        "yes",
+		"IdentitiesOnly":        "yes",
+		"ServerAliveCountMax":   "3",
+		"ServerAliveInterval":   "60",
+		"StrictHostKeyChecking": "ask",
+		"UseKeychain":           "yes",
+	}
 }

@@ -114,11 +114,12 @@ func TestAddHost(t *testing.T) {
 	cfg := &ssh_config.Config{}
 
 	hostConfig := HostConfig{
-		Host:         "newhost.com",
-		Hostname:     "192.168.1.10",
-		User:         "admin",
-		Port:         22,
-		IdentityFile: "~/.ssh/newkey",
+		Host:          "newhost.com",
+		Hostname:      "192.168.1.10",
+		User:          "admin",
+		Port:          22,
+		IdentityAgent: "/tmp/ssh-agent.sock",
+		IdentityFile:  "~/.ssh/newkey",
 		Options: map[string]string{
 			"StrictHostKeyChecking": "no",
 		},
@@ -180,10 +181,11 @@ func TestUpdateHost(t *testing.T) {
 	}
 
 	hostConfig := HostConfig{
-		Host:     "example.com",
-		Hostname: "updated.example.com",
-		User:     "newuser",
-		Port:     2222,
+		Host:          "example.com",
+		Hostname:      "updated.example.com",
+		User:          "newuser",
+		Port:          2222,
+		IdentityAgent: "/tmp/ssh-agent.sock",
 	}
 
 	err = UpdateHost(cfg, hostConfig)
@@ -198,6 +200,14 @@ func TestUpdateHost(t *testing.T) {
 	}
 	if hostname != "updated.example.com" {
 		t.Errorf("HostName = %s, want updated.example.com", hostname)
+	}
+
+	agent, err := cfg.Get("example.com", "IdentityAgent")
+	if err != nil {
+		t.Errorf("failed to get IdentityAgent: %v", err)
+	}
+	if agent != "/tmp/ssh-agent.sock" {
+		t.Errorf("IdentityAgent = %s, want /tmp/ssh-agent.sock", agent)
 	}
 
 	user, err := cfg.Get("example.com", "User")
@@ -369,10 +379,11 @@ func TestRoundTrip(t *testing.T) {
 
 	// Add a new host with a unique pattern
 	newHost := HostConfig{
-		Host:     "roundtrip.example.com",
-		Hostname: "192.168.1.100",
-		User:     "testuser",
-		Port:     22,
+		Host:          "roundtrip.example.com",
+		Hostname:      "192.168.1.100",
+		User:          "testuser",
+		Port:          22,
+		IdentityAgent: "/tmp/ssh-agent.sock",
 	}
 
 	err = AddHost(cfg, newHost)

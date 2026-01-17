@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"sync"
 
@@ -120,6 +121,13 @@ func AddHost(cfg *ssh_config.Config, hostConfig HostConfig) error {
 		})
 	}
 
+	if hostConfig.IdentityAgent != "" {
+		newHost.Nodes = append(newHost.Nodes, &ssh_config.KV{
+			Key:   "IdentityAgent",
+			Value: hostConfig.IdentityAgent,
+		})
+	}
+
 	if hostConfig.IdentityFile != "" {
 		newHost.Nodes = append(newHost.Nodes, &ssh_config.KV{
 			Key:   "IdentityFile",
@@ -128,10 +136,10 @@ func AddHost(cfg *ssh_config.Config, hostConfig HostConfig) error {
 	}
 
 	// Add additional options
-	for key, value := range hostConfig.Options {
+	for _, key := range sortedOptionKeys(hostConfig.Options) {
 		newHost.Nodes = append(newHost.Nodes, &ssh_config.KV{
 			Key:   key,
-			Value: value,
+			Value: hostConfig.Options[key],
 		})
 	}
 
@@ -181,6 +189,13 @@ func UpdateHost(cfg *ssh_config.Config, hostConfig HostConfig) error {
 		})
 	}
 
+	if hostConfig.IdentityAgent != "" {
+		existingHost.Nodes = append(existingHost.Nodes, &ssh_config.KV{
+			Key:   "IdentityAgent",
+			Value: hostConfig.IdentityAgent,
+		})
+	}
+
 	if hostConfig.IdentityFile != "" {
 		existingHost.Nodes = append(existingHost.Nodes, &ssh_config.KV{
 			Key:   "IdentityFile",
@@ -189,10 +204,10 @@ func UpdateHost(cfg *ssh_config.Config, hostConfig HostConfig) error {
 	}
 
 	// Add additional options
-	for key, value := range hostConfig.Options {
+	for _, key := range sortedOptionKeys(hostConfig.Options) {
 		existingHost.Nodes = append(existingHost.Nodes, &ssh_config.KV{
 			Key:   key,
-			Value: value,
+			Value: hostConfig.Options[key],
 		})
 	}
 
@@ -237,6 +252,97 @@ func WriteConfig(cfg *ssh_config.Config, path string) error {
 	}
 
 	return nil
+}
+
+// FindHostsByPatterns returns a map of exact host patterns to host blocks.
+func FindHostsByPatterns(cfg *ssh_config.Config) map[string]*ssh_config.Host {
+	if cfg == nil {
+		return map[string]*ssh_config.Host{}
+	}
+
+	patternMap := make(map[string]*ssh_config.Host)
+	for _, host := range cfg.Hosts {
+		for _, pattern := range host.Patterns {
+			patternMap[pattern.String()] = host
+		}
+	}
+
+	return patternMap
+}
+
+// UpsertGlobalOptions ensures Host * contains the provided options.
+func UpsertGlobalOptions(cfg *ssh_config.Config, options map[string]string) (bool, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if cfg == nil {
+		return false, errConfigNil
+	}
+
+	if len(options) == 0 {
+		return false, nil
+	}
+
+	globalHost := FindHostExact(cfg, "*")
+	if globalHost == nil {
+		pattern, err := ssh_config.NewPattern("*")
+		if err != nil {
+			return false, fmt.Errorf("failed to create global pattern: %w", err)
+		}
+		globalHost = &ssh_config.Host{
+			Patterns: []*ssh_config.Pattern{pattern},
+			Nodes:    []ssh_config.Node{},
+		}
+		cfg.Hosts = append(cfg.Hosts, globalHost)
+	}
+
+	existing := make(map[string]bool)
+	for _, node := range globalHost.Nodes {
+		kv, ok := node.(*ssh_config.KV)
+		if !ok {
+			continue
+		}
+		existing[kv.Key] = true
+	}
+
+	updated := false
+	for _, key := range sortedOptionKeys(options) {
+		value := options[key]
+		if existing[key] {
+			updateHostOption(globalHost, key, value)
+			updated = true
+			continue
+		}
+		globalHost.Nodes = append(globalHost.Nodes, &ssh_config.KV{
+			Key:   key,
+			Value: value,
+		})
+		updated = true
+	}
+
+	return updated, nil
+}
+
+func updateHostOption(host *ssh_config.Host, key, value string) {
+	for _, node := range host.Nodes {
+		kv, ok := node.(*ssh_config.KV)
+		if !ok {
+			continue
+		}
+		if kv.Key == key {
+			kv.Value = value
+			return
+		}
+	}
+}
+
+func sortedOptionKeys(options map[string]string) []string {
+	keys := make([]string, 0, len(options))
+	for key := range options {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // GetHostValue retrieves a single configuration value for a host.
