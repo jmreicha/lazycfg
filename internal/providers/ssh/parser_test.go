@@ -812,3 +812,74 @@ func TestWriteConfig_InvalidPath(t *testing.T) {
 		t.Error("expected error for invalid path")
 	}
 }
+
+func TestRenderConfig_IncludesAndGlobalsSeparation(t *testing.T) {
+	// Parse a real config file with Include directives and global settings
+	cfg, err := ParseConfig("testdata/with_includes")
+	if err != nil {
+		t.Fatalf("failed to parse config: %v", err)
+	}
+
+	output := renderConfig(cfg)
+
+	expected := `# This file was generated automatically. Do not edit manually.
+
+# Added by OrbStack: 'orb' SSH host for Linux machines
+# This only works if it's at the top of ssh_config (before any Host blocks).
+# This won't be added again if you remove it.
+Include ~/.orbstack/ssh/config
+
+# Global SSH settings
+ServerAliveCountMax 3
+ServerAliveInterval 60
+`
+
+	if output != expected {
+		t.Errorf("renderConfig output mismatch\nGot:\n%q\n\nWant:\n%q", output, expected)
+	}
+}
+
+func TestRenderConfig_CompleteConfig(t *testing.T) {
+	// Parse a complete real-world config with includes, globals, hosts, and wildcard
+	cfg, err := ParseConfig("testdata/complete_config")
+	if err != nil {
+		t.Fatalf("failed to parse config: %v", err)
+	}
+
+	output := renderConfig(cfg)
+
+	expected := `# This file was generated automatically. Do not edit manually.
+
+# Added by OrbStack: 'orb' SSH host for Linux machines
+# This only works if it's at the top of ssh_config (before any Host blocks).
+# This won't be added again if you remove it.
+Include ~/.orbstack/ssh/config
+
+# Global SSH settings
+ServerAliveCountMax 3
+ServerAliveInterval 60
+StrictHostKeyChecking ask
+
+Host 192.168.1.1
+    HostName 192.168.1.1
+    User admin
+    Port 22
+
+Host foo
+    HostName foo
+    User bar
+    Port 22
+
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+
+Host *
+    IdentityAgent "~/path/to/config"
+`
+
+	if output != expected {
+		t.Errorf("renderConfig output mismatch\nGot:\n%q\n\nWant:\n%q", output, expected)
+	}
+}

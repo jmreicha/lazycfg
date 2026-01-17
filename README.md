@@ -82,6 +82,27 @@ bd close <issue-id>
 bd sync
 ```
 
+### Usage
+
+SSH provider example:
+
+```bash
+# List available providers
+lazycfg list
+
+# Preview SSH changes
+lazycfg generate ssh --dry-run
+
+# Generate SSH config
+lazycfg generate ssh
+
+# Overwrite existing config
+lazycfg generate ssh --force
+
+# Validate config
+lazycfg validate
+```
+
 ### Development Workflow
 
 1. Check for ready work: `bd ready`

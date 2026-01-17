@@ -103,11 +103,8 @@ func defaultConfigPath() string {
 
 func defaultGlobalOptions() map[string]string {
 	return map[string]string{
-		"AddKeysToAgent":        "yes",
-		"IdentitiesOnly":        "yes",
 		"ServerAliveCountMax":   "3",
 		"ServerAliveInterval":   "60",
 		"StrictHostKeyChecking": "ask",
-		"UseKeychain":           "yes",
 	}
 }
