@@ -1,6 +1,10 @@
 package core
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"sync"
+)
 
 // Provider defines the interface that all configuration providers must implement.
 // Each provider is responsible for generating, backing up, restoring, and cleaning
@@ -73,4 +77,32 @@ type Result struct {
 
 	// Metadata contains provider-specific result data.
 	Metadata map[string]interface{}
+}
+
+// ProviderConfigFactory is a function that creates a ProviderConfig from a raw map.
+type ProviderConfigFactory func(map[string]interface{}) (ProviderConfig, error)
+
+var (
+	configFactories   = make(map[string]ProviderConfigFactory)
+	configFactoriesMu sync.RWMutex
+)
+
+// RegisterProviderConfigFactory registers a factory function for a provider's configuration.
+func RegisterProviderConfigFactory(providerName string, factory ProviderConfigFactory) {
+	configFactoriesMu.Lock()
+	defer configFactoriesMu.Unlock()
+	configFactories[providerName] = factory
+}
+
+// ProviderConfigFromMap converts a raw map to a typed ProviderConfig based on the provider name.
+func ProviderConfigFromMap(providerName string, raw map[string]interface{}) (ProviderConfig, error) {
+	configFactoriesMu.RLock()
+	factory, exists := configFactories[providerName]
+	configFactoriesMu.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("no config factory registered for provider %q", providerName)
+	}
+
+	return factory(raw)
 }

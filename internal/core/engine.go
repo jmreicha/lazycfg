@@ -205,14 +205,7 @@ func (e *Engine) generateProvider(ctx context.Context, provider Provider, opts *
 		DryRun:  opts.DryRun,
 		Force:   opts.Force,
 		Verbose: opts.Verbose,
-		Config:  nil, // Provider can extract its config from providerCfg
-	}
-
-	// Pass raw config map in metadata
-	if genOpts.Config == nil && providerCfg != nil {
-		// Providers will need to handle raw map[string]interface{} config
-		// This allows flexibility for different provider config structures
-		_ = providerCfg
+		Config:  providerCfg,
 	}
 
 	result, err := provider.Generate(ctx, genOpts)
