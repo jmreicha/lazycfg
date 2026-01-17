@@ -10,8 +10,8 @@ import (
 func TestProvider_Name(t *testing.T) {
 	provider := NewProvider(nil)
 
-	if got := provider.Name(); got != providerName {
-		t.Errorf("Name() = %q, want %q", got, providerName)
+	if got := provider.Name(); got != ProviderName {
+		t.Errorf("Name() = %q, want %q", got, ProviderName)
 	}
 }
 
@@ -135,6 +135,7 @@ func TestProvider_Validate(t *testing.T) {
 		{
 			name: "invalid config",
 			provider: NewProvider(&Config{
+				Enabled:    true,
 				ConfigPath: "",
 			}),
 			expectError: true,
@@ -200,8 +201,8 @@ func TestProvider_Generate(t *testing.T) {
 				t.Fatal("result is nil")
 			}
 
-			if result.Provider != providerName {
-				t.Errorf("Provider = %q, want %q", result.Provider, providerName)
+			if result.Provider != ProviderName {
+				t.Errorf("Provider = %q, want %q", result.Provider, ProviderName)
 			}
 
 			if result.FilesCreated == nil {

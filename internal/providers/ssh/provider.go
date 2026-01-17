@@ -12,7 +12,8 @@ import (
 	"github.com/kevinburke/ssh_config"
 )
 
-const providerName = "ssh"
+// ProviderName is the unique identifier for the SSH provider.
+const ProviderName = "ssh"
 
 var (
 	errConfigPathEmpty     = errors.New("config path cannot be empty")
@@ -27,50 +28,54 @@ type Provider struct {
 	config *Config
 }
 
-// Config represents SSH provider-specific configuration.
-type Config struct {
-	// Enabled indicates whether this provider should be active
-	Enabled bool
+func (c *Config) normalizedConfigPath() (string, error) {
+	if c.ConfigPath == "" {
+		return "", errConfigPathEmpty
+	}
 
-	// ConfigPath is the path to the SSH configuration directory
-	ConfigPath string
+	configPath := filepath.Clean(os.ExpandEnv(c.ConfigPath))
+	if !filepath.IsAbs(configPath) {
+		return "", fmt.Errorf("config path must be absolute: %s", configPath)
+	}
 
-	// Hosts contains SSH host configurations
-	Hosts []HostConfig
+	return configPath, nil
 }
 
-// HostConfig represents configuration for a single SSH host.
-type HostConfig struct {
-	// Host is the SSH host pattern
-	Host string
+// Validate checks if the host configuration is valid.
+func (c *HostConfig) Validate() error {
+	if c.Host == "" {
+		return errors.New("host pattern cannot be empty")
+	}
+	if c.Port < 0 || c.Port > 65535 {
+		return fmt.Errorf("port must be between 0 and 65535: %d", c.Port)
+	}
+	if c.IdentityFile == "" {
+		return nil
+	}
+	identityFile := filepath.Clean(os.ExpandEnv(c.IdentityFile))
+	if !filepath.IsAbs(identityFile) {
+		return fmt.Errorf("identity file must be an absolute path: %s", identityFile)
+	}
+	c.IdentityFile = identityFile
 
-	// Hostname is the actual hostname or IP address
-	Hostname string
-
-	// Port is the SSH port number
-	Port int
-
-	// User is the SSH username
-	User string
-
-	// IdentityFile is the path to the SSH private key
-	IdentityFile string
-
-	// Additional options
-	Options map[string]string
+	return nil
 }
 
 // Validate checks if the provider configuration is valid.
 func (c *Config) Validate() error {
-	if c.ConfigPath == "" {
-		return errConfigPathEmpty
+	configPath, err := c.normalizedConfigPath()
+	if err != nil {
+		return err
 	}
 
-	for i, host := range c.Hosts {
-		if host.Host == "" {
-			return fmt.Errorf("host %d: host pattern cannot be empty", i)
+	for i := range c.Hosts {
+		host := &c.Hosts[i]
+		if err := host.Validate(); err != nil {
+			return fmt.Errorf("host %d: %w", i, err)
 		}
 	}
+
+	c.ConfigPath = configPath
 
 	return nil
 }
@@ -78,9 +83,7 @@ func (c *Config) Validate() error {
 // NewProvider creates a new SSH provider instance with the given configuration.
 func NewProvider(config *Config) *Provider {
 	if config == nil {
-		config = &Config{
-			Enabled: true,
-		}
+		config = DefaultConfig()
 	}
 
 	return &Provider{
@@ -90,7 +93,7 @@ func NewProvider(config *Config) *Provider {
 
 // Name returns the unique identifier for this provider.
 func (p *Provider) Name() string {
-	return providerName
+	return ProviderName
 }
 
 // Validate checks if all prerequisites for this provider are met.
@@ -103,6 +106,10 @@ func (p *Provider) Validate(_ context.Context) error {
 	// - Validate provider configuration
 	if p.config == nil {
 		return errProviderConfigNil
+	}
+
+	if !p.config.Enabled {
+		return nil
 	}
 
 	return p.config.Validate()
@@ -119,7 +126,28 @@ func (p *Provider) Generate(_ context.Context, opts *core.GenerateOptions) (*cor
 		Metadata:     make(map[string]interface{}),
 	}
 
-	if p.config == nil || len(p.config.Hosts) == 0 {
+	if p.config == nil {
+		return nil, errProviderConfigNil
+	}
+
+	if opts != nil && opts.Config != nil {
+		cfg, ok := opts.Config.(*Config)
+		if !ok {
+			return nil, errors.New("ssh config has unexpected type")
+		}
+		p.config = cfg
+	}
+
+	if err := p.config.Validate(); err != nil {
+		return nil, err
+	}
+
+	if !p.config.Enabled {
+		result.Warnings = append(result.Warnings, "ssh provider is disabled")
+		return result, nil
+	}
+
+	if len(p.config.Hosts) == 0 {
 		result.Warnings = append(result.Warnings, "no hosts configured")
 		return result, nil
 	}
