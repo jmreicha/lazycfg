@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/lazycfg/internal/providers/ssh"
 	"github.com/spf13/cobra"
 )
 
@@ -90,8 +91,20 @@ func initializeComponents() error {
 	engine = core.NewEngine(registry, backupManager, config, logger)
 
 	// Register providers
-	// TODO: Import provider packages to trigger their init() functions
-	// For now, registry is empty until we implement providers
+	var sshConfig *ssh.Config
+	providerConfig := config.GetProviderConfig(ssh.ProviderName)
+	if providerConfig == nil {
+		sshConfig = ssh.DefaultConfig()
+	} else {
+		typedConfig, ok := providerConfig.(*ssh.Config)
+		if !ok {
+			return fmt.Errorf("ssh provider config has unexpected type %T", providerConfig)
+		}
+		sshConfig = typedConfig
+	}
+	if err := registry.Register(ssh.NewProvider(sshConfig)); err != nil {
+		return fmt.Errorf("failed to register ssh provider: %w", err)
+	}
 
 	return nil
 }
