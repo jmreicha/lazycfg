@@ -1,0 +1,18 @@
+# Complex SSH patterns and wildcards
+
+Host *.prod.example.com !staging.prod.example.com
+    User prod-admin
+    Port 22
+    IdentityFile ~/.ssh/prod_key
+
+Host jump-*
+    User jumper
+    ProxyJump bastion.example.com
+
+Host bastion.example.com
+    User admin
+    IdentityFile ~/.ssh/bastion_key
+
+Host 192.168.1.?
+    User localadmin
+    StrictHostKeyChecking no

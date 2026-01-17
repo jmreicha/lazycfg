@@ -1,0 +1,16 @@
+# Malformed SSH Configuration - Invalid Syntax
+
+Host example.com
+    HostName example.com
+    InvalidDirective ThisIsNotValid
+    Port NotANumber
+    User
+
+# Missing value
+Host test.com
+    HostName
+
+# Invalid indent
+Host bad-indent.com
+  User wrongindent
+HostName bad.com
