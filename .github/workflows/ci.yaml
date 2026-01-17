@@ -36,7 +36,7 @@ jobs:
         run: |
           curl -sL https://github.com/lycheeverse/lychee/releases/latest/download/lychee-x86_64-unknown-linux-gnu.tar.gz | tar xz
           sudo mv lychee /usr/local/bin/
-      - uses: tox-dev/action-pre-commit-uv@270ddcea3d0ff0ef1527f49d12590954f31b4b3f # v1
+      - uses: j178/prek-action@v1
       - id: govulncheck
         uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee # v1
         with:
