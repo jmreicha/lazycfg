@@ -116,6 +116,76 @@ func TestLoadConfig_InvalidYAML(t *testing.T) {
 	}
 }
 
+func TestFindConfigFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfgPath := filepath.Join(tmpDir, "lazycfg.yaml")
+
+	if err := os.WriteFile(cfgPath, []byte("verbose: true\n"), 0o600); err != nil {
+		t.Fatalf("failed to write test config: %v", err)
+	}
+
+	absCfgPath, err := filepath.Abs(cfgPath)
+	if err != nil {
+		t.Fatalf("failed to get abs path: %v", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get working dir: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(cwd); chdirErr != nil {
+			t.Fatalf("failed to restore working dir: %v", chdirErr)
+		}
+	}()
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	found := FindConfigFile()
+	if found == "" {
+		t.Fatal("expected config file to be found")
+	}
+
+	if found == "./lazycfg.yaml" {
+		return
+	}
+
+	if found != absCfgPath {
+		t.Fatalf("expected %q, got %q", absCfgPath, found)
+	}
+}
+
+func TestFindConfigFile_NotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get working dir: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(cwd); chdirErr != nil {
+			t.Fatalf("failed to restore working dir: %v", chdirErr)
+		}
+	}()
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	home := filepath.Join(tmpDir, "home")
+	if err := os.MkdirAll(home, 0o700); err != nil {
+		t.Fatalf("failed to create home dir: %v", err)
+	}
+
+	t.Setenv("HOME", home)
+
+	found := FindConfigFile()
+	if found != "" {
+		t.Fatalf("expected no config file, got %q", found)
+	}
+}
+
 func TestConfig_GetProviderConfig(t *testing.T) {
 	cfg := NewConfig()
 	cfg.SetProviderConfig("test", &testProviderConfig{

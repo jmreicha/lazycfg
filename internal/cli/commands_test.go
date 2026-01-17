@@ -1,0 +1,153 @@
+package cli
+
+import (
+	"context"
+	"errors"
+	"io"
+	"log/slog"
+	"testing"
+
+	"github.com/jmreicha/lazycfg/internal/core"
+)
+
+type commandProvider struct {
+	name         string
+	cleanErr     error
+	validateErr  error
+	cleanCalled  bool
+	validChecked bool
+}
+
+func (p *commandProvider) Name() string {
+	return p.name
+}
+
+func (p *commandProvider) Validate(_ context.Context) error {
+	p.validChecked = true
+	return p.validateErr
+}
+
+func (p *commandProvider) Generate(_ context.Context, _ *core.GenerateOptions) (*core.Result, error) {
+	return &core.Result{Provider: p.name}, nil
+}
+
+func (p *commandProvider) Backup(_ context.Context) (string, error) {
+	return "", nil
+}
+
+func (p *commandProvider) Restore(_ context.Context, _ string) error {
+	return nil
+}
+
+func (p *commandProvider) Clean(_ context.Context) error {
+	p.cleanCalled = true
+	return p.cleanErr
+}
+
+func setupCommandEngine(t *testing.T, providers ...core.Provider) {
+	t.Helper()
+
+	logger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	registry = core.NewRegistry()
+	backupManager = core.NewBackupManager("")
+	config = core.NewConfig()
+	engine = core.NewEngine(registry, backupManager, config, logger)
+
+	for _, provider := range providers {
+		if err := registry.Register(provider); err != nil {
+			t.Fatalf("failed to register provider: %v", err)
+		}
+	}
+}
+
+func TestInitializeComponents(t *testing.T) {
+	cfgFile = ""
+	dryRun = false
+	noBackup = false
+	sshConfigPath = ""
+	verbose = false
+
+	if err := initializeComponents(); err != nil {
+		t.Fatalf("initializeComponents failed: %v", err)
+	}
+
+	if registry == nil {
+		t.Fatal("expected registry to be initialized")
+	}
+
+	providers := registry.List()
+	if len(providers) != 1 || providers[0] != "ssh" {
+		t.Fatalf("expected ssh provider, got %v", providers)
+	}
+}
+
+func TestNewVersionCmd(t *testing.T) {
+	cmd := newVersionCmd("1.0.0")
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("version command failed: %v", err)
+	}
+}
+
+func TestListCmd_Empty(t *testing.T) {
+	setupCommandEngine(t)
+
+	cmd := newListCmd()
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("list command failed: %v", err)
+	}
+}
+
+func TestListCmd_WithProviders(t *testing.T) {
+	setupCommandEngine(t, &commandProvider{name: "alpha"})
+
+	cmd := newListCmd()
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("list command failed: %v", err)
+	}
+}
+
+func TestValidateCmd(t *testing.T) {
+	provider := &commandProvider{name: "alpha"}
+	setupCommandEngine(t, provider)
+
+	cmd := newValidateCmd()
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("validate command failed: %v", err)
+	}
+	if !provider.validChecked {
+		t.Fatal("expected provider validation")
+	}
+}
+
+func TestValidateCmd_Error(t *testing.T) {
+	provider := &commandProvider{name: "alpha", validateErr: errors.New("no")}
+	setupCommandEngine(t, provider)
+
+	cmd := newValidateCmd()
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestCleanCmd_NoArgs(t *testing.T) {
+	setupCommandEngine(t)
+
+	cmd := newCleanCmd()
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestCleanCmd_WithArgs(t *testing.T) {
+	provider := &commandProvider{name: "alpha"}
+	setupCommandEngine(t, provider)
+
+	cmd := newCleanCmd()
+	cmd.SetArgs([]string{"alpha"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("clean command failed: %v", err)
+	}
+	if !provider.cleanCalled {
+		t.Fatal("expected clean to be called")
+	}
+}
