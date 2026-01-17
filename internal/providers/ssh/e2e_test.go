@@ -22,7 +22,6 @@ func TestE2E_SSHProvider_GenerateWorkflow(t *testing.T) {
 		GlobalOptions: map[string]string{
 			"ServerAliveInterval": "60",
 			"ServerAliveCountMax": "3",
-			"AddKeysToAgent":      "yes",
 		},
 		Hosts: []ssh.HostConfig{
 			{
@@ -206,8 +205,8 @@ Host *
 		Enabled:    true,
 		ConfigPath: tmpDir,
 		GlobalOptions: map[string]string{
-			"ServerAliveInterval": "60",  // Update existing
-			"AddKeysToAgent":      "yes", // New option
+			"ServerAliveInterval":   "60", // Update existing
+			"StrictHostKeyChecking": "no", // New option
 		},
 		Hosts: []ssh.HostConfig{
 			{
@@ -268,12 +267,12 @@ Host *
 	}
 
 	// Verify new global option was added
-	addKeys, err := cfg.Get("anyhost.com", "AddKeysToAgent")
+	strictCheck, err := cfg.Get("anyhost.com", "StrictHostKeyChecking")
 	if err != nil {
-		t.Errorf("failed to get AddKeysToAgent: %v", err)
+		t.Errorf("failed to get StrictHostKeyChecking: %v", err)
 	}
-	if addKeys != "yes" {
-		t.Errorf("AddKeysToAgent = %s, want yes", addKeys)
+	if strictCheck != "no" {
+		t.Errorf("StrictHostKeyChecking = %s, want no", strictCheck)
 	}
 }
 

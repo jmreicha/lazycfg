@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/kevinburke/ssh_config"
@@ -243,8 +244,7 @@ func WriteConfig(cfg *ssh_config.Config, path string) error {
 		return errConfigNil
 	}
 
-	// Convert config to string
-	content := cfg.String()
+	content := renderConfig(cfg)
 
 	// Write with SSH-required permissions (0600)
 	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
@@ -252,6 +252,361 @@ func WriteConfig(cfg *ssh_config.Config, path string) error {
 	}
 
 	return nil
+}
+
+func renderConfig(cfg *ssh_config.Config) string {
+	var buf strings.Builder
+
+	buf.WriteString("# This file was generated automatically. Do not edit manually.\n")
+
+	includes, topLevel, hosts, wildcardHost := separateConfigSections(cfg)
+
+	if len(includes) > 0 {
+		buf.WriteString("\n")
+		for _, item := range includes {
+			buf.WriteString(item)
+			buf.WriteString("\n")
+		}
+		buf.WriteString("\n")
+	}
+
+	if len(topLevel) > 0 {
+		buf.WriteString("# Global SSH settings\n")
+		for _, item := range topLevel {
+			buf.WriteString(item)
+			buf.WriteString("\n")
+		}
+	}
+
+	ordered := orderedHosts(hosts)
+	for _, host := range ordered {
+		if host == nil {
+			continue
+		}
+		buf.WriteString("\n")
+		buf.WriteString(formatHost(host))
+	}
+
+	if wildcardHost != nil && len(wildcardHost.Nodes) > 0 {
+		buf.WriteString("\n")
+		buf.WriteString(formatHost(wildcardHost))
+	}
+
+	return buf.String()
+}
+
+func separateConfigSections(cfg *ssh_config.Config) ([]string, []string, []*ssh_config.Host, *ssh_config.Host) {
+	if cfg == nil {
+		return nil, nil, nil, nil
+	}
+
+	includes := make([]string, 0)
+	topLevel := make([]string, 0)
+	hosts := make([]*ssh_config.Host, 0, len(cfg.Hosts))
+	var wildcardHost *ssh_config.Host
+	seenTopLevel := make(map[string]bool)
+
+	for _, host := range cfg.Hosts {
+		if host == nil {
+			continue
+		}
+
+		if len(host.Patterns) == 0 {
+			extractTopLevelNodes(host, &includes, &topLevel)
+			continue
+		}
+
+		if isGlobalWildcard(host) {
+			newWildcard := extractGlobalWildcard(host, &includes, &topLevel, seenTopLevel)
+			if newWildcard != nil {
+				if wildcardHost == nil {
+					wildcardHost = newWildcard
+				} else {
+					// Merge nodes from multiple wildcard hosts
+					wildcardHost.Nodes = append(wildcardHost.Nodes, newWildcard.Nodes...)
+				}
+			}
+			continue
+		}
+
+		hosts = append(hosts, host)
+	}
+
+	return includes, topLevel, hosts, wildcardHost
+}
+
+func extractTopLevelNodes(host *ssh_config.Host, includes *[]string, topLevel *[]string) {
+	var pendingComments []string
+
+	for _, node := range host.Nodes {
+		// Collect comments
+		if empty, ok := node.(*ssh_config.Empty); ok && empty.Comment != "" {
+			line := formatNode(node, false)
+			if line != "" && !isGeneratedComment(line) {
+				pendingComments = append(pendingComments, line)
+			}
+			continue
+		}
+
+		if isIncludeNode(node) {
+			// Add pending comments to includes section
+			*includes = append(*includes, pendingComments...)
+			pendingComments = nil
+
+			line := formatNodeWithComments(node, false)
+			if line != "" && !isGeneratedComment(line) {
+				*includes = append(*includes, line)
+			}
+			continue
+		}
+
+		// Non-include nodes: add pending comments to topLevel first
+		*topLevel = append(*topLevel, pendingComments...)
+		pendingComments = nil
+
+		line := formatNode(node, false)
+		if line != "" && !isGeneratedComment(line) {
+			*topLevel = append(*topLevel, line)
+		}
+	}
+
+	// Add any remaining comments to topLevel
+	*topLevel = append(*topLevel, pendingComments...)
+}
+
+func isIncludeNode(node ssh_config.Node) bool {
+	switch n := node.(type) {
+	case *ssh_config.Include:
+		return true
+	case *ssh_config.Empty:
+		return false
+	case *ssh_config.KV:
+		return strings.ToLower(n.Key) == "include"
+	default:
+		return false
+	}
+}
+
+func formatNodeWithComments(node ssh_config.Node, indent bool) string {
+	switch n := node.(type) {
+	case *ssh_config.Include:
+		if indent {
+			return "    " + n.String()
+		}
+		return n.String()
+	default:
+		return formatNode(node, indent)
+	}
+}
+
+func extractGlobalWildcard(host *ssh_config.Host, includes *[]string, topLevel *[]string, seenTopLevel map[string]bool) *ssh_config.Host {
+	wildcardNodes := make([]ssh_config.Node, 0)
+	var pendingComments []string
+
+	for _, node := range host.Nodes {
+		// Collect comments
+		if empty, ok := node.(*ssh_config.Empty); ok && empty.Comment != "" {
+			line := formatNode(node, false)
+			if line != "" && !isGeneratedComment(line) {
+				pendingComments = append(pendingComments, line)
+			}
+			continue
+		}
+
+		// Handle Include nodes
+		if isIncludeNode(node) {
+			// Add pending comments to includes section
+			*includes = append(*includes, pendingComments...)
+			pendingComments = nil
+
+			line := formatNodeWithComments(node, false)
+			if line != "" && !isGeneratedComment(line) {
+				*includes = append(*includes, line)
+			}
+			continue
+		}
+
+		// Check if this is a host-specific setting that should stay in Host *
+		if isHostSpecificSetting(node) {
+			// Add pending comments as formatted strings (they're already processed)
+			// Note: comments before host-specific settings are discarded for now
+			pendingComments = nil
+			wildcardNodes = append(wildcardNodes, node)
+			continue
+		}
+
+		// Regular global settings
+		*topLevel = append(*topLevel, pendingComments...)
+		pendingComments = nil
+
+		line := formatNode(node, false)
+		if line != "" && !isGeneratedComment(line) && !seenTopLevel[line] {
+			*topLevel = append(*topLevel, line)
+			seenTopLevel[line] = true
+		}
+	}
+
+	// Add any remaining comments to topLevel
+	*topLevel = append(*topLevel, pendingComments...)
+
+	if len(wildcardNodes) > 0 {
+		pattern, _ := ssh_config.NewPattern("*")
+		return &ssh_config.Host{
+			Patterns: []*ssh_config.Pattern{pattern},
+			Nodes:    wildcardNodes,
+		}
+	}
+
+	return nil
+}
+
+func isHostSpecificSetting(node ssh_config.Node) bool {
+	kv, ok := node.(*ssh_config.KV)
+	if !ok {
+		return false
+	}
+
+	hostSpecificKeys := []string{
+		"IdentityAgent",
+		"ProxyCommand",
+		"ProxyJump",
+		"LocalForward",
+		"RemoteForward",
+		"DynamicForward",
+	}
+
+	key := strings.ToLower(kv.Key)
+	for _, specificKey := range hostSpecificKeys {
+		if key == strings.ToLower(specificKey) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isGlobalWildcard(host *ssh_config.Host) bool {
+	if host == nil || len(host.Patterns) == 0 {
+		return false
+	}
+
+	for _, pattern := range host.Patterns {
+		if pattern != nil && pattern.String() == "*" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isGeneratedComment(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	return strings.Contains(trimmed, "This file was generated automatically") ||
+		strings.Contains(trimmed, "Top level SSH settings") ||
+		strings.Contains(trimmed, "Global SSH settings") ||
+		strings.Contains(trimmed, "Global settings")
+}
+
+func formatHost(host *ssh_config.Host) string {
+	var buf strings.Builder
+
+	buf.WriteString("Host ")
+	for i, pattern := range host.Patterns {
+		if i > 0 {
+			buf.WriteString(" ")
+		}
+		buf.WriteString(pattern.String())
+	}
+	buf.WriteString("\n")
+
+	for _, node := range host.Nodes {
+		line := formatNode(node, true)
+		if line != "" {
+			buf.WriteString(line)
+			buf.WriteString("\n")
+		}
+	}
+
+	return buf.String()
+}
+
+func formatNode(node ssh_config.Node, indent bool) string {
+	switch n := node.(type) {
+	case *ssh_config.KV:
+		if indent {
+			return fmt.Sprintf("    %s %s", n.Key, n.Value)
+		}
+		return fmt.Sprintf("%s %s", n.Key, n.Value)
+	case *ssh_config.Empty:
+		if n.Comment != "" {
+			if indent {
+				return "    #" + n.Comment
+			}
+			return "#" + n.Comment
+		}
+		return ""
+	case *ssh_config.Include:
+		if indent {
+			return "    " + n.String()
+		}
+		return n.String()
+	default:
+		return ""
+	}
+}
+
+func orderedHosts(hosts []*ssh_config.Host) []*ssh_config.Host {
+	if len(hosts) == 0 {
+		return hosts
+	}
+
+	nonWildcard := make([]*ssh_config.Host, 0, len(hosts))
+	wildcard := make([]*ssh_config.Host, 0, len(hosts))
+	for _, host := range hosts {
+		if host == nil {
+			continue
+		}
+		if hasWildcardPattern(host) {
+			wildcard = append(wildcard, host)
+			continue
+		}
+		nonWildcard = append(nonWildcard, host)
+	}
+
+	sort.SliceStable(nonWildcard, func(i, j int) bool {
+		return hostSortKey(nonWildcard[i]) < hostSortKey(nonWildcard[j])
+	})
+
+	sort.SliceStable(wildcard, func(i, j int) bool {
+		return hostSortKey(wildcard[i]) < hostSortKey(wildcard[j])
+	})
+
+	return append(nonWildcard, wildcard...)
+}
+
+func hostSortKey(host *ssh_config.Host) string {
+	if host == nil || len(host.Patterns) == 0 || host.Patterns[0] == nil {
+		return ""
+	}
+
+	return strings.ToLower(host.Patterns[0].String())
+}
+
+func hasWildcardPattern(host *ssh_config.Host) bool {
+	if host == nil {
+		return false
+	}
+
+	for _, pattern := range host.Patterns {
+		if pattern == nil {
+			continue
+		}
+		if strings.ContainsAny(pattern.String(), "*?") {
+			return true
+		}
+	}
+
+	return false
 }
 
 // FindHostsByPatterns returns a map of exact host patterns to host blocks.
@@ -283,21 +638,62 @@ func UpsertGlobalOptions(cfg *ssh_config.Config, options map[string]string) (boo
 		return false, nil
 	}
 
-	globalHost := FindHostExact(cfg, "*")
-	if globalHost == nil {
+	globalHosts := findHostsByPattern(cfg, "*")
+	if len(globalHosts) == 0 {
 		pattern, err := ssh_config.NewPattern("*")
 		if err != nil {
 			return false, fmt.Errorf("failed to create global pattern: %w", err)
 		}
-		globalHost = &ssh_config.Host{
-			Patterns: []*ssh_config.Pattern{pattern},
-			Nodes:    []ssh_config.Node{},
+		globalHosts = []*ssh_config.Host{
+			{
+				Patterns: []*ssh_config.Pattern{pattern},
+				Nodes:    []ssh_config.Node{},
+			},
 		}
-		cfg.Hosts = append(cfg.Hosts, globalHost)
+		cfg.Hosts = append(cfg.Hosts, globalHosts[0])
+	}
+
+	updated := false
+	for _, globalHost := range globalHosts {
+		if applyOptions(globalHost, options) {
+			updated = true
+		}
+	}
+
+	return updated, nil
+}
+
+func findHostsByPattern(cfg *ssh_config.Config, pattern string) []*ssh_config.Host {
+	if cfg == nil {
+		return nil
+	}
+
+	matches := make([]*ssh_config.Host, 0)
+	for _, host := range cfg.Hosts {
+		if host == nil {
+			continue
+		}
+		for _, hostPattern := range host.Patterns {
+			if hostPattern == nil {
+				continue
+			}
+			if hostPattern.String() == pattern {
+				matches = append(matches, host)
+				break
+			}
+		}
+	}
+
+	return matches
+}
+
+func applyOptions(host *ssh_config.Host, options map[string]string) bool {
+	if host == nil {
+		return false
 	}
 
 	existing := make(map[string]bool)
-	for _, node := range globalHost.Nodes {
+	for _, node := range host.Nodes {
 		kv, ok := node.(*ssh_config.KV)
 		if !ok {
 			continue
@@ -309,18 +705,18 @@ func UpsertGlobalOptions(cfg *ssh_config.Config, options map[string]string) (boo
 	for _, key := range sortedOptionKeys(options) {
 		value := options[key]
 		if existing[key] {
-			updateHostOption(globalHost, key, value)
+			updateHostOption(host, key, value)
 			updated = true
 			continue
 		}
-		globalHost.Nodes = append(globalHost.Nodes, &ssh_config.KV{
+		host.Nodes = append(host.Nodes, &ssh_config.KV{
 			Key:   key,
 			Value: value,
 		})
 		updated = true
 	}
 
-	return updated, nil
+	return updated
 }
 
 func updateHostOption(host *ssh_config.Host, key, value string) {

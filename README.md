@@ -56,6 +56,27 @@ This will:
 - Install pre-commit hooks (via prek or pre-commit)
 - Download and verify Go dependencies
 
+### Usage
+
+SSH provider example:
+
+```bash
+# List available providers
+lazycfg list
+
+# Preview SSH changes
+lazycfg generate ssh --dry-run
+
+# Generate SSH config
+lazycfg generate ssh
+
+# Overwrite existing config
+lazycfg generate ssh --force
+
+# Validate config
+lazycfg validate
+```
+
 ### Working with Beads
 
 This project uses [beads](https://github.com/steveyegge/beads) for local issue tracking. Beads is a git-backed, distributed issue tracker optimized for AI agents.
@@ -81,19 +102,6 @@ bd close <issue-id>
 # Sync before pushing
 bd sync
 ```
-
-### Development Workflow
-
-1. Check for ready work: `bd ready`
-2. Create or claim an issue
-3. Create a feature branch: `git checkout -b feature/your-feature`
-4. Make your changes
-5. Run checks: `task check` (runs fmt, lint, and test)
-6. Commit with conventional commit format: `git commit -m "feat: your feature"`
-7. Push feature branch: `git push -u origin feature/your-feature`
-8. Sync beads: `bd sync`
-9. Create pull request: `gh pr create --title "feat: your feature" --body "Description"`
-10. Address review feedback and push updates to the PR
 
 ### Available Tasks
 
@@ -141,10 +149,15 @@ AI_AGENT='claude' task iterate
 OPENCODE_TIMEOUT=3600 task iterate
 ```
 
-The loop:
+### Development Workflow
 
-- Pulls ready tasks from beads
-- Shows issue details and historical learnings from `context/progress.txt`
-- Records improvements after each session
-- Updates beads issue status
-- Continues until complete or max iterations reached
+1. Check for ready work: `bd ready`
+2. Create or claim an issue
+3. Create a feature branch: `git checkout -b feature/your-feature`
+4. Make your changes
+5. Run checks: `task check` (runs fmt, lint, and test)
+6. Commit with conventional commit format: `git commit -m "feat: your feature"`
+7. Push feature branch: `git push -u origin feature/your-feature`
+8. Sync beads: `bd sync`
+9. Create pull request: `gh pr create --title "feat: your feature" --body "Description"`
+10. Address review feedback and push updates to the PR
