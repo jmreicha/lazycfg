@@ -2,6 +2,8 @@ package ssh
 
 import (
 	"context"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/jmreicha/lazycfg/internal/core"
@@ -47,7 +49,7 @@ func TestNewProvider(t *testing.T) {
 	}
 }
 
-func TestConfig_Validate(t *testing.T) {
+func TestConfig_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name        string
 		config      *Config
@@ -310,4 +312,406 @@ func TestProvider_Clean(t *testing.T) {
 func TestProvider_InterfaceCompliance(_ *testing.T) {
 	// Compile-time check that Provider implements core.Provider
 	var _ core.Provider = (*Provider)(nil)
+}
+
+// TestProvider_GenerateIntegration tests the full generation lifecycle with real filesystem.
+func TestProvider_GenerateIntegration(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	provider := NewProvider(&Config{
+		Enabled:    true,
+		ConfigPath: tmpDir,
+		GlobalOptions: map[string]string{
+			"ServerAliveInterval": "60",
+		},
+		Hosts: []HostConfig{
+			{
+				Host:     "test1.example.com",
+				Hostname: "192.168.1.10",
+				User:     "testuser",
+				Port:     22,
+			},
+			{
+				Host:     "test2.example.com",
+				Hostname: "192.168.1.20",
+				User:     "admin",
+				Port:     2222,
+			},
+		},
+	})
+
+	ctx := context.Background()
+
+	// Test validation
+	err := provider.Validate(ctx)
+	if err != nil {
+		t.Fatalf("validation failed: %v", err)
+	}
+
+	// Test generation
+	opts := &core.GenerateOptions{
+		DryRun: false,
+		Force:  false,
+	}
+
+	result, err := provider.Generate(ctx, opts)
+	if err != nil {
+		t.Fatalf("generation failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("result is nil")
+	}
+
+	// Verify file was created
+	configPath := tmpDir + "/config"
+	if len(result.FilesCreated) != 1 || result.FilesCreated[0] != configPath {
+		t.Errorf("expected config file to be created at %s", configPath)
+	}
+
+	// Verify file exists
+	info, err := os.Stat(configPath)
+	if err != nil {
+		t.Errorf("config file not found: %v", err)
+	}
+
+	// Verify permissions
+	if info.Mode().Perm() != 0600 {
+		t.Errorf("file permissions = %o, want 0600", info.Mode().Perm())
+	}
+
+	// Parse and verify content
+	cfg, err := ParseConfig(configPath)
+	if err != nil {
+		t.Fatalf("failed to parse generated config: %v", err)
+	}
+
+	// Verify hosts
+	host1 := FindHost(cfg, "test1.example.com")
+	if host1 == nil {
+		t.Error("test1.example.com not found in generated config")
+	}
+
+	host2 := FindHost(cfg, "test2.example.com")
+	if host2 == nil {
+		t.Error("test2.example.com not found in generated config")
+	}
+
+	// Verify global options
+	interval, err := cfg.Get("anyhost.com", "ServerAliveInterval")
+	if err != nil {
+		t.Errorf("failed to get ServerAliveInterval: %v", err)
+	}
+	if interval != "60" {
+		t.Errorf("ServerAliveInterval = %s, want 60", interval)
+	}
+}
+
+// TestProvider_GenerateWithExistingConfig tests updating an existing config.
+func TestProvider_GenerateWithExistingConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := tmpDir + "/config"
+
+	// Create existing config
+	existingConfig := `Host existing.com
+    HostName existing.example.com
+    User existing
+
+Host *
+    ServerAliveInterval 30
+`
+	if err := os.WriteFile(configPath, []byte(existingConfig), 0600); err != nil {
+		t.Fatalf("failed to create existing config: %v", err)
+	}
+
+	provider := NewProvider(&Config{
+		Enabled:    true,
+		ConfigPath: tmpDir,
+		Hosts: []HostConfig{
+			{
+				Host:     "new.com",
+				Hostname: "new.example.com",
+				User:     "newuser",
+				Port:     22,
+			},
+		},
+	})
+
+	ctx := context.Background()
+
+	// Test generation without force (should skip)
+	opts := &core.GenerateOptions{
+		DryRun: false,
+		Force:  false,
+	}
+
+	result, err := provider.Generate(ctx, opts)
+	if err != nil {
+		t.Fatalf("generation failed: %v", err)
+	}
+
+	if len(result.FilesSkipped) != 1 {
+		t.Error("expected file to be skipped without force")
+	}
+
+	// Test generation with force
+	opts.Force = true
+
+	result, err = provider.Generate(ctx, opts)
+	if err != nil {
+		t.Fatalf("generation with force failed: %v", err)
+	}
+
+	if len(result.FilesCreated) != 1 {
+		t.Error("expected file to be created with force")
+	}
+
+	// Verify both old and new hosts exist
+	cfg, err := ParseConfig(configPath)
+	if err != nil {
+		t.Fatalf("failed to parse generated config: %v", err)
+	}
+
+	existingHost := FindHost(cfg, "existing.com")
+	if existingHost == nil {
+		t.Error("existing.com host was lost")
+	}
+
+	newHost := FindHost(cfg, "new.com")
+	if newHost == nil {
+		t.Error("new.com host was not added")
+	}
+}
+
+// TestProvider_GenerateDryRun tests dry-run mode.
+func TestProvider_GenerateDryRun(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	provider := NewProvider(&Config{
+		Enabled:    true,
+		ConfigPath: tmpDir,
+		Hosts: []HostConfig{
+			{
+				Host:     "test.com",
+				Hostname: "test.example.com",
+				User:     "testuser",
+				Port:     22,
+			},
+		},
+	})
+
+	ctx := context.Background()
+
+	opts := &core.GenerateOptions{
+		DryRun: true,
+		Force:  false,
+	}
+
+	result, err := provider.Generate(ctx, opts)
+	if err != nil {
+		t.Fatalf("dry-run generation failed: %v", err)
+	}
+
+	// Verify no files were created
+	configPath := tmpDir + "/config"
+	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+		t.Error("config file should not exist in dry-run mode")
+	}
+
+	// Verify warnings
+	if len(result.Warnings) == 0 {
+		t.Error("expected warnings in dry-run mode")
+	}
+
+	foundDryRunWarning := false
+	for _, warning := range result.Warnings {
+		if strings.Contains(warning, "dry-run") {
+			foundDryRunWarning = true
+			break
+		}
+	}
+	if !foundDryRunWarning {
+		t.Error("expected dry-run warning in results")
+	}
+
+	// Verify metadata includes hosts to add
+	if _, ok := result.Metadata["hosts_to_add"]; !ok {
+		t.Error("expected hosts_to_add in metadata")
+	}
+}
+
+// TestProvider_GenerateDisabled tests behavior when provider is disabled.
+func TestProvider_GenerateDisabled(t *testing.T) {
+	provider := NewProvider(&Config{
+		Enabled:    false,
+		ConfigPath: "/tmp",
+	})
+
+	ctx := context.Background()
+
+	opts := &core.GenerateOptions{
+		DryRun: false,
+		Force:  false,
+	}
+
+	result, err := provider.Generate(ctx, opts)
+	if err != nil {
+		t.Fatalf("generation failed: %v", err)
+	}
+
+	if len(result.FilesCreated) != 0 {
+		t.Error("expected no files to be created when provider is disabled")
+	}
+
+	foundDisabledWarning := false
+	for _, warning := range result.Warnings {
+		if strings.Contains(warning, "disabled") {
+			foundDisabledWarning = true
+			break
+		}
+	}
+	if !foundDisabledWarning {
+		t.Error("expected disabled warning in results")
+	}
+}
+
+// TestProvider_GenerateNoHosts tests behavior with no hosts configured.
+func TestProvider_GenerateNoHosts(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	provider := NewProvider(&Config{
+		Enabled:    true,
+		ConfigPath: tmpDir,
+		Hosts:      []HostConfig{},
+	})
+
+	ctx := context.Background()
+
+	opts := &core.GenerateOptions{
+		DryRun: false,
+		Force:  false,
+	}
+
+	result, err := provider.Generate(ctx, opts)
+	if err != nil {
+		t.Fatalf("generation failed: %v", err)
+	}
+
+	if len(result.FilesCreated) != 0 {
+		t.Error("expected no files to be created with no hosts")
+	}
+
+	foundNoHostsWarning := false
+	for _, warning := range result.Warnings {
+		if strings.Contains(warning, "no hosts") {
+			foundNoHostsWarning = true
+			break
+		}
+	}
+	if !foundNoHostsWarning {
+		t.Error("expected 'no hosts' warning in results")
+	}
+}
+
+// TestProvider_GenerateInvalidConfig tests handling of invalid configuration.
+func TestProvider_GenerateInvalidConfig(t *testing.T) {
+	tests := []struct {
+		name   string
+		config *Config
+	}{
+		{
+			name: "empty config path",
+			config: &Config{
+				Enabled:    true,
+				ConfigPath: "",
+			},
+		},
+		{
+			name: "invalid host config",
+			config: &Config{
+				Enabled:    true,
+				ConfigPath: "/tmp",
+				Hosts: []HostConfig{
+					{
+						Host: "", // Empty host pattern
+					},
+				},
+			},
+		},
+		{
+			name: "invalid port",
+			config: &Config{
+				Enabled:    true,
+				ConfigPath: "/tmp",
+				Hosts: []HostConfig{
+					{
+						Host: "test.com",
+						Port: -1,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := NewProvider(tt.config)
+			ctx := context.Background()
+
+			opts := &core.GenerateOptions{
+				DryRun: false,
+				Force:  false,
+			}
+
+			_, err := provider.Generate(ctx, opts)
+			if err == nil {
+				t.Error("expected error for invalid config")
+			}
+		})
+	}
+}
+
+// TestProvider_ValidateInvalidPaths tests validation with invalid paths.
+func TestProvider_ValidateInvalidPaths(t *testing.T) {
+	tests := []struct {
+		name        string
+		configPath  string
+		expectError bool
+	}{
+		{
+			name:        "empty path",
+			configPath:  "",
+			expectError: true,
+		},
+		{
+			name:        "relative path",
+			configPath:  "relative/path",
+			expectError: true,
+		},
+		{
+			name:        "absolute path",
+			configPath:  "/tmp/ssh",
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := NewProvider(&Config{
+				Enabled:    true,
+				ConfigPath: tt.configPath,
+			})
+
+			ctx := context.Background()
+			err := provider.Validate(ctx)
+
+			if tt.expectError && err == nil {
+				t.Error("expected error, got nil")
+			}
+
+			if !tt.expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
 }

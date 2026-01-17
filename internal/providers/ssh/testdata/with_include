@@ -1,0 +1,13 @@
+# SSH Config with Include directive
+
+Host primary.com
+    HostName primary.example.com
+    User admin
+    Port 22
+
+Include config.d/*
+
+Host fallback.com
+    HostName fallback.example.com
+    User backup
+    Port 2222
