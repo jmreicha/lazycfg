@@ -56,7 +56,6 @@ Complete the issue using the following the project guidelines and steps.
 - Follow coding standards in AGENTS.md
 - Make small, atomic commits
 - Write clear conventional commit messages
-- After the first edit batch, immediately run `task check`; if it fails, fix and rerun. Do not resume exploration.
 
 7. **Test your changes**
 
