@@ -51,6 +51,7 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Investigate the codebase to find the root cause
 - Avoid repeating past mistakes
 - Apply successful patterns from history
+- Keep searches targeted; balance thoroughness with minimizing token/time usage
 - If you have already identified the target files, stop reading and start editing.
 
 6. **Make changes**
