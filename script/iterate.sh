@@ -258,6 +258,14 @@ PROMPT
 iteration=1
 current_issue=""
 start_time=$(date +%s)
+stop_requested=false
+
+handle_sigint() {
+    stop_requested=true
+    echo -e "\n${YELLOW}Stop requested. Finishing current iteration...${NC}"
+}
+
+trap handle_sigint INT
 
 while [[ $iteration -le $MAX_ITERATIONS ]]; do
     echo -e "\n${YELLOW}━━━ Iteration $iteration/$MAX_ITERATIONS ━━━${NC}\n"
@@ -325,6 +333,12 @@ while [[ $iteration -le $MAX_ITERATIONS ]]; do
     fi
 
     iteration=$((iteration + 1))
+
+    if [[ "$stop_requested" == "true" ]]; then
+        echo -e "${YELLOW}Stop requested. Exiting loop.${NC}"
+        break
+    fi
+
 done
 
 # Session summary
