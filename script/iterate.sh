@@ -199,11 +199,12 @@ PROMPT
 
   # Stream output if enabled, otherwise capture silently
   # Always save to debug log in /tmp (streamable for tail -f)
+  # shellcheck disable=SC2086 # AI_AGENT must be word-split (e.g., "opencode run")
   if [[ $STREAM_OUTPUT == "true" ]]; then
     echo -e "${BLUE}Streaming AI agent output...${NC}\n"
-    timeout "$OPENCODE_TIMEOUT" "$AI_AGENT" "$prompt" --model "$OPENCODE_MODEL" 2>&1 | tee "$output_file" "$debug_log"
+    timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" --model "$OPENCODE_MODEL" 2>&1 | tee "$output_file" "$debug_log"
   else
-    timeout "$OPENCODE_TIMEOUT" "$AI_AGENT" "$prompt" --model "$OPENCODE_MODEL" 2>&1 | tee "$output_file" "$debug_log" >/dev/null
+    timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" --model "$OPENCODE_MODEL" 2>&1 | tee "$output_file" "$debug_log" >/dev/null
 
   fi
 
