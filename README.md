@@ -56,6 +56,27 @@ This will:
 - Install pre-commit hooks (via prek or pre-commit)
 - Download and verify Go dependencies
 
+### Usage
+
+SSH provider example:
+
+```bash
+# List available providers
+lazycfg list
+
+# Preview SSH changes
+lazycfg generate ssh --dry-run
+
+# Generate SSH config
+lazycfg generate ssh
+
+# Overwrite existing config
+lazycfg generate ssh --force
+
+# Validate config
+lazycfg validate
+```
+
 ### Working with Beads
 
 This project uses [beads](https://github.com/steveyegge/beads) for local issue tracking. Beads is a git-backed, distributed issue tracker optimized for AI agents.
@@ -80,27 +101,6 @@ bd close <issue-id>
 
 # Sync before pushing
 bd sync
-```
-
-### Usage
-
-SSH provider example:
-
-```bash
-# List available providers
-lazycfg list
-
-# Preview SSH changes
-lazycfg generate ssh --dry-run
-
-# Generate SSH config
-lazycfg generate ssh
-
-# Overwrite existing config
-lazycfg generate ssh --force
-
-# Validate config
-lazycfg validate
 ```
 
 ### Development Workflow
