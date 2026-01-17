@@ -1,0 +1,256 @@
+package core
+
+import (
+	"context"
+	"io"
+	"log/slog"
+	"testing"
+)
+
+type engineTestProvider struct {
+	backupErr   error
+	backupPath  string
+	cleanErr    error
+	generateErr error
+	name        string
+	result      *Result
+	validateErr error
+
+	cleanCalled    bool
+	generateCalled bool
+	validateCalled bool
+}
+
+func (p *engineTestProvider) Name() string {
+	return p.name
+}
+
+func (p *engineTestProvider) Validate(_ context.Context) error {
+	p.validateCalled = true
+	return p.validateErr
+}
+
+func (p *engineTestProvider) Generate(_ context.Context, _ *GenerateOptions) (*Result, error) {
+	p.generateCalled = true
+	if p.generateErr != nil {
+		return nil, p.generateErr
+	}
+	if p.result != nil {
+		return p.result, nil
+	}
+	return &Result{Provider: p.name}, nil
+}
+
+func (p *engineTestProvider) Backup(_ context.Context) (string, error) {
+	return p.backupPath, p.backupErr
+}
+
+func (p *engineTestProvider) Restore(_ context.Context, _ string) error {
+	return nil
+}
+
+func (p *engineTestProvider) Clean(_ context.Context) error {
+	p.cleanCalled = true
+	return p.cleanErr
+}
+
+func newTestLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+}
+
+func TestEngineExecute_AllProviders(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	providerA := &engineTestProvider{name: "a"}
+	providerB := &engineTestProvider{name: "b"}
+
+	if err := registry.Register(providerA); err != nil {
+		t.Fatalf("failed to register providerA: %v", err)
+	}
+	if err := registry.Register(providerB); err != nil {
+		t.Fatalf("failed to register providerB: %v", err)
+	}
+
+	results, err := engine.Execute(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if results["a"] == nil || results["b"] == nil {
+		t.Error("expected results for both providers")
+	}
+}
+
+func TestEngineExecute_SpecificProviders(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	providerA := &engineTestProvider{name: "a"}
+	providerB := &engineTestProvider{name: "b"}
+
+	if err := registry.Register(providerA); err != nil {
+		t.Fatalf("failed to register providerA: %v", err)
+	}
+	if err := registry.Register(providerB); err != nil {
+		t.Fatalf("failed to register providerB: %v", err)
+	}
+
+	opts := &ExecuteOptions{Providers: []string{"b"}}
+	results, err := engine.Execute(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results["b"] == nil {
+		t.Error("expected result for provider b")
+	}
+	if providerA.generateCalled {
+		t.Error("expected provider a not to be called")
+	}
+}
+
+func TestEngineExecute_NoProviders(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	_, err := engine.Execute(context.Background(), &ExecuteOptions{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestEngineExecute_ProviderNotFound(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	opts := &ExecuteOptions{Providers: []string{"missing"}}
+	_, err := engine.Execute(context.Background(), opts)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestEngineExecute_ValidateError(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	provider := &engineTestProvider{name: "bad", validateErr: ErrInvalidProviderName}
+	if err := registry.Register(provider); err != nil {
+		t.Fatalf("failed to register provider: %v", err)
+	}
+
+	_, err := engine.Execute(context.Background(), &ExecuteOptions{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !provider.validateCalled {
+		t.Error("expected validate to be called")
+	}
+}
+
+func TestEngineExecute_GenerateError(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	provider := &engineTestProvider{name: "bad", generateErr: ErrInvalidProviderName}
+	if err := registry.Register(provider); err != nil {
+		t.Fatalf("failed to register provider: %v", err)
+	}
+
+	_, err := engine.Execute(context.Background(), &ExecuteOptions{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !provider.generateCalled {
+		t.Error("expected generate to be called")
+	}
+}
+
+func TestEngineValidateAll(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	provider := &engineTestProvider{name: "ok"}
+	if err := registry.Register(provider); err != nil {
+		t.Fatalf("failed to register provider: %v", err)
+	}
+
+	if err := engine.ValidateAll(context.Background()); err != nil {
+		t.Fatalf("ValidateAll failed: %v", err)
+	}
+	if !provider.validateCalled {
+		t.Error("expected validate to be called")
+	}
+}
+
+func TestEngineValidateAll_Error(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	provider := &engineTestProvider{name: "bad", validateErr: ErrInvalidProviderName}
+	if err := registry.Register(provider); err != nil {
+		t.Fatalf("failed to register provider: %v", err)
+	}
+
+	if err := engine.ValidateAll(context.Background()); err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestEngineCleanProvider(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	provider := &engineTestProvider{name: "clean"}
+	if err := registry.Register(provider); err != nil {
+		t.Fatalf("failed to register provider: %v", err)
+	}
+
+	if err := engine.CleanProvider(context.Background(), "clean"); err != nil {
+		t.Fatalf("CleanProvider failed: %v", err)
+	}
+	if !provider.cleanCalled {
+		t.Error("expected clean to be called")
+	}
+}
+
+func TestEngineCleanProvider_Error(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	provider := &engineTestProvider{name: "clean", cleanErr: ErrInvalidProviderName}
+	if err := registry.Register(provider); err != nil {
+		t.Fatalf("failed to register provider: %v", err)
+	}
+
+	if err := engine.CleanProvider(context.Background(), "clean"); err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
