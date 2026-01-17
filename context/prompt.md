@@ -6,6 +6,8 @@ You are working on a beads issue in an autonomous iteration loop.
 
 Complete the issue using the following the project guidelines and steps.
 
+NEVER ask for input, use your best judgement to meet the requirement.
+
 ## Process
 
 1. **Verify issue is actionable**
