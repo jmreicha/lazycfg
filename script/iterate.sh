@@ -4,7 +4,7 @@
 #
 # Runs an AI agent in a loop to complete tasks from beads issues.
 #
-# Usage: ./script/iterate.sh [--max-iterations N] [--issue-id ID]
+# Usage: ./script/iterate.sh [--max-iterations N] [--issue-id ID] [--model MODEL] [--timeout SECONDS]
 
 set -euo pipefail
 
@@ -20,8 +20,9 @@ COMPLETION_MARKER="<promise>COMPLETE</promise>"
 AGENTS_MD="AGENTS.md"
 MAX_ATTEMPTS_PER_ISSUE=3
 OPENCODE_TIMEOUT="${OPENCODE_TIMEOUT:-900}" # Default 15 mins, override via env
-declare -A issue_attempts                   # Track retry count per issue ID
-declare -a successful_attempts=()           # Track attempts for completed issues (for avg calculation)
+OPENCODE_MODEL="${OPENCODE_MODEL:-github-copilot/claude-sonnet-4.5}"
+declare -A issue_attempts         # Track retry count per issue ID
+declare -a successful_attempts=() # Track attempts for completed issues (for avg calculation)
 issues_completed=0
 issues_failed=0
 
@@ -44,7 +45,16 @@ while [[ $# -gt 0 ]]; do
         ISSUE_ID="$2"
         shift 2
         ;;
+    --model)
+        OPENCODE_MODEL="$2"
+        shift 2
+        ;;
+    --timeout)
+        OPENCODE_TIMEOUT="$2"
+        shift 2
+        ;;
     -h | --help)
+
         cat <<HELP
 Iterate - Autonomous coding loop for beads
 
@@ -53,11 +63,14 @@ Usage: $0 [OPTIONS]
 Options:
   --max-iterations N    Maximum iterations (default: 3)
   --issue-id ID        Work on specific issue
+  --model MODEL        OpenCode model (default: github-copilot/claude-sonnet-4.5)
+  --timeout SECONDS    OpenCode timeout in seconds (default: 900)
   -h, --help           Show this help
 
 Environment Variables:
   MAX_ITERATIONS       Override default max iterations
   AI_AGENT             AI agent command (default: "opencode run")
+  OPENCODE_MODEL       OpenCode model (default: github-copilot/claude-sonnet-4.5)
   OPENCODE_TIMEOUT     Timeout in seconds (default: 900)
   STREAM_OUTPUT        Set to true to stream AI output in real-time (default: false)
 
@@ -65,6 +78,8 @@ Examples:
   $0                                                   # Run with defaults (opencode)
   $0 --max-iterations 100                              # Custom max
   $0 --issue-id abc123                                 # Specific issue
+  $0 --model github-copilot/claude-sonnet-4.5          # Set model
+  $0 --timeout 3600                                    # 1 hour timeout
   MAX_ITERATIONS=25 $0                                 # Override with env
   AI_AGENT="claude --dangerously-skip-permissions" $0  # Use Claude CLI
   OPENCODE_TIMEOUT=3600 $0                             # 1 hour timeout
@@ -175,6 +190,8 @@ PROMPT
 
     echo -e "\n${YELLOW}🚀 Invoking AI agent (timeout: ${OPENCODE_TIMEOUT}s)...${NC}"
     echo -e "${BLUE}Agent: ${AI_AGENT}${NC}"
+    echo -e "${BLUE}Model: ${OPENCODE_MODEL}${NC}"
+
     echo -e "${BLUE}Debug log: $debug_log${NC}\n"
 
     # Invoke AI agent with timeout and capture output
@@ -184,9 +201,10 @@ PROMPT
     # Always save to debug log in /tmp (streamable for tail -f)
     if [[ "$STREAM_OUTPUT" == "true" ]]; then
         echo -e "${BLUE}Streaming AI agent output...${NC}\n"
-        timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" "$debug_log"
+        timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" --model "$OPENCODE_MODEL" 2>&1 | tee "$output_file" "$debug_log"
     else
-        timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" 2>&1 | tee "$output_file" "$debug_log" >/dev/null
+        timeout "$OPENCODE_TIMEOUT" $AI_AGENT "$prompt" --model "$OPENCODE_MODEL" 2>&1 | tee "$output_file" "$debug_log" >/dev/null
+
     fi
 
     local exit_code="${PIPESTATUS[0]}"
