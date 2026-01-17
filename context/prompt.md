@@ -83,6 +83,7 @@ Complete the issue using the following the project guidelines and steps.
 - Ensure branch is synced with main: `git pull --rebase origin main`
 - Push feature branch: `git push -u origin <branch-name>`
 - Create or update pull request: `gh pr create --title "type: description" --body "Detailed explanation"`
+- Add the `vibes` label to the PR: `gh pr edit <pr-number> --add-label vibes`
 - Check PR status: `gh pr checks` (do NOT use --watch flag as tests can take several minutes)
 - If checks fail, fix issues in a separate commit and push to update PR
 - When task is complete, output: `<promise>COMPLETE</promise>`
