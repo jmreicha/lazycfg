@@ -38,15 +38,14 @@ Complete the issue using the following the project guidelines and steps.
 
 4. **Understand the requirement**
 
-- Run 'bd show $bead' to understand the issue
+- Run 'bd show $bead' to understand the issue (example: `bd show BEAD-123`)
 - Read the issue details carefully
 - Check acceptance criteria if present
 - Review any referenced files or context
 
 5. **Review**
 
-- Use any relevant MCP servers to understand documentation, code, etc.
-- Read the "Recent Learnings" section below
+- Use any relevant MCP servers to understand documentation, code, etc. when needed
 - Investigate the codebase to find the root cause
 - Avoid repeating past mistakes
 - Apply successful patterns from history
@@ -57,13 +56,13 @@ Complete the issue using the following the project guidelines and steps.
 - Follow coding standards in AGENTS.md
 - Make small, atomic commits
 - Write clear conventional commit messages
-- After the first edit, immediately run `task check`; if it fails, fix and rerun. Do not resume exploration.
+- After the first edit batch, immediately run `task check`; if it fails, fix and rerun. Do not resume exploration.
 
 7. **Test your changes**
 
 - Create unit tests for your fix (create any test files if needed)
 - Create any integration tests if applicable
-- Run checks: `task check` (runs fmt, lint, and test)
+- Run checks: `task check` (runs fmt, lint, and test) when available
 - Verify no regressions
 - Fix any and all failures before continuing
 
@@ -83,6 +82,7 @@ Complete the issue using the following the project guidelines and steps.
 - Add the `vibes` label to the PR: `gh pr edit <pr-number> --add-label vibes`
 - Check PR status: `gh pr checks` (do NOT use --watch flag as tests can take several minutes)
 - If checks fail, fix issues in a separate commit and push to update PR
+- If required tools or auth are unavailable, stop and report the blocker
 - When task is complete, output: `<promise>COMPLETE</promise>`
 - Update issue status if appropriate
 
@@ -102,7 +102,9 @@ Complete the issue using the following the project guidelines and steps.
 - PR description must explain why changes are needed (not just what changed)
 - All lint and test violations MUST be fixed before committing
 - Write meaningful tests that cover the changes
-- When addressing review comments, make changes in separate commits (not amend) and push to update the PR
+- When addressing review comments, make changes in separate commits (not amend)
+- If required tools or auth are unavailable, stop and report the blocker
+  and push to update the PR
 
 See AGENTS.md for:
 
@@ -111,4 +113,4 @@ See AGENTS.md for:
 - Testing requirements
 - Documentation style
 
-Begin your work now.
+Wait for issue context, then proceed.
