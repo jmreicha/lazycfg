@@ -17,6 +17,15 @@
   ],
   "labels": ["dependencies"],
   "prConcurrentLimit": 5,
+  "regexManagers": [
+    {
+      "fileMatch": ["^\\.common-repo\\.yaml$"],
+      "matchStrings": [
+        "url: https://github\\.com/(?<depName>[^\\s]+)\\n\\s*ref: (?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "github-releases"
+    }
+  ],
   "pre-commit": {
     "enabled": true
   },
