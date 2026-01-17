@@ -208,7 +208,7 @@ PROMPT
 
     fi
 
-    current_pid="${!}"
+    current_pid=""
     local exit_code="${PIPESTATUS[0]}"
     current_pid=""
     set -e
