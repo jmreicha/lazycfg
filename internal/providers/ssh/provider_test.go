@@ -57,6 +57,9 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config",
 			config: &Config{
 				ConfigPath: "/home/user/.ssh",
+				GlobalOptions: map[string]string{
+					"ServerAliveInterval": "60",
+				},
 				Hosts: []HostConfig{
 					{
 						Host:     "example.com",
@@ -92,6 +95,17 @@ func TestConfig_Validate(t *testing.T) {
 			config: &Config{
 				ConfigPath: "/home/user/.ssh",
 				Hosts:      []HostConfig{},
+			},
+			expectError: false,
+		},
+		{
+			name: "global only",
+			config: &Config{
+				ConfigPath: "/home/user/.ssh",
+				GlobalOptions: map[string]string{
+					"ServerAliveInterval": "60",
+				},
+				Hosts: []HostConfig{},
 			},
 			expectError: false,
 		},
@@ -160,7 +174,8 @@ func TestProvider_Validate(t *testing.T) {
 
 func TestProvider_Generate(t *testing.T) {
 	provider := NewProvider(&Config{
-		ConfigPath: "/home/user/.ssh",
+		ConfigPath:    "/home/user/.ssh",
+		GlobalOptions: map[string]string{"ServerAliveInterval": "60"},
 	})
 
 	tests := []struct {
@@ -222,7 +237,8 @@ func TestProvider_Generate(t *testing.T) {
 
 func TestProvider_Backup(t *testing.T) {
 	provider := NewProvider(&Config{
-		ConfigPath: "/home/user/.ssh",
+		ConfigPath:    "/home/user/.ssh",
+		GlobalOptions: map[string]string{"ServerAliveInterval": "60"},
 	})
 
 	ctx := context.Background()
@@ -240,7 +256,8 @@ func TestProvider_Backup(t *testing.T) {
 
 func TestProvider_Restore(t *testing.T) {
 	provider := NewProvider(&Config{
-		ConfigPath: "/home/user/.ssh",
+		ConfigPath:    "/home/user/.ssh",
+		GlobalOptions: map[string]string{"ServerAliveInterval": "60"},
 	})
 
 	tests := []struct {
@@ -278,7 +295,8 @@ func TestProvider_Restore(t *testing.T) {
 
 func TestProvider_Clean(t *testing.T) {
 	provider := NewProvider(&Config{
-		ConfigPath: "/home/user/.ssh",
+		ConfigPath:    "/home/user/.ssh",
+		GlobalOptions: map[string]string{"ServerAliveInterval": "60"},
 	})
 
 	ctx := context.Background()

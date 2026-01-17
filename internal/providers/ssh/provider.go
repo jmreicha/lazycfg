@@ -49,14 +49,21 @@ func (c *HostConfig) Validate() error {
 	if c.Port < 0 || c.Port > 65535 {
 		return fmt.Errorf("port must be between 0 and 65535: %d", c.Port)
 	}
-	if c.IdentityFile == "" {
-		return nil
+	if c.IdentityAgent != "" {
+		identityAgent := filepath.Clean(os.ExpandEnv(c.IdentityAgent))
+		if !filepath.IsAbs(identityAgent) {
+			return fmt.Errorf("identity agent must be an absolute path: %s", identityAgent)
+		}
+		c.IdentityAgent = identityAgent
 	}
-	identityFile := filepath.Clean(os.ExpandEnv(c.IdentityFile))
-	if !filepath.IsAbs(identityFile) {
-		return fmt.Errorf("identity file must be an absolute path: %s", identityFile)
+
+	if c.IdentityFile != "" {
+		identityFile := filepath.Clean(os.ExpandEnv(c.IdentityFile))
+		if !filepath.IsAbs(identityFile) {
+			return fmt.Errorf("identity file must be an absolute path: %s", identityFile)
+		}
+		c.IdentityFile = identityFile
 	}
-	c.IdentityFile = identityFile
 
 	return nil
 }
@@ -147,7 +154,7 @@ func (p *Provider) Generate(_ context.Context, opts *core.GenerateOptions) (*cor
 		return result, nil
 	}
 
-	if len(p.config.Hosts) == 0 {
+	if len(p.config.Hosts) == 0 && len(p.config.GlobalOptions) == 0 {
 		result.Warnings = append(result.Warnings, "no hosts configured")
 		return result, nil
 	}
@@ -175,11 +182,19 @@ func (p *Provider) Generate(_ context.Context, opts *core.GenerateOptions) (*cor
 		cfg = &ssh_config.Config{}
 	}
 
+	existingHosts := FindHostsByPatterns(cfg)
+
+	if len(p.config.GlobalOptions) > 0 {
+		if _, err := UpsertGlobalOptions(cfg, p.config.GlobalOptions); err != nil {
+			return nil, fmt.Errorf("failed to merge global options: %w", err)
+		}
+	}
+
 	// Add or update hosts from configuration
 	hostsAdded := 0
 	hostsUpdated := 0
 	for _, host := range p.config.Hosts {
-		existingHost := FindHostExact(cfg, host.Host)
+		existingHost := existingHosts[host.Host]
 		if existingHost != nil {
 			if err := UpdateHost(cfg, host); err != nil {
 				result.Warnings = append(result.Warnings, fmt.Sprintf("failed to update host %s: %v", host.Host, err))
