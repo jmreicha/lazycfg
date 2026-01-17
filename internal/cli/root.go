@@ -13,10 +13,11 @@ import (
 
 var (
 	// Global flags.
-	cfgFile  string
-	verbose  bool
-	dryRun   bool
-	noBackup bool
+	cfgFile       string
+	dryRun        bool
+	noBackup      bool
+	sshConfigPath string
+	verbose       bool
 
 	// Shared components.
 	registry      *core.Registry
@@ -32,7 +33,10 @@ func NewRootCmd(version string) *cobra.Command {
 		Use:   "lazycfg",
 		Short: "A tool for creating and managing configurations",
 		Long: `lazycfg simplifies the creation and management of complicated configurations.
-It provides a plugin-based architecture for managing AWS, Kubernetes, SSH, and other configurations.`,
+	It provides a plugin-based architecture for managing AWS, Kubernetes, SSH, and other configurations.
+
+	Use --ssh-config-path to override the default SSH config directory.`,
+
 		Version:      version,
 		SilenceUsage: true,
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
@@ -42,9 +46,10 @@ It provides a plugin-based architecture for managing AWS, Kubernetes, SSH, and o
 
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: search in standard locations)")
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "simulate actions without making changes")
 	rootCmd.PersistentFlags().BoolVar(&noBackup, "no-backup", false, "skip backup creation before generation")
+	rootCmd.PersistentFlags().StringVar(&sshConfigPath, "ssh-config-path", "", "ssh config directory (default: ~/.ssh)")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	// Add subcommands
 	rootCmd.AddCommand(newGenerateCmd())
@@ -101,6 +106,9 @@ func initializeComponents() error {
 			return fmt.Errorf("ssh provider config has unexpected type %T", providerConfig)
 		}
 		sshConfig = typedConfig
+	}
+	if sshConfigPath != "" {
+		sshConfig.ConfigPath = sshConfigPath
 	}
 	if err := registry.Register(ssh.NewProvider(sshConfig)); err != nil {
 		return fmt.Errorf("failed to register ssh provider: %w", err)

@@ -52,6 +52,7 @@ If no providers are specified, all registered providers will be executed.
 Examples:
   lazycfg generate aws
   lazycfg generate aws kubernetes
+  lazycfg generate ssh --ssh-config-path ~/.ssh
   lazycfg generate all
   lazycfg generate --dry-run
   lazycfg generate --force`,
