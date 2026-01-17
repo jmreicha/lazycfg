@@ -154,6 +154,13 @@ func (p *Provider) Generate(_ context.Context, opts *core.GenerateOptions) (*cor
 		return result, nil
 	}
 
+	// Parse history files if enabled
+	if p.config.ParseHistory {
+		if err := p.mergeHistoryHosts(result); err != nil {
+			result.Warnings = append(result.Warnings, fmt.Sprintf("failed to parse history: %v", err))
+		}
+	}
+
 	if len(p.config.Hosts) == 0 && len(p.config.GlobalOptions) == 0 {
 		result.Warnings = append(result.Warnings, "no hosts configured")
 		return result, nil
@@ -191,24 +198,7 @@ func (p *Provider) Generate(_ context.Context, opts *core.GenerateOptions) (*cor
 	}
 
 	// Add or update hosts from configuration
-	hostsAdded := 0
-	hostsUpdated := 0
-	for _, host := range p.config.Hosts {
-		existingHost := existingHosts[host.Host]
-		if existingHost != nil {
-			if err := UpdateHost(cfg, host); err != nil {
-				result.Warnings = append(result.Warnings, fmt.Sprintf("failed to update host %s: %v", host.Host, err))
-				continue
-			}
-			hostsUpdated++
-		} else {
-			if err := AddHost(cfg, host); err != nil {
-				result.Warnings = append(result.Warnings, fmt.Sprintf("failed to add host %s: %v", host.Host, err))
-				continue
-			}
-			hostsAdded++
-		}
-	}
+	hostsAdded, hostsUpdated := p.upsertHosts(cfg, existingHosts, result)
 
 	if opts.DryRun {
 		result.Warnings = append(result.Warnings, "dry-run mode: no files were actually created")
@@ -269,4 +259,61 @@ func (p *Provider) Clean(_ context.Context) error {
 	// - Handle errors gracefully
 
 	return nil
+}
+
+// mergeHistoryHosts parses shell history and merges discovered hosts into the configuration.
+func (p *Provider) mergeHistoryHosts(result *core.Result) error {
+	historyCommands, err := ParseHistoryFiles()
+	if err != nil {
+		return err
+	}
+
+	// Convert history commands to host configs and add to config
+	added := 0
+	for _, cmd := range historyCommands {
+		hostConfig := cmd.ConvertToHostConfig()
+		// Only add if not already in configuration
+		exists := false
+		for _, existing := range p.config.Hosts {
+			if existing.Host == hostConfig.Host {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			p.config.Hosts = append(p.config.Hosts, hostConfig)
+			added++
+		}
+	}
+
+	if added > 0 {
+		result.Metadata["hosts_from_history"] = added
+	}
+
+	return nil
+}
+
+// upsertHosts adds or updates hosts in the SSH configuration.
+func (p *Provider) upsertHosts(cfg *ssh_config.Config, existingHosts map[string]*ssh_config.Host, result *core.Result) (int, int) {
+	hostsAdded := 0
+	hostsUpdated := 0
+
+	for _, host := range p.config.Hosts {
+		existingHost := existingHosts[host.Host]
+		if existingHost != nil {
+			if err := UpdateHost(cfg, host); err != nil {
+				result.Warnings = append(result.Warnings, fmt.Sprintf("failed to update host %s: %v", host.Host, err))
+				continue
+			}
+			hostsUpdated++
+		} else {
+			if err := AddHost(cfg, host); err != nil {
+				result.Warnings = append(result.Warnings, fmt.Sprintf("failed to add host %s: %v", host.Host, err))
+				continue
+			}
+			hostsAdded++
+		}
+	}
+
+	return hostsAdded, hostsUpdated
 }

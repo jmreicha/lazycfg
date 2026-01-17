@@ -27,6 +27,9 @@ type Config struct {
 	// GlobalOptions defines top-level SSH options (Host *).
 	GlobalOptions map[string]string `yaml:"global_options"`
 
+	// ParseHistory enables parsing shell history files for SSH commands
+	ParseHistory bool `yaml:"parse_history"`
+
 	// Hosts contains SSH host configurations
 	Hosts []HostConfig `yaml:"hosts"`
 }
@@ -84,6 +87,7 @@ func DefaultConfig() *Config {
 		Enabled:       true,
 		ConfigPath:    defaultConfigPath(),
 		GlobalOptions: defaultGlobalOptions(),
+		ParseHistory:  true,
 		Hosts:         []HostConfig{},
 	}
 }
