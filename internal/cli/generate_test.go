@@ -50,6 +50,7 @@ func TestGenerateCmd(t *testing.T) {
 	backupManager = core.NewBackupManager("")
 	config = core.NewConfig()
 	engine = core.NewEngine(registry, backupManager, config, logger)
+	sshConfigPath = ""
 
 	// Register test providers
 	if err := registry.Register(&mockProvider{name: "aws"}); err != nil {
@@ -116,6 +117,7 @@ func TestGenerateCmdAllKeyword(t *testing.T) {
 	backupManager = core.NewBackupManager("")
 	config = core.NewConfig()
 	engine = core.NewEngine(registry, backupManager, config, logger)
+	sshConfigPath = ""
 
 	// Register test providers
 	if err := registry.Register(&mockProvider{name: "test1"}); err != nil {
