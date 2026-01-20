@@ -10,6 +10,11 @@ repos:
     hooks:
       - id: commitizen
 
+  - repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-rc.1
+    hooks:
+      - id: go-mod-tidy
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -60,8 +65,8 @@ repos:
     hooks:
       - id: actionlint
 
-  # This needs to be compiled so we disable it by default
-  # - repo: https://github.com/trufflesecurity/truffleHog
-  #   rev: v3.88.20
-  #   hooks:
-  #     - id: trufflehog
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.22.0
+    hooks:
+      - id: zizmor
+        args: ["--min-severity", "medium", "--min-confidence", "medium"]
