@@ -32,6 +32,7 @@ This project requires the following tools:
 - **common-repo** - Repository configuration management
 - **prek** (optional) - Pre-commit hook management tool
 - **mcp-cli** (optional) - MCP server interface
+- **wt (worktrunk)** (optional) - Git worktree management
 
 ### Installation
 
