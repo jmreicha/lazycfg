@@ -2,14 +2,13 @@ Goals
 
 When working with a lot of different tools and environments, configuration sprawl quickly becomes a problem. How do you know what you need? How do you keep track of the chaos? Lazycfg aims to a be an all encompassing local configuration tool.
 
-- [ ] Rewrite in Golang
-- [ ] Use native Go libraries when possible instead of reaching out to the OS via process/commands
-- [ ] Split the tool into multiple files, one per config to generate, to make it easier to extend
+- [x] Rewrite in Golang
+- [x] Use native Go libraries when possible instead of reaching out to the OS via process/commands
+- [x] Split the tool into multiple files, one per config to generate, to make it easier to extend
 - [ ] Make the sso start url configurable but defaulted to Lytx url
-- [ ] Add an option to have the tool update itself
 - [ ] Add completions command for cli autocomplete
 - [ ] Documentation site
-- [ ] SSH configuration management
+- [] SSH configuration management
 - [ ] Should have a yaml config file for complex declarative configs
 - [ ] Set up ~/.granted/config with some sane defaults including `CredentialProcessAutoLogin = true` to automatically login when connecting. See https://docs.commonfate.io/granted/recipes/pass. If this is not enabled the following command must be run manually first `granted sso login --sso-start-url https://d-92670a73b3.awsapps.com/start --sso-region us-west-2`
 - [ ] Replace EKS config generation tool with custom code
