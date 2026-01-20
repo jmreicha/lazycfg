@@ -43,6 +43,46 @@ sboms:
   - id: archive
     artifacts: archive
 
+# Docker configuration
+dockers:
+  - id: amd64
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "{{ .ProjectName }}:{{ .Version }}-amd64"
+      - "{{ .ProjectName }}:latest-amd64"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+    skip_push: true
+  - id: arm64
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "{{ .ProjectName }}:{{ .Version }}-arm64"
+      - "{{ .ProjectName }}:latest-arm64"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64/v8"
+    skip_push: true
+
+# Docker manifest configuration
+docker_manifests:
+  - name_template: "{{ .ProjectName }}:{{ .Version }}"
+    image_templates:
+      - "{{ .ProjectName }}:{{ .Version }}-amd64"
+      - "{{ .ProjectName }}:{{ .Version }}-arm64"
+    skip_push: true
+  - name_template: "{{ .ProjectName }}:latest"
+    image_templates:
+      - "{{ .ProjectName }}:latest-amd64"
+      - "{{ .ProjectName }}:latest-arm64"
+    skip_push: true
+
 # Changelog configuration
 changelog:
   use: github
