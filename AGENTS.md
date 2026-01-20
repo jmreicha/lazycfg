@@ -56,6 +56,43 @@ Available MCP servers (run `mcp-cli` to list):
 - Use the [research skill](.claude/skills/research/SKILL.md) which coordinates context7 and grep searches
 - The skill provides structured findings and handles fallbacks when MCP is unavailable
 
+### Worktrees
+
+This project uses [worktrunk (`wt`)](https://github.com/max-sixty/worktrunk) for managing git worktrees, enabling parallel work on multiple branches.
+
+**Core commands:**
+
+```bash
+# Create and switch to a new worktree
+wt switch -c feat/new-feature
+
+# Switch to an existing worktree
+wt switch feat/existing-branch
+
+# List all worktrees with status
+wt list
+
+# Merge and clean up a completed worktree
+wt merge
+
+# Remove a worktree
+wt remove
+```
+
+**When to use worktrees:**
+
+- Running multiple AI agents in parallel on different tasks
+- Working on a feature while waiting for PR review on another
+- Testing changes in isolation without stashing
+
+**Workflow:**
+
+1. Create a worktree: `wt switch -c feat/my-feature`
+2. Work on the feature in the new directory
+3. When complete, merge back: `wt merge`
+
+See [worktrunk.dev](https://worktrunk.dev) for full documentation.
+
 ### Research Skill
 
 When planning new features or making architectural changes, use the [research skill](.claude/skills/research/SKILL.md) to gather context from multiple sources.
