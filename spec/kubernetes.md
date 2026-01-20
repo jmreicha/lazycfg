@@ -64,6 +64,9 @@ lazycfg generate kubernetes --merge
 
 # Dry run
 lazycfg generate kubernetes --dry-run
+
+# Demo mode - use fake data, no AWS calls (for testing/development)
+lazycfg generate kubernetes --demo
 ```
 
 ## Implementation
@@ -155,6 +158,7 @@ require (
 - Mock `EKSClient` interface for unit tests
 - Use `t.TempDir()` for file operations
 - Test fixtures: sample credentials files, kubeconfig files
+- `--demo` flag injects mock factory with fake clusters for end-to-end CLI testing without AWS
 
 ## Decisions
 
