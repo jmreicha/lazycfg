@@ -31,11 +31,13 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - If no PR exists, check if branch exists: `git branch -a | grep feat/issue-name`
 - If branch exists remotely, checkout and continue: `git checkout feat/issue-name`
 
-3. **Create a branch (if needed)**
+3. **Create a worktree (if needed)**
 
-- Check current branch: `git branch`
-- If on main and no feature branch exists, create one: `git checkout -b feat/issue-name` or `git checkout -b fix/issue-name`
-- If already on a feature branch for this issue, continue working on it
+- Use `wt` (worktrunk) for worktree management to enable parallel work
+- Check current worktrees: `wt list`
+- Create a new worktree for the issue: `wt switch -c feat/issue-name` or `wt switch -c fix/issue-name`
+- If worktree already exists, switch to it: `wt switch feat/issue-name`
+- Each worktree has its own working directory, allowing parallel agent work
 - NEVER work directly on main
 
 4. **Understand the requirement**
@@ -87,14 +89,16 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - If required tools or auth are unavailable, stop and report the blocker
 - When task is complete, output: `<promise>COMPLETE</promise>`
 - Update issue status if appropriate
+- When PR is merged, clean up worktree: `wt merge` (squashes, merges, and removes worktree)
 
 ## Guidelines
 
 - IMMEDIATELY check if issue status is "blocked" at the start - if blocked, exit with message and do NOT proceed
-- ALWAYS check for existing PR first before creating a new branch
+- ALWAYS check for existing PR first before creating a new worktree
+- Use `wt switch -c <branch>` to create worktrees for parallel work on multiple issues
 - If PR review state is "CHANGES_REQUESTED", address ALL requested changes before continuing
 - If PR review state is "APPROVED" or "COMMENTED" (without changes requested), no action needed on comments
-- NEVER commit to main directly. Always work on a feature branch
+- NEVER commit to main directly. Always work in a worktree on a feature branch
 - Do NOT include .beads/ in your commit - run 'git restore .beads/' before staging
 - Do NOT run 'bd close' - the script handles closing the bead after PR is created
 - MUST push feature branch and create PR before signaling completion
