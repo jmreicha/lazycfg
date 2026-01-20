@@ -1,0 +1,76 @@
+name: Bug report
+about: Report a bug or unexpected behavior.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the fields below.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: Short, specific summary of the issue.
+      placeholder: "CLI crashes when running sync"
+    validations:
+      required: true
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: Current behavior
+      description: What happened? Include exact error messages if you can.
+      placeholder: "Running lazycfg sync exits with status 1 and prints..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+      placeholder: "The sync completes and prints the success message."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered list of minimal steps to reproduce.
+      placeholder: |
+        1. Run `lazycfg sync`
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, version, command, and any relevant config.
+      placeholder: |
+        - OS: macOS
+        - Version: vX.Y.Z
+        - Command: lazycfg sync
+        - Config: ~/.config/lazycfg/config.yaml
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Optional. Add logs or screenshots if they help explain the issue.
+      placeholder: "Paste logs here if relevant."
+    validations:
+      required: false
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: How often does this happen or how blocking is it?
+      options:
+        - Always / blocking
+        - Often / significant
+        - Sometimes / minor
+        - Rare / cosmetic
+    validations:
+      required: true
