@@ -62,6 +62,10 @@ jobs:
           granted -v
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.out ./...
+      - name: Check test coverage
+        uses: vladopajic/go-test-coverage@679e6807f68f2440a4c43d386442a1d0041838a9 # v2
+        with:
+          config: ./.testcoverage.yml
       - name: Generate coverage report
         if: success()
         run: go tool cover -func=coverage.out
