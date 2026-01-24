@@ -60,19 +60,7 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 		Metadata:     make(map[string]interface{}),
 	}
 
-	if p.config == nil {
-		return nil, errProviderConfigNil
-	}
-
-	if opts != nil && opts.Config != nil {
-		cfg, ok := opts.Config.(*Config)
-		if !ok {
-			return nil, errors.New("kubernetes config has unexpected type")
-		}
-		p.config = cfg
-	}
-
-	if err := p.config.Validate(); err != nil {
+	if err := p.validateAndPrepare(opts); err != nil {
 		return nil, err
 	}
 
@@ -81,42 +69,14 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 		return result, nil
 	}
 
-	outputPath := p.config.ConfigPath
-	if outputPath == "" {
-		return nil, errors.New("kubernetes config path is empty")
+	discovered, err := p.discoverClusters(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	var discovered []DiscoveredCluster
-	var err error
-
-	if !p.config.MergeOnly {
-		if p.config.Demo {
-			discovered = demoClusters()
-		} else {
-			discovered, err = DiscoverEKSClusters(ctx, p.config, nil)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	var discoveredConfig *api.Config
-	if len(discovered) > 0 {
-		discoveredConfig, err = BuildKubeconfig(discovered, p.config.NamingPattern)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	var mergeConfig *api.Config
-	var mergeFiles []string
-	if p.config.MergeEnabled || p.config.MergeOnly {
-		mergeConfig, mergeFiles, err = MergeKubeconfigs(outputPath, p.config.Merge, discoveredConfig)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		mergeConfig = discoveredConfig
+	mergeConfig, mergeFiles, err := p.buildKubeconfig(discovered)
+	if err != nil {
+		return nil, err
 	}
 
 	if mergeConfig == nil {
@@ -129,26 +89,97 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 	}
 
 	if opts != nil && opts.DryRun {
-		result.Warnings = append(result.Warnings, "dry-run mode: no files were actually created")
-		result.Metadata["discovered_clusters"] = len(discovered)
-		result.Metadata["dry_run_output"] = outputPath
-		if mergeConfig != nil {
-			result.Metadata["dry_run_kubeconfig"] = mergeConfig
+		return p.handleDryRun(result, discovered, mergeConfig), nil
+	}
+
+	outputPath := p.config.ConfigPath
+	if err := p.writeKubeconfig(outputPath, mergeConfig, opts, result); err != nil {
+		return nil, err
+	}
+
+	result.Metadata["discovered_clusters"] = len(discovered)
+	return result, nil
+}
+
+func (p *Provider) validateAndPrepare(opts *core.GenerateOptions) error {
+	if p.config == nil {
+		return errProviderConfigNil
+	}
+
+	if opts != nil && opts.Config != nil {
+		cfg, ok := opts.Config.(*Config)
+		if !ok {
+			return errors.New("kubernetes config has unexpected type")
 		}
-		return result, nil
+		p.config = cfg
+	}
+
+	return p.config.Validate()
+}
+
+func (p *Provider) discoverClusters(ctx context.Context) ([]DiscoveredCluster, error) {
+	if p.config.MergeOnly {
+		return nil, nil
+	}
+
+	if p.config.Demo {
+		return demoClusters(), nil
+	}
+
+	return DiscoverEKSClusters(ctx, p.config, nil)
+}
+
+func (p *Provider) buildKubeconfig(discovered []DiscoveredCluster) (*api.Config, []string, error) {
+	var discoveredConfig *api.Config
+	if len(discovered) > 0 {
+		var err error
+		discoveredConfig, err = BuildKubeconfig(discovered, p.config.NamingPattern)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	if !p.config.MergeEnabled && !p.config.MergeOnly {
+		return discoveredConfig, nil, nil
+	}
+
+	outputPath := p.config.ConfigPath
+	mergeConfig, mergeFiles, err := MergeKubeconfigs(outputPath, p.config.Merge, discoveredConfig)
+	return mergeConfig, mergeFiles, err
+}
+
+func (p *Provider) handleDryRun(result *core.Result, discovered []DiscoveredCluster, mergeConfig *api.Config) *core.Result {
+	result.Warnings = append(result.Warnings, "dry-run mode: no files were actually created")
+	result.Metadata["discovered_clusters"] = len(discovered)
+	result.Metadata["dry_run_output"] = p.config.ConfigPath
+	if mergeConfig != nil {
+		result.Metadata["dry_run_kubeconfig"] = mergeConfig
+	}
+	return result
+}
+
+func (p *Provider) writeKubeconfig(outputPath string, mergeConfig *api.Config, opts *core.GenerateOptions, result *core.Result) error {
+	if outputPath == "" {
+		return errors.New("kubernetes config path is empty")
 	}
 
 	if err := os.MkdirAll(filepath.Dir(outputPath), 0700); err != nil {
-		return nil, fmt.Errorf("create kubeconfig directory: %w", err)
+		return fmt.Errorf("create kubeconfig directory: %w", err)
+	}
+
+	// Check if output file exists and skip if force is not set
+	if _, err := os.Stat(outputPath); err == nil && !opts.Force {
+		result.FilesSkipped = append(result.FilesSkipped, outputPath)
+		result.Warnings = append(result.Warnings, "kubeconfig already exists, use --force to overwrite")
+		return nil
 	}
 
 	if err := clientcmd.WriteToFile(*mergeConfig, outputPath); err != nil {
-		return nil, fmt.Errorf("write kubeconfig: %w", err)
+		return fmt.Errorf("write kubeconfig: %w", err)
 	}
 
 	result.FilesCreated = append(result.FilesCreated, outputPath)
-	result.Metadata["discovered_clusters"] = len(discovered)
-	return result, nil
+	return nil
 }
 
 // Backup creates a backup of existing configuration files.
@@ -171,9 +202,9 @@ func (p *Provider) Clean(_ context.Context) error {
 		return nil
 	}
 
-	path := filepath.Clean(os.ExpandEnv(p.config.ConfigPath))
-	if !filepath.IsAbs(path) {
-		return fmt.Errorf("kubernetes config path must be absolute: %s", p.config.ConfigPath)
+	path, err := normalizePath(p.config.ConfigPath, errConfigPathEmpty)
+	if err != nil {
+		return err
 	}
 
 	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {

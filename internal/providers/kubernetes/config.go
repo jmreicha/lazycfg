@@ -47,10 +47,10 @@ type Config struct {
 	NamingPattern string `yaml:"naming_pattern"`
 
 	// MergeEnabled toggles merging existing kubeconfig files.
-	MergeEnabled bool `yaml:"-"`
+	MergeEnabled bool `yaml:"merge_enabled"`
 
 	// MergeOnly skips AWS discovery and merges existing kubeconfigs only.
-	MergeOnly bool `yaml:"-"`
+	MergeOnly bool `yaml:"merge_only"`
 
 	// Merge contains settings for merging existing kubeconfig files.
 	Merge MergeConfig `yaml:"merge"`
@@ -171,38 +171,45 @@ func (c *Config) Validate() error {
 		return err
 	}
 
-	credentialsFile, err := normalizePath(c.AWS.CredentialsFile, errAWSCredentialsEmpty)
-	if err != nil {
-		return err
-	}
-
 	mergeSourceDir, err := normalizePath(c.Merge.SourceDir, errMergeSourceDirEmpty)
 	if err != nil {
 		return err
 	}
 
-	if len(c.AWS.Regions) == 0 {
-		return errRegionsEmpty
+	// Enable merge when MergeOnly is requested.
+	if c.MergeOnly {
+		c.MergeEnabled = true
 	}
 
-	if c.AWS.ParallelWorkers <= 0 {
-		return errParallelWorkersBounds
-	}
+	// AWS validation is only required when not in MergeOnly or Demo modes.
+	awsValidationRequired := !c.MergeOnly && !c.Demo
 
-	if c.AWS.Timeout <= 0 {
-		return errTimeoutInvalid
+	if awsValidationRequired {
+		credentialsFile, err := normalizePath(c.AWS.CredentialsFile, errAWSCredentialsEmpty)
+		if err != nil {
+			return err
+		}
+
+		if len(c.AWS.Regions) == 0 {
+			return errRegionsEmpty
+		}
+
+		if c.AWS.ParallelWorkers <= 0 {
+			return errParallelWorkersBounds
+		}
+
+		if c.AWS.Timeout <= 0 {
+			return errTimeoutInvalid
+		}
+
+		c.AWS.CredentialsFile = credentialsFile
 	}
 
 	if strings.TrimSpace(c.NamingPattern) == "" {
 		return errNamingPatternEmpty
 	}
 
-	if c.MergeOnly {
-		c.MergeEnabled = true
-	}
-
 	c.ConfigPath = configPath
-	c.AWS.CredentialsFile = credentialsFile
 	c.Merge.SourceDir = mergeSourceDir
 	c.NamingPattern = strings.TrimSpace(c.NamingPattern)
 
