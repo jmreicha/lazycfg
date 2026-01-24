@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/lazycfg/internal/providers/kubernetes"
 	"github.com/jmreicha/lazycfg/internal/providers/ssh"
 	"github.com/spf13/cobra"
 )
@@ -18,6 +21,13 @@ var (
 	noBackup      bool
 	sshConfigPath string
 	verbose       bool
+
+	// Kubernetes generate flags.
+	kubeDemo      bool
+	kubeMerge     bool
+	kubeMergeOnly bool
+	kubeProfiles  string
+	kubeRegions   string
 
 	// Shared components.
 	registry      *core.Registry
@@ -114,5 +124,73 @@ func initializeComponents() error {
 		return fmt.Errorf("failed to register ssh provider: %w", err)
 	}
 
+	var kubernetesConfig *kubernetes.Config
+	providerConfig = config.GetProviderConfig(kubernetes.ProviderName)
+	if providerConfig == nil {
+		kubernetesConfig = kubernetes.DefaultConfig()
+		config.SetProviderConfig(kubernetes.ProviderName, kubernetesConfig)
+	} else {
+		typedConfig, ok := providerConfig.(*kubernetes.Config)
+		if !ok {
+			return fmt.Errorf("kubernetes provider config has unexpected type %T", providerConfig)
+		}
+		kubernetesConfig = typedConfig
+	}
+	applyKubernetesCLIOverrides(kubernetesConfig)
+	if err := registry.Register(kubernetes.NewProvider(kubernetesConfig)); err != nil {
+		return fmt.Errorf("failed to register kubernetes provider: %w", err)
+	}
+
 	return nil
+}
+
+func applyKubernetesCLIOverrides(cfg *kubernetes.Config) {
+	if cfg == nil {
+		return
+	}
+
+	if profiles := parseCSVFlag(kubeProfiles); len(profiles) > 0 {
+		cfg.AWS.Profiles = profiles
+	}
+
+	if regions := parseCSVFlag(kubeRegions); len(regions) > 0 {
+		cfg.AWS.Regions = regions
+	}
+
+	if kubeMergeOnly {
+		cfg.MergeOnly = true
+		cfg.MergeEnabled = true
+	} else if kubeMerge {
+		cfg.MergeEnabled = true
+	}
+
+	if kubeDemo {
+		cfg.Demo = true
+	}
+}
+
+func parseCSVFlag(value string) []string {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+
+	set := make(map[string]struct{})
+	for _, part := range strings.Split(value, ",") {
+		trimmed := strings.TrimSpace(part)
+		if trimmed == "" {
+			continue
+		}
+		set[trimmed] = struct{}{}
+	}
+
+	if len(set) == 0 {
+		return nil
+	}
+
+	values := make([]string, 0, len(set))
+	for item := range set {
+		values = append(values, item)
+	}
+	sort.Strings(values)
+	return values
 }
