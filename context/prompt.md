@@ -21,11 +21,16 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Check if PR already exists for this issue: `gh pr list --search "in:title issue-name"`
 - If PR exists, check its status and review state: `gh pr view <pr-number> --json reviewDecision,reviews`
 - If review state is "CHANGES_REQUESTED":
-  - Check review comments: `gh pr view <pr-number> --comments`
+  - Check review comments: `gh api repos/{owner}/{repo}/pulls/<pr-number>/reviews`
   - Address each requested change
   - Make the necessary code changes
   - Push changes to update the PR
   - Optionally reply to comments when addressed: `gh pr comment <pr-number> --body "Addressed in <commit-sha>"`
+- If reviews exist from `Copilot` (automated code review):
+  - Fetch detailed comments: `gh api repos/{owner}/{repo}/pulls/<pr-number>/comments`
+  - These are advisory/optional - use judgment on whether to address
+  - If the suggestion improves code quality, make the change
+  - If the suggestion is unnecessary or incorrect, resolve without changes
 - Review failing checks and error messages
 - If checks are failing, fix issues in a separate commit and push to update the PR
 - If no PR exists, check if branch exists: `git branch -a | grep feat/issue-name`
@@ -108,6 +113,7 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Use `wt switch -c <branch>` to create worktrees for parallel work on multiple issues
 - If PR review state is "CHANGES_REQUESTED", address ALL requested changes before continuing
 - If PR review state is "APPROVED" or "COMMENTED" (without changes requested), no action needed on comments
+- Copilot reviews are advisory - apply suggestions that improve quality, skip those that don't add value
 - NEVER commit to main directly. Always work in a worktree on a feature branch
 - Do NOT include .beads/ in your commit - run 'git restore .beads/' before staging
 - Do NOT run 'bd close' - the script handles closing the bead after PR is created
