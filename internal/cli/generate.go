@@ -84,6 +84,11 @@ Examples:
 	}
 
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing files")
+	cmd.Flags().BoolVar(&kubeDemo, "kube-demo", false, "use fake kubernetes discovery data")
+	cmd.Flags().BoolVar(&kubeMerge, "kube-merge", false, "merge existing kubeconfig files")
+	cmd.Flags().BoolVar(&kubeMergeOnly, "kube-merge-only", false, "merge existing kubeconfig files without AWS discovery")
+	cmd.Flags().StringVar(&kubeProfiles, "kube-profiles", "", "comma-separated AWS profile names")
+	cmd.Flags().StringVar(&kubeRegions, "kube-regions", "", "comma-separated AWS regions")
 
 	return cmd
 }

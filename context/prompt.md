@@ -21,11 +21,16 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Check if PR already exists for this issue: `gh pr list --search "in:title issue-name"`
 - If PR exists, check its status and review state: `gh pr view <pr-number> --json reviewDecision,reviews`
 - If review state is "CHANGES_REQUESTED":
-  - Check review comments: `gh pr view <pr-number> --comments`
+  - Check review comments: `gh api repos/{owner}/{repo}/pulls/<pr-number>/reviews`
   - Address each requested change
   - Make the necessary code changes
   - Push changes to update the PR
   - Optionally reply to comments when addressed: `gh pr comment <pr-number> --body "Addressed in <commit-sha>"`
+- If reviews exist from `Copilot` (automated code review):
+  - Fetch detailed comments: `gh api repos/{owner}/{repo}/pulls/<pr-number>/comments`
+  - These are advisory/optional - use judgment on whether to address
+  - If the suggestion improves code quality, make the change
+  - If the suggestion is unnecessary or incorrect, resolve without changes
 - Review failing checks and error messages
 - If checks are failing, fix issues in a separate commit and push to update the PR
 - If no PR exists, check if branch exists: `git branch -a | grep feat/issue-name`
@@ -47,7 +52,13 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Check acceptance criteria if present
 - Review any referenced files or context
 
-5. **Review**
+5. **Check recent history**
+
+- Review the last 10 commits: `git log -10 --oneline`
+- Inspect each commit's changes: `git show <sha>`
+- Look for recent changes that impact the issue
+
+6. **Review**
 
 - Use any relevant MCP servers to understand documentation, code, etc. when needed
 - Investigate the codebase to find the root cause
@@ -56,13 +67,13 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Keep searches targeted; balance thoroughness with minimizing token/time usage
 - If you have already identified the target files, stop reading and start editing.
 
-6. **Make changes**
+7. **Make changes**
 
 - Follow coding standards in AGENTS.md
 - Make small, atomic commits
 - Write clear conventional commit messages
 
-7. **Test your changes**
+8. **Test your changes**
 
 - Create unit tests for your fix (create any test files if needed)
 - Create any integration tests if applicable
@@ -70,14 +81,18 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Verify no regressions
 - Fix any and all failures before continuing
 
-8. **Report findings** (optional)
+9. **Update documentation**
+
+- Create or update docs for new or changed functionality before committing
+
+10. **Report findings** (optional)
 
 - If you discover important learnings, wrap them in tags:
 - `<findings>Your learning here</findings>`
 - Be specific and actionable
 - Add the findings to the `## Findings` section in AGENTS.md
 
-9. **Complete and push**
+11. **Complete and push**
 
 - Stage ONLY your code changes (NOT .beads/): `git restore .beads/`
 - Ensure branch is synced with main: `git pull --rebase origin main`
@@ -98,6 +113,7 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Use `wt switch -c <branch>` to create worktrees for parallel work on multiple issues
 - If PR review state is "CHANGES_REQUESTED", address ALL requested changes before continuing
 - If PR review state is "APPROVED" or "COMMENTED" (without changes requested), no action needed on comments
+- Copilot reviews are advisory - apply suggestions that improve quality, skip those that don't add value
 - NEVER commit to main directly. Always work in a worktree on a feature branch
 - Do NOT include .beads/ in your commit - run 'git restore .beads/' before staging
 - Do NOT run 'bd close' - the script handles closing the bead after PR is created
