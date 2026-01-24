@@ -47,7 +47,13 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Check acceptance criteria if present
 - Review any referenced files or context
 
-5. **Review**
+5. **Check recent history**
+
+- Review the last 10 commits: `git log -10 --oneline`
+- Inspect each commit's changes: `git show <sha>`
+- Look for recent changes that impact the issue
+
+6. **Review**
 
 - Use any relevant MCP servers to understand documentation, code, etc. when needed
 - Investigate the codebase to find the root cause
@@ -56,13 +62,13 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Keep searches targeted; balance thoroughness with minimizing token/time usage
 - If you have already identified the target files, stop reading and start editing.
 
-6. **Make changes**
+7. **Make changes**
 
 - Follow coding standards in AGENTS.md
 - Make small, atomic commits
 - Write clear conventional commit messages
 
-7. **Test your changes**
+8. **Test your changes**
 
 - Create unit tests for your fix (create any test files if needed)
 - Create any integration tests if applicable
@@ -70,14 +76,18 @@ NEVER ask for input, use your best judgement to meet the requirement.
 - Verify no regressions
 - Fix any and all failures before continuing
 
-8. **Report findings** (optional)
+9. **Update documentation**
+
+- Create or update docs for new or changed functionality before committing
+
+10. **Report findings** (optional)
 
 - If you discover important learnings, wrap them in tags:
 - `<findings>Your learning here</findings>`
 - Be specific and actionable
 - Add the findings to the `## Findings` section in AGENTS.md
 
-9. **Complete and push**
+11. **Complete and push**
 
 - Stage ONLY your code changes (NOT .beads/): `git restore .beads/`
 - Ensure branch is synced with main: `git pull --rebase origin main`

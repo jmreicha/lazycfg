@@ -121,6 +121,59 @@ providers:
       enabled: true
 ```
 
+## Kubernetes Provider
+
+The Kubernetes provider discovers EKS clusters across AWS profiles and writes a merged kubeconfig file. It can also merge existing kubeconfig files from `~/.kube` without contacting AWS.
+
+Example configuration:
+
+```yaml
+providers:
+  kubernetes:
+    enabled: true
+    config_path: ~/.kube/config
+
+    aws:
+      credentials_file: ~/.aws/credentials
+      profiles: []
+      regions:
+        - us-east-1
+        - us-west-2
+        - eu-west-1
+      parallel_workers: 10
+      timeout: 30s
+
+    naming_pattern: "{profile}-{cluster}"
+
+    merge:
+      source_dir: ~/.kube
+      include_patterns: ["*.yaml", "*.yml", "config"]
+      exclude_patterns: ["*.bak", "*.backup"]
+```
+
+CLI usage:
+
+```bash
+# Generate kubeconfig for all EKS clusters
+lazycfg generate kubernetes
+
+# Generate with specific profiles or regions
+lazycfg generate kubernetes --profiles prod,staging
+lazycfg generate kubernetes --regions us-east-1,us-west-2
+
+# Merge existing configs only
+lazycfg generate kubernetes --merge-only
+
+# Discover clusters and merge existing configs
+lazycfg generate kubernetes --merge
+
+# Dry run
+lazycfg generate kubernetes --dry-run
+
+# Demo mode with fake data
+lazycfg generate kubernetes --demo
+```
+
 ## Error Handling
 
 Providers should return descriptive errors that help users fix issues:
