@@ -8,17 +8,17 @@ When working with a lot of different tools and environments, configuration spraw
 - [ ] Make the sso start url configurable but defaulted to Lytx url
 - [ ] Add completions command for cli autocomplete
 - [ ] Documentation site
-- [] SSH configuration management
+- [x] SSH configuration management
 - [ ] Should have a yaml config file for complex declarative configs
-- [ ] Set up ~/.granted/config with some sane defaults including `CredentialProcessAutoLogin = true` to automatically login when connecting. See https://docs.commonfate.io/granted/recipes/pass. If this is not enabled the following command must be run manually first `granted sso login --sso-start-url https://d-92670a73b3.awsapps.com/start --sso-region us-west-2`
-- [ ] Replace EKS config generation tool with custom code
+- [x] Set up ~/.granted/config with some sane defaults including `CredentialProcessAutoLogin = true` to automatically login when connecting. See https://docs.commonfate.io/granted/recipes/pass. If this is not enabled the following command must be run manually first `granted sso login --sso-start-url https://d-92670a73b3.awsapps.com/start --sso-region us-west-2`
+- [x] Replace EKS config generation tool with custom code
   - [ ] Generate AWS config and credentials file
 - [ ] Option to modify kube config to use aws-vault for more secure auth
-  - [ ] Option to merge existing kube config files instead so that there is no need to overwrite (kubectl config view --flatten)
-    - [ ] https://github.com/kairen/kubectl-config-merge
-    - [ ] https://github.com/QJoly/kubeconfig-merger
-    - [ ] https://github.com/corneliusweig/konfig
-    - [ ] https://github.com/dvob/kube-config-merge
+  - [x] Option to merge existing kube config files instead so that there is no need to overwrite (kubectl config view --flatten)
+    - [x] https://github.com/kairen/kubectl-config-merge
+    - [x] https://github.com/QJoly/kubeconfig-merger
+    - [x] https://github.com/corneliusweig/konfig
+    - [x] https://github.com/dvob/kube-config-merge
 - [ ] Use steampipe sdk to generate Kubernetes and AWS configs
   - [ ] Look at using the sdk to install all plugins when generating configs and make it easily configurable with these defaults
     - [ ] aws
@@ -34,9 +34,9 @@ When working with a lot of different tools and environments, configuration spraw
     - [ ] pagerduty
     - [ ] steampipe
     - [ ] wiz
-- [ ] Use commonfate/granted sdk to generate configs
+- [x] Use commonfate/granted sdk to generate configs
 - [ ] Better handling of kube configs if non-standard configs exist by parsing the file first
-- [ ] Comprehensive tests and test coverage
+- [x] Comprehensive tests and test coverage
 - [ ] Universal installer and packages for different platforms
   - [ ] Brew
   - [ ] Docker
