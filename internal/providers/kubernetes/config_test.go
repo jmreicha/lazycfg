@@ -199,6 +199,33 @@ func TestProviderConfigFactoryRegistration(t *testing.T) {
 	}
 }
 
+func TestDefaultConfigPathNoHome(t *testing.T) {
+	t.Setenv("HOME", "")
+
+	path := defaultConfigPath()
+	if path != "" {
+		t.Errorf("defaultConfigPath() = %q, want empty string", path)
+	}
+}
+
+func TestDefaultCredentialsFileNoHome(t *testing.T) {
+	t.Setenv("HOME", "")
+
+	path := defaultCredentialsFile()
+	if path != "" {
+		t.Errorf("defaultCredentialsFile() = %q, want empty string", path)
+	}
+}
+
+func TestDefaultMergeSourceDirNoHome(t *testing.T) {
+	t.Setenv("HOME", "")
+
+	path := defaultMergeSourceDir()
+	if path != "" {
+		t.Errorf("defaultMergeSourceDir() = %q, want empty string", path)
+	}
+}
+
 func TestConfigValidateErrors(t *testing.T) {
 	baseDir := t.TempDir()
 	base := &Config{
