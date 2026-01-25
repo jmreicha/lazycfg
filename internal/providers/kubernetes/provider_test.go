@@ -377,3 +377,82 @@ func TestProvider_ValidateInvalidPaths(t *testing.T) {
 		})
 	}
 }
+
+func TestProvider_GenerateWithOptsConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := DefaultConfig()
+	cfg.ConfigPath = filepath.Join(tmpDir, "config")
+	cfg.Demo = true
+
+	provider := NewProvider(cfg)
+
+	// Create new config for opts
+	optsConfig := DefaultConfig()
+	optsConfig.ConfigPath = filepath.Join(tmpDir, "opts-config")
+	optsConfig.Demo = true
+
+	opts := &core.GenerateOptions{
+		Force:  true,
+		DryRun: false,
+		Config: optsConfig,
+	}
+
+	ctx := context.Background()
+	result, err := provider.Generate(ctx, opts)
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if result == nil {
+		t.Error("expected result, got nil")
+	}
+
+	// Verify the config was updated from opts
+	if provider.config.ConfigPath != optsConfig.ConfigPath {
+		t.Errorf("expected config path %q, got %q", optsConfig.ConfigPath, provider.config.ConfigPath)
+	}
+}
+
+func TestProvider_GenerateExistingFileNoForce(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config")
+
+	// Create existing file
+	if err := os.MkdirAll(filepath.Dir(configPath), 0700); err != nil {
+		t.Fatalf("failed to create directory: %v", err)
+	}
+	if err := os.WriteFile(configPath, []byte("existing"), 0600); err != nil {
+		t.Fatalf("failed to create existing file: %v", err)
+	}
+
+	cfg := DefaultConfig()
+	cfg.ConfigPath = configPath
+	cfg.Demo = true
+
+	provider := NewProvider(cfg)
+
+	opts := &core.GenerateOptions{
+		Force:  false,
+		DryRun: false,
+	}
+
+	ctx := context.Background()
+	result, err := provider.Generate(ctx, opts)
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("expected result, got nil")
+	}
+
+	if len(result.FilesSkipped) != 1 {
+		t.Errorf("expected 1 skipped file, got %d", len(result.FilesSkipped))
+	}
+
+	if len(result.Warnings) == 0 {
+		t.Error("expected warning about existing file")
+	}
+}
