@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/jmreicha/lazycfg/internal/core"
 )
 
 func TestConfigFromMapDefaults(t *testing.T) {
@@ -175,6 +177,25 @@ func TestConfigFromMapInvalidYAML(t *testing.T) {
 	_, err := ConfigFromMap(raw)
 	if err == nil {
 		t.Error("expected error for invalid YAML")
+	}
+}
+
+func TestProviderConfigFactoryRegistration(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	cfg, err := core.ProviderConfigFromMap("kubernetes", map[string]interface{}{})
+	if err != nil {
+		t.Fatalf("ProviderConfigFromMap failed: %v", err)
+	}
+
+	kubeCfg, ok := cfg.(*Config)
+	if !ok {
+		t.Fatalf("expected *Config, got %T", cfg)
+	}
+
+	if !kubeCfg.Enabled {
+		t.Error("expected enabled to be true by default")
 	}
 }
 
