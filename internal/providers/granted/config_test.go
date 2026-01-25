@@ -232,3 +232,113 @@ func TestProviderConfigFactoryRegistration(t *testing.T) {
 		t.Errorf("DefaultBrowser = %q", grantedCfg.DefaultBrowser)
 	}
 }
+
+func TestConfigFromMapInvalidYAMLUnmarshal(t *testing.T) {
+	raw := map[string]interface{}{
+		"enabled": "not-a-bool",
+	}
+
+	_, err := ConfigFromMap(raw)
+	if err == nil {
+		t.Error("expected error for invalid YAML unmarshal")
+	}
+}
+
+func TestDefaultConfigPathWithNoHome(t *testing.T) {
+	t.Setenv("HOME", "")
+
+	path := defaultConfigPath()
+	if path != "" {
+		t.Errorf("defaultConfigPath() = %q, want empty string", path)
+	}
+}
+
+func TestExpandHomeDirErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		path    string
+		homeEnv string
+		wantErr bool
+	}{
+		{
+			name:    "empty home directory",
+			path:    "~/config",
+			homeEnv: "",
+			wantErr: true,
+		},
+		{
+			name:    "non-tilde path",
+			path:    "/absolute/path",
+			homeEnv: "/home/user",
+			wantErr: false,
+		},
+		{
+			name:    "tilde only",
+			path:    "~",
+			homeEnv: "/home/user",
+			wantErr: false,
+		},
+		{
+			name:    "tilde with slash",
+			path:    "~/config",
+			homeEnv: "/home/user",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("HOME", tt.homeEnv)
+
+			result, err := expandHomeDir(tt.path)
+			if tt.wantErr && err == nil {
+				t.Error("expected error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if !tt.wantErr && tt.homeEnv == "" && result != tt.path {
+				t.Errorf("expandHomeDir() = %q, want %q", result, tt.path)
+			}
+		})
+	}
+}
+
+func TestNormalizePathErrors(t *testing.T) {
+	testErr := errors.New("test error")
+
+	tests := []struct {
+		name     string
+		path     string
+		emptyErr error
+		wantErr  bool
+	}{
+		{
+			name:     "empty path",
+			path:     "",
+			emptyErr: testErr,
+			wantErr:  true,
+		},
+		{
+			name:     "whitespace only",
+			path:     "   ",
+			emptyErr: testErr,
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := normalizePath(tt.path, tt.emptyErr)
+			if tt.wantErr && err == nil {
+				t.Error("expected error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if tt.wantErr && !errors.Is(err, tt.emptyErr) {
+				t.Errorf("error = %v, want %v", err, tt.emptyErr)
+			}
+		})
+	}
+}
