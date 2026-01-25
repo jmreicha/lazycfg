@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/lazycfg/internal/providers/granted"
 	"github.com/jmreicha/lazycfg/internal/providers/kubernetes"
 	"github.com/jmreicha/lazycfg/internal/providers/ssh"
 	"github.com/spf13/cobra"
@@ -122,6 +123,21 @@ func initializeComponents() error {
 	}
 	if err := registry.Register(ssh.NewProvider(sshConfig)); err != nil {
 		return fmt.Errorf("failed to register ssh provider: %w", err)
+	}
+
+	var grantedConfig *granted.Config
+	providerConfig = config.GetProviderConfig(granted.ProviderName)
+	if providerConfig == nil {
+		grantedConfig = granted.DefaultConfig()
+	} else {
+		typedConfig, ok := providerConfig.(*granted.Config)
+		if !ok {
+			return fmt.Errorf("granted provider config has unexpected type %T", providerConfig)
+		}
+		grantedConfig = typedConfig
+	}
+	if err := registry.Register(granted.NewProvider(grantedConfig)); err != nil {
+		return fmt.Errorf("failed to register granted provider: %w", err)
 	}
 
 	var kubernetesConfig *kubernetes.Config
