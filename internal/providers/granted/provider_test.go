@@ -713,3 +713,48 @@ func TestProvider_ValidateInvalidPaths(t *testing.T) {
 		})
 	}
 }
+
+func TestProvider_GenerateMkdirError(t *testing.T) {
+	provider := NewProvider(&Config{
+		ConfigPath:     "/root/nonexistent/directory/that/cannot/be/created/config",
+		DefaultBrowser: "STDOUT",
+		Enabled:        true,
+	})
+
+	ctx := context.Background()
+	opts := &core.GenerateOptions{
+		DryRun: false,
+		Force:  false,
+	}
+
+	_, err := provider.Generate(ctx, opts)
+	if err == nil {
+		t.Error("expected error for mkdir failure")
+	}
+}
+
+func TestProvider_GenerateWriteFileError(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config")
+
+	if err := os.WriteFile(configPath, []byte("test"), 0000); err != nil {
+		t.Fatalf("failed to create read-only file: %v", err)
+	}
+
+	provider := NewProvider(&Config{
+		ConfigPath:     configPath,
+		DefaultBrowser: "STDOUT",
+		Enabled:        true,
+	})
+
+	ctx := context.Background()
+	opts := &core.GenerateOptions{
+		DryRun: false,
+		Force:  true,
+	}
+
+	_, err := provider.Generate(ctx, opts)
+	if err == nil {
+		t.Error("expected error for write failure")
+	}
+}
