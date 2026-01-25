@@ -121,6 +121,33 @@ providers:
       enabled: true
 ```
 
+## Granted Provider
+
+The Granted provider generates the `~/.granted/config` file with sane defaults for AWS credential management. It focuses solely on creating the Granted config file and does not handle AWS profile or registry generation.
+
+Example configuration:
+
+```yaml
+providers:
+  granted:
+    enabled: true
+    config_path: ~/.granted/config
+    credential_process_auto_login: true
+```
+
+CLI usage:
+
+```bash
+# Generate Granted config
+lazycfg generate granted
+
+# Dry run
+lazycfg generate granted --dry-run
+
+# Overwrite existing config
+lazycfg generate granted --force
+```
+
 ## Kubernetes Provider
 
 The Kubernetes provider discovers EKS clusters across AWS profiles and writes a merged kubeconfig file. It can also merge existing kubeconfig files from `~/.kube` without contacting AWS.
