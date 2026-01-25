@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/jmreicha/lazycfg/internal/core"
 )
 
 const testSSHPath = "/home/user/.ssh"
@@ -479,6 +481,45 @@ func TestConfig_NormalizedConfigPath(t *testing.T) {
 				tt.validate(t, result)
 			}
 		})
+	}
+}
+
+func TestConfigFromMapInvalidYAML(t *testing.T) {
+	raw := map[string]interface{}{
+		"enabled": "not-a-bool",
+	}
+
+	_, err := ConfigFromMap(raw)
+	if err == nil {
+		t.Error("expected error for invalid YAML")
+	}
+}
+
+func TestDefaultConfigPathNoHome(t *testing.T) {
+	t.Setenv("HOME", "")
+
+	path := defaultConfigPath()
+	if path != "" {
+		t.Errorf("defaultConfigPath() = %q, want empty string", path)
+	}
+}
+
+func TestProviderConfigFactoryRegistration(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	cfg, err := core.ProviderConfigFromMap("ssh", map[string]interface{}{})
+	if err != nil {
+		t.Fatalf("ProviderConfigFromMap failed: %v", err)
+	}
+
+	sshCfg, ok := cfg.(*Config)
+	if !ok {
+		t.Fatalf("expected *Config, got %T", cfg)
+	}
+
+	if !sshCfg.Enabled {
+		t.Error("expected enabled to be true by default")
 	}
 }
 

@@ -153,6 +153,31 @@ func TestConfigValidate(t *testing.T) {
 	}
 }
 
+func TestConfigFromMapNil(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	cfg, err := ConfigFromMap(nil)
+	if err != nil {
+		t.Fatalf("ConfigFromMap failed: %v", err)
+	}
+
+	if cfg == nil {
+		t.Error("expected non-nil config")
+	}
+}
+
+func TestConfigFromMapInvalidYAML(t *testing.T) {
+	raw := map[string]interface{}{
+		"enabled": "not-a-bool",
+	}
+
+	_, err := ConfigFromMap(raw)
+	if err == nil {
+		t.Error("expected error for invalid YAML")
+	}
+}
+
 func TestConfigValidateErrors(t *testing.T) {
 	baseDir := t.TempDir()
 	base := &Config{
