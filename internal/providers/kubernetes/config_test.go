@@ -256,6 +256,13 @@ func TestConfigValidateErrors(t *testing.T) {
 			wantErr: errConfigPathEmpty,
 		},
 		{
+			name: "empty merge source dir",
+			mutate: func(cfg *Config) {
+				cfg.Merge.SourceDir = ""
+			},
+			wantErr: errMergeSourceDirEmpty,
+		},
+		{
 			name: "relative config path",
 			mutate: func(cfg *Config) {
 				cfg.ConfigPath = "relative/config"
@@ -289,6 +296,13 @@ func TestConfigValidateErrors(t *testing.T) {
 			},
 			wantErr: errNamingPatternEmpty,
 		},
+		{
+			name: "empty credentials file",
+			mutate: func(cfg *Config) {
+				cfg.AWS.CredentialsFile = ""
+			},
+			wantErr: errAWSCredentialsEmpty,
+		},
 	}
 
 	for _, tt := range tests {
@@ -306,5 +320,218 @@ func TestConfigValidateErrors(t *testing.T) {
 				t.Fatalf("error = %v", err)
 			}
 		})
+	}
+}
+
+func TestExpandHomeDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	tests := []struct {
+		name     string
+		path     string
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "empty path",
+			path:     "",
+			expected: "",
+			wantErr:  false,
+		},
+		{
+			name:     "absolute path",
+			path:     "/absolute/path",
+			expected: "/absolute/path",
+			wantErr:  false,
+		},
+		{
+			name:     "tilde only",
+			path:     "~",
+			expected: home,
+			wantErr:  false,
+		},
+		{
+			name:     "tilde with path",
+			path:     "~/subdir/file",
+			expected: filepath.Join(home, "subdir/file"),
+			wantErr:  false,
+		},
+		{
+			name:     "tilde not at start",
+			path:     "/some/~path",
+			expected: "/some/~path",
+			wantErr:  false,
+		},
+		{
+			name:     "tilde with username style",
+			path:     "~user/path",
+			expected: "~user/path",
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := expandHomeDir(tt.path)
+			if tt.wantErr && err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expandHomeDir(%q) = %q, want %q", tt.path, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestExpandHomeDirNoHome(t *testing.T) {
+	t.Setenv("HOME", "")
+
+	_, err := expandHomeDir("~")
+	if err == nil {
+		t.Error("expected error when HOME is empty")
+	}
+
+	_, err = expandHomeDir("~/path")
+	if err == nil {
+		t.Error("expected error when HOME is empty")
+	}
+}
+
+func TestNormalizePath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	tests := []struct {
+		name     string
+		path     string
+		wantErr  bool
+		expected string
+	}{
+		{
+			name:    "empty path",
+			path:    "",
+			wantErr: true,
+		},
+		{
+			name:    "whitespace only",
+			path:    "   ",
+			wantErr: true,
+		},
+		{
+			name:    "relative path",
+			path:    "relative/path",
+			wantErr: true,
+		},
+		{
+			name:     "absolute path",
+			path:     "/absolute/path",
+			expected: "/absolute/path",
+			wantErr:  false,
+		},
+		{
+			name:     "tilde path",
+			path:     "~/config",
+			expected: filepath.Join(home, "config"),
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := normalizePath(tt.path, errConfigPathEmpty)
+			if tt.wantErr && err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !tt.wantErr && result != tt.expected {
+				t.Errorf("normalizePath(%q) = %q, want %q", tt.path, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestConfigFromMapWithPartialOverrides(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	raw := map[string]interface{}{
+		"config_path": "/custom/path",
+	}
+
+	cfg, err := ConfigFromMap(raw)
+	if err != nil {
+		t.Fatalf("ConfigFromMap failed: %v", err)
+	}
+
+	if cfg.ConfigPath != "/custom/path" {
+		t.Errorf("ConfigPath = %q, want %q", cfg.ConfigPath, "/custom/path")
+	}
+
+	if cfg.AWS.CredentialsFile != filepath.Join(home, ".aws", "credentials") {
+		t.Errorf("CredentialsFile should use default")
+	}
+
+	if cfg.NamingPattern != defaultNamingPattern() {
+		t.Errorf("NamingPattern should use default")
+	}
+}
+
+func TestConfigValidateWithDemo(t *testing.T) {
+	baseDir := t.TempDir()
+
+	cfg := &Config{
+		Enabled:    true,
+		Demo:       true,
+		ConfigPath: filepath.Join(baseDir, "kube", "config"),
+		AWS: AWSConfig{
+			CredentialsFile: "",
+			Regions:         nil,
+			ParallelWorkers: 0,
+			Timeout:         0,
+		},
+		NamingPattern: defaultNamingPattern(),
+		Merge: MergeConfig{
+			SourceDir: filepath.Join(baseDir, "kube"),
+		},
+	}
+
+	err := cfg.Validate()
+	if err != nil {
+		t.Errorf("expected no error for demo mode, got: %v", err)
+	}
+}
+
+func TestConfigValidateWithMergeOnly(t *testing.T) {
+	baseDir := t.TempDir()
+
+	cfg := &Config{
+		Enabled:    true,
+		MergeOnly:  true,
+		ConfigPath: filepath.Join(baseDir, "kube", "config"),
+		AWS: AWSConfig{
+			CredentialsFile: "",
+			Regions:         nil,
+			ParallelWorkers: 0,
+			Timeout:         0,
+		},
+		NamingPattern: defaultNamingPattern(),
+		Merge: MergeConfig{
+			SourceDir: filepath.Join(baseDir, "kube"),
+		},
+	}
+
+	err := cfg.Validate()
+	if err != nil {
+		t.Errorf("expected no error for merge-only mode, got: %v", err)
+	}
+
+	if !cfg.MergeEnabled {
+		t.Error("MergeEnabled should be set when MergeOnly is true")
 	}
 }
