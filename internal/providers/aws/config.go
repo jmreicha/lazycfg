@@ -18,9 +18,14 @@ func init() {
 	})
 }
 
-const defaultSSOSessionName = "lazycfg"
+const (
+	defaultProfileTemplate = "{{ .AccountName }}/{{ .RoleName }}"
+	defaultSSOScopes       = "sso:account:access"
+	defaultSSOSessionName  = "lazycfg"
+)
 
 var (
+	errConfigPathEmpty      = errors.New("config path cannot be empty")
 	errSSORegionEmpty       = errors.New("sso region cannot be empty")
 	errSSOStartURLEmpty     = errors.New("sso start url cannot be empty")
 	errTokenCachePathsEmpty = errors.New("token cache paths cannot be empty")
@@ -30,6 +35,15 @@ var (
 type Config struct {
 	// Enabled indicates whether this provider should be active.
 	Enabled bool `yaml:"enabled"`
+
+	// ConfigPath is the output path for the AWS config file.
+	ConfigPath string `yaml:"config_path"`
+
+	// ProfilePrefix is prepended to generated profile names.
+	ProfilePrefix string `yaml:"profile_prefix"`
+
+	// ProfileTemplate is the template used for profile names.
+	ProfileTemplate string `yaml:"profile_template"`
 
 	// Roles limits discovery to matching role names.
 	Roles []string `yaml:"roles"`
@@ -43,9 +57,10 @@ type Config struct {
 
 // SSOConfig represents shared SSO configuration.
 type SSOConfig struct {
-	Region      string `yaml:"region"`
-	SessionName string `yaml:"session_name"`
-	StartURL    string `yaml:"start_url"`
+	Region             string `yaml:"region"`
+	RegistrationScopes string `yaml:"registration_scopes"`
+	SessionName        string `yaml:"session_name"`
+	StartURL           string `yaml:"start_url"`
 }
 
 // ConfigFromMap builds a typed configuration from a raw provider map.
@@ -68,6 +83,18 @@ func ConfigFromMap(raw map[string]interface{}) (*Config, error) {
 		cfg.TokenCachePaths = defaultTokenCachePaths()
 	}
 
+	if cfg.ConfigPath == "" {
+		cfg.ConfigPath = defaultConfigPath()
+	}
+
+	if cfg.ProfileTemplate == "" {
+		cfg.ProfileTemplate = defaultProfileTemplate
+	}
+
+	if cfg.SSO.RegistrationScopes == "" {
+		cfg.SSO.RegistrationScopes = defaultSSOScopes
+	}
+
 	if cfg.SSO.SessionName == "" {
 		cfg.SSO.SessionName = defaultSSOSessionName
 	}
@@ -78,7 +105,10 @@ func ConfigFromMap(raw map[string]interface{}) (*Config, error) {
 // DefaultConfig returns the default AWS provider configuration.
 func DefaultConfig() *Config {
 	return &Config{
+		ConfigPath:      defaultConfigPath(),
 		Enabled:         true,
+		ProfilePrefix:   "",
+		ProfileTemplate: defaultProfileTemplate,
 		Roles:           []string{},
 		SSO:             defaultSSOConfig(),
 		TokenCachePaths: defaultTokenCachePaths(),
@@ -103,6 +133,11 @@ func (c *Config) Validate() error {
 		return errTokenCachePathsEmpty
 	}
 
+	configPath, err := normalizeConfigPath(c.ConfigPath)
+	if err != nil {
+		return err
+	}
+
 	normalized := make([]string, 0, len(c.TokenCachePaths))
 	for _, path := range c.TokenCachePaths {
 		normalizedPath, err := normalizePath(path)
@@ -117,6 +152,13 @@ func (c *Config) Validate() error {
 	if c.SSO.SessionName == "" {
 		c.SSO.SessionName = defaultSSOSessionName
 	}
+	if strings.TrimSpace(c.SSO.RegistrationScopes) == "" {
+		c.SSO.RegistrationScopes = defaultSSOScopes
+	}
+	if strings.TrimSpace(c.ProfileTemplate) == "" {
+		c.ProfileTemplate = defaultProfileTemplate
+	}
+	c.ConfigPath = configPath
 	c.TokenCachePaths = normalized
 
 	return nil
@@ -124,9 +166,10 @@ func (c *Config) Validate() error {
 
 func defaultSSOConfig() SSOConfig {
 	return SSOConfig{
-		Region:      "",
-		SessionName: defaultSSOSessionName,
-		StartURL:    "",
+		Region:             "",
+		RegistrationScopes: defaultSSOScopes,
+		SessionName:        defaultSSOSessionName,
+		StartURL:           "",
 	}
 }
 
@@ -140,6 +183,15 @@ func defaultTokenCachePaths() []string {
 		filepath.Join(home, ".aws", "sso", "cache"),
 		filepath.Join(home, ".granted", "sso"),
 	}
+}
+
+func defaultConfigPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return ""
+	}
+
+	return filepath.Join(home, ".aws", "config")
 }
 
 func expandHomeDir(path string) (string, error) {
@@ -166,6 +218,24 @@ func expandHomeDir(path string) (string, error) {
 func normalizePath(path string) (string, error) {
 	if strings.TrimSpace(path) == "" {
 		return "", errTokenCachePathsEmpty
+	}
+
+	expanded, err := expandHomeDir(os.ExpandEnv(path))
+	if err != nil {
+		return "", err
+	}
+
+	expanded = filepath.Clean(expanded)
+	if !filepath.IsAbs(expanded) {
+		return "", fmt.Errorf("path must be absolute: %s", path)
+	}
+
+	return expanded, nil
+}
+
+func normalizeConfigPath(path string) (string, error) {
+	if strings.TrimSpace(path) == "" {
+		return "", errConfigPathEmpty
 	}
 
 	expanded, err := expandHomeDir(os.ExpandEnv(path))
