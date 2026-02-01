@@ -26,11 +26,13 @@ The AWS provider generates `~/.aws/config` profiles by discovering accounts and 
 ### SSO Profile Discovery
 
 1. Authenticate with AWS SSO using cached tokens (from AWS CLI and Granted caches)
-2. Select the newest valid token across all cache locations
-3. Call `ListAccounts` API to enumerate accessible accounts
-4. For each account, call `ListAccountRoles` to get available permission sets
-5. Filter results by role name if `--role` or `roles` config is provided
-6. Generate profiles using configurable template and optional prefix
+2. Search cache locations in order: `~/.aws/sso/cache`, then `~/.granted`
+3. Select the newest valid token across all cache locations
+4. If no valid token is found, return a login-required error
+5. Call `ListAccounts` API to enumerate accessible accounts
+6. For each account, call `ListAccountRoles` to get available permission sets
+7. Filter results by role name if `--role` or `roles` config is provided
+8. Generate profiles using configurable template and optional prefix
 
 ### Shared SSO Sessions
 
@@ -275,14 +277,16 @@ type SSOClientFactory func(ctx context.Context, region string) (SSOClient, error
 
 ### Discovery Flow
 
-1. Load SSO access tokens from `token_cache_paths`
-2. Select the newest valid token across all caches
-3. If no valid token found, return error: "SSO session expired. Run 'aws sso login' first."
-4. Create SSO client with token
-5. Paginate through `ListAccounts`
-6. For each account, paginate through `ListAccountRoles`
-7. Filter by role name if configured
-8. Return slice of `DiscoveredProfile`
+1. Load SSO access tokens from `token_cache_paths`, in order.
+2. Keep tokens that match `sso.start_url` and have an `expiresAt` value after now.
+3. Select the newest valid token by `expiresAt` timestamp across all cache locations.
+4. If no valid token found, return error: "No SSO session found. Run 'aws sso login --sso-session <name>' first."
+5. If tokens exist but all are expired, return error: "SSO session expired. Run 'aws sso login' to refresh."
+6. Create SSO client with token.
+7. Paginate through `ListAccounts`.
+8. For each account, paginate through `ListAccountRoles`.
+9. Filter by role name if configured.
+10. Return slice of `DiscoveredProfile`.
 
 ### Profile Generation Flow
 
@@ -374,7 +378,7 @@ require (
 6. **Filter During Discovery**: Apply role filter early to reduce API calls.
 7. **Shared SSO Sessions**: Generate `[sso-session <name>]` and reference via `sso_session`.
 8. **Prefix and Prune**: Support profile prefixes and prune with marker key.
-9. **Token Selection**: Use newest valid token from AWS CLI or Granted caches.
+9. **Token Selection**: Search token caches in order, then pick the valid token with the latest `expiresAt` timestamp.
 10. **Collision Handling**: Overwrite profiles on name collision.
 
 ## Implementation Phases
