@@ -12,6 +12,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sso/types"
 )
 
+const (
+	discoveryTestRegion   = "us-east-1"
+	discoveryTestStartURL = "https://example.awsapps.com/start"
+)
+
 type mockSSOClient struct {
 	accountsPages []*sso.ListAccountsOutput
 	rolesPages    map[string][]*sso.ListAccountRolesOutput
@@ -49,8 +54,8 @@ func (m *mockSSOClient) ListAccountRoles(_ context.Context, params *sso.ListAcco
 
 func TestDiscoverProfiles(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.SSO.Region = "us-east-1"
-	cfg.SSO.StartURL = "https://example.awsapps.com/start"
+	cfg.SSO.Region = discoveryTestRegion
+	cfg.SSO.StartURL = discoveryTestStartURL
 	cfg.TokenCachePaths = []string{"/cache"}
 	cfg.Roles = []string{"Admin", "ReadOnly"}
 
@@ -140,8 +145,8 @@ func TestDiscoverProfiles(t *testing.T) {
 
 func TestDiscoverProfilesErrors(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.SSO.Region = "us-east-1"
-	cfg.SSO.StartURL = "https://example.awsapps.com/start"
+	cfg.SSO.Region = discoveryTestRegion
+	cfg.SSO.StartURL = discoveryTestStartURL
 	cfg.TokenCachePaths = []string{"/cache"}
 
 	loader := func(_ []string, _ time.Time) (SSOToken, error) {
@@ -151,5 +156,88 @@ func TestDiscoverProfilesErrors(t *testing.T) {
 	_, err := discoverProfiles(context.Background(), cfg, nil, loader, time.Now())
 	if err == nil {
 		t.Fatal("expected error for missing token")
+	}
+}
+
+func TestDiscoverProfilesErrorsInvalidSession(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.SSO.Region = discoveryTestRegion
+	cfg.SSO.StartURL = discoveryTestStartURL
+	cfg.TokenCachePaths = []string{"/cache"}
+
+	loader := func(_ []string, _ time.Time) (SSOToken, error) {
+		return SSOToken{
+			AccessToken: "token",
+			ExpiresAt:   time.Now().Add(time.Hour),
+			IssuedAt:    time.Now().Add(-time.Minute),
+			Region:      "us-west-2",
+			StartURL:    cfg.SSO.StartURL,
+		}, nil
+	}
+
+	_, err := discoverProfiles(context.Background(), cfg, nil, loader, time.Now())
+	if err == nil {
+		t.Fatal("expected error for mismatched token")
+	}
+}
+
+func TestDiscoverProfilesErrorsAccountRolesFailure(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.SSO.Region = discoveryTestRegion
+	cfg.SSO.StartURL = discoveryTestStartURL
+	cfg.TokenCachePaths = []string{"/cache"}
+
+	factory := func(_ context.Context, _, _ string) (SSOClient, error) {
+		return &mockSSOClient{
+			accountsPages: []*sso.ListAccountsOutput{
+				{
+					AccountList: []types.AccountInfo{{AccountId: aws.String("111111111111")}},
+				},
+			},
+			rolesErr: errors.New("roles failure"),
+		}, nil
+	}
+
+	loader := func(_ []string, _ time.Time) (SSOToken, error) {
+		return SSOToken{
+			AccessToken: "token",
+			ExpiresAt:   time.Now().Add(time.Hour),
+			IssuedAt:    time.Now().Add(-time.Minute),
+			Region:      cfg.SSO.Region,
+			StartURL:    cfg.SSO.StartURL,
+		}, nil
+	}
+
+	_, err := discoverProfiles(context.Background(), cfg, factory, loader, time.Now())
+	if err == nil {
+		t.Fatal("expected error for account role failure")
+	}
+}
+
+func TestDiscoverProfilesErrorsAccountListFailure(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.SSO.Region = discoveryTestRegion
+	cfg.SSO.StartURL = discoveryTestStartURL
+	cfg.TokenCachePaths = []string{"/cache"}
+
+	factory := func(_ context.Context, _, _ string) (SSOClient, error) {
+		return &mockSSOClient{
+			listErr: errors.New("list failure"),
+		}, nil
+	}
+
+	loader := func(_ []string, _ time.Time) (SSOToken, error) {
+		return SSOToken{
+			AccessToken: "token",
+			ExpiresAt:   time.Now().Add(time.Hour),
+			IssuedAt:    time.Now().Add(-time.Minute),
+			Region:      cfg.SSO.Region,
+			StartURL:    cfg.SSO.StartURL,
+		}, nil
+	}
+
+	_, err := discoverProfiles(context.Background(), cfg, factory, loader, time.Now())
+	if err == nil {
+		t.Fatal("expected error for account list failure")
 	}
 }
