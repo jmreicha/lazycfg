@@ -121,6 +121,7 @@ providers:
 
     # SSO configuration
     sso:
+      registration_scopes: sso:account:access
       start_url: https://example.awsapps.com/start
       region: us-east-1
       session_name: lazycfg # shared SSO session name

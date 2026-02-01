@@ -23,6 +23,12 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.SSO.SessionName != defaultSSOSessionName {
 		t.Fatalf("session name = %q", cfg.SSO.SessionName)
 	}
+	if cfg.SSO.RegistrationScopes != defaultSSOScopes {
+		t.Fatalf("registration scopes = %q", cfg.SSO.RegistrationScopes)
+	}
+	if cfg.ProfileTemplate != defaultProfileTemplate {
+		t.Fatalf("profile template = %q", cfg.ProfileTemplate)
+	}
 
 	expectedPaths := []string{
 		filepath.Join(home, ".aws", "sso", "cache"),
@@ -30,6 +36,10 @@ func TestDefaultConfig(t *testing.T) {
 	}
 	if !reflect.DeepEqual(cfg.TokenCachePaths, expectedPaths) {
 		t.Fatalf("token cache paths = %#v", cfg.TokenCachePaths)
+	}
+
+	if cfg.ConfigPath != filepath.Join(home, ".aws", "config") {
+		t.Fatalf("config path = %q", cfg.ConfigPath)
 	}
 }
 
@@ -52,11 +62,17 @@ func TestConfigFromMapOverrides(t *testing.T) {
 	if cfg.SSO.SessionName != "custom" {
 		t.Fatalf("session name = %q", cfg.SSO.SessionName)
 	}
+	if cfg.SSO.RegistrationScopes != defaultSSOScopes {
+		t.Fatalf("registration scopes = %q", cfg.SSO.RegistrationScopes)
+	}
 	if cfg.SSO.Region != testRegion {
 		t.Fatalf("region = %q", cfg.SSO.Region)
 	}
 	if cfg.SSO.StartURL != testStartURL {
 		t.Fatalf("start url = %q", cfg.SSO.StartURL)
+	}
+	if cfg.ProfileTemplate != defaultProfileTemplate {
+		t.Fatalf("profile template = %q", cfg.ProfileTemplate)
 	}
 	if !reflect.DeepEqual(cfg.Roles, []string{"Admin"}) {
 		t.Fatalf("roles = %#v", cfg.Roles)
@@ -82,6 +98,10 @@ func TestConfigValidate(t *testing.T) {
 	expected := filepath.Join(home, ".aws", "sso", "cache")
 	if cfg.TokenCachePaths[0] != expected {
 		t.Fatalf("normalized path = %q", cfg.TokenCachePaths[0])
+	}
+
+	if cfg.ConfigPath != filepath.Join(home, ".aws", "config") {
+		t.Fatalf("config path = %q", cfg.ConfigPath)
 	}
 }
 

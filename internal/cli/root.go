@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/lazycfg/internal/providers/aws"
 	"github.com/jmreicha/lazycfg/internal/providers/granted"
 	"github.com/jmreicha/lazycfg/internal/providers/kubernetes"
 	"github.com/jmreicha/lazycfg/internal/providers/ssh"
@@ -89,6 +90,9 @@ func initializeComponents() error {
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
+	if config == nil {
+		config = core.NewConfig()
+	}
 
 	// Override config with CLI flags
 	if verbose {
@@ -138,6 +142,22 @@ func initializeComponents() error {
 	}
 	if err := registry.Register(granted.NewProvider(grantedConfig)); err != nil {
 		return fmt.Errorf("failed to register granted provider: %w", err)
+	}
+
+	var awsConfig *aws.Config
+	providerConfig = config.GetProviderConfig(aws.ProviderName)
+	if providerConfig == nil {
+		awsConfig = aws.DefaultConfig()
+		config.SetProviderConfig(aws.ProviderName, awsConfig)
+	} else {
+		typedConfig, ok := providerConfig.(*aws.Config)
+		if !ok {
+			return fmt.Errorf("aws provider config has unexpected type %T", providerConfig)
+		}
+		awsConfig = typedConfig
+	}
+	if err := registry.Register(aws.NewProvider(awsConfig)); err != nil {
+		return fmt.Errorf("failed to register aws provider: %w", err)
 	}
 
 	var kubernetesConfig *kubernetes.Config
