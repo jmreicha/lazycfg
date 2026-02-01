@@ -32,7 +32,7 @@ func TestDefaultConfig(t *testing.T) {
 
 	expectedPaths := []string{
 		filepath.Join(home, ".aws", "sso", "cache"),
-		filepath.Join(home, ".granted", "sso"),
+		filepath.Join(home, ".granted"),
 	}
 	if !reflect.DeepEqual(cfg.TokenCachePaths, expectedPaths) {
 		t.Fatalf("token cache paths = %#v", cfg.TokenCachePaths)
