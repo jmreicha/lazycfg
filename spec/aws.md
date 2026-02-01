@@ -34,7 +34,9 @@ The AWS provider generates `~/.aws/config` profiles by discovering accounts and 
 
 ### Shared SSO Sessions
 
-The provider writes a shared SSO session section and references it in each generated profile:
+The provider writes a shared SSO session section and references it in each generated profile. The
+session name comes from `sso.session_name`, and the session scopes default to
+`sso:account:access` unless overridden.
 
 ```ini
 [sso-session lazycfg]
@@ -96,7 +98,9 @@ role_arn = arn:aws:iam::222222222222:role/DeployRole
 
 ### Prune Stale Profiles
 
-When `prune: true`, the provider removes previously generated profiles that are no longer present in the latest discovery. Pruning only applies to profiles marked with the marker key (default: `automatically_generated`).
+When `prune: true`, the provider removes previously generated profiles that are no longer present in
+the latest discovery. Pruning only applies to profiles marked with the marker key (default:
+`automatically_generated`), so unmarked profiles are preserved.
 
 ### Backup Strategy
 
@@ -117,7 +121,8 @@ providers:
     sso:
       start_url: https://example.awsapps.com/start
       region: us-east-1
-      session_name: lazycfg
+      session_name: lazycfg # shared SSO session name
+      registration_scopes: sso:account:access
 
     # Output paths
     config_path: ~/.aws/config
@@ -125,9 +130,9 @@ providers:
 
     # Profile generation
     profile_template: "{{ .AccountName }}/{{ .RoleName }}"
-    profile_prefix: ""
-    marker_key: automatically_generated
-    prune: false
+    profile_prefix: "" # prefix for generated profiles
+    marker_key: automatically_generated # marker to tag generated profiles
+    prune: false # remove stale marked profiles
     generate_credentials: false # if true, also write credentials file
     use_credential_process: false # if true, use granted credential-process
 
@@ -144,6 +149,7 @@ providers:
     # Token cache locations (searched in order, newest valid token wins)
     token_cache_paths:
       - ~/.aws/sso/cache
+      - ~/.aws/sso/cache/cli
       - ~/.granted
 ```
 
