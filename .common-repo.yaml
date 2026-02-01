@@ -12,6 +12,7 @@
     url: https://github.com/jmreicha/configs
     ref: main
     with:
-      - include: ["skills/research/SKILL.md"]
+      - include: ["skills/research/SKILL.md", "skills/testing/SKILL.md"]
       - rename:
           - "skills/research/SKILL.md": ".claude/skills/research/SKILL.md"
+          - "skills/testing/SKILL.md": ".claude/skills/testing/SKILL.md"
