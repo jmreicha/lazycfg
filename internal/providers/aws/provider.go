@@ -1,4 +1,4 @@
-// Package aws provides an AWS configuration provider implementation.
+// Package aws provides AWS configuration management.
 package aws
 
 import (
