@@ -44,7 +44,6 @@ type Config struct {
 
 	// ProfileTemplate is the template used for profile names.
 	ProfileTemplate string `yaml:"profile_template"`
-
 	// Roles limits discovery to matching role names.
 	Roles []string `yaml:"roles"`
 
@@ -94,7 +93,6 @@ func ConfigFromMap(raw map[string]interface{}) (*Config, error) {
 	if cfg.SSO.RegistrationScopes == "" {
 		cfg.SSO.RegistrationScopes = defaultSSOScopes
 	}
-
 	if cfg.SSO.SessionName == "" {
 		cfg.SSO.SessionName = defaultSSOSessionName
 	}
@@ -137,7 +135,6 @@ func (c *Config) Validate() error {
 	if err != nil {
 		return err
 	}
-
 	normalized := make([]string, 0, len(c.TokenCachePaths))
 	for _, path := range c.TokenCachePaths {
 		normalizedPath, err := normalizePath(path)
@@ -181,7 +178,7 @@ func defaultTokenCachePaths() []string {
 
 	return []string{
 		filepath.Join(home, ".aws", "sso", "cache"),
-		filepath.Join(home, ".granted", "sso"),
+		filepath.Join(home, ".granted"),
 	}
 }
 
@@ -193,7 +190,6 @@ func defaultConfigPath() string {
 
 	return filepath.Join(home, ".aws", "config")
 }
-
 func expandHomeDir(path string) (string, error) {
 	if path == "" || path[0] != '~' {
 		return path, nil

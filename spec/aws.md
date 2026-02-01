@@ -152,8 +152,6 @@ providers:
     # Token cache locations (searched in order, newest valid token wins)
     token_cache_paths:
       - ~/.aws/sso/cache
-      - ~/.granted/sso
-      - ~/.aws/sso/cache/cli
       - ~/.granted
 ```
 
