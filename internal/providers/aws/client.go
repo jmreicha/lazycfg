@@ -21,16 +21,18 @@ type SSOClientFactory func(ctx context.Context, region, accessToken string) (SSO
 
 // NewSSOClientFactory returns a default SSO client factory.
 func NewSSOClientFactory() SSOClientFactory {
-	return func(ctx context.Context, region, accessToken string) (SSOClient, error) {
-		cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
-		if err != nil {
-			return nil, fmt.Errorf("load aws config: %w", err)
-		}
+	return newSSOClient
+}
 
-		client := sso.NewFromConfig(cfg, func(opts *sso.Options) {
-			opts.Credentials = credentials.NewStaticCredentialsProvider("", "", accessToken)
-		})
-
-		return client, nil
+func newSSOClient(ctx context.Context, region, accessToken string) (SSOClient, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if err != nil {
+		return nil, fmt.Errorf("load aws config: %w", err)
 	}
+
+	client := sso.NewFromConfig(cfg, func(opts *sso.Options) {
+		opts.Credentials = credentials.NewStaticCredentialsProvider("", "", accessToken)
+	})
+
+	return client, nil
 }

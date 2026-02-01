@@ -86,6 +86,10 @@ func loadTokensFromPath(path string) ([]SSOToken, error) {
 	return tokens, nil
 }
 
+func loadTokensFromMissingPath(path string) ([]SSOToken, error) {
+	return loadTokensFromPath(path)
+}
+
 func readToken(path string) (SSOToken, error) {
 	// #nosec G304 -- token cache path is user configured.
 	file, err := os.Open(path)
