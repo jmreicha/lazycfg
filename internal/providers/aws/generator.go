@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"sort"
@@ -13,6 +12,8 @@ const (
 	profileSectionPrefix = "profile "
 	ssoSessionSection    = "sso-session"
 )
+
+var errProfileTemplateEmpty = errors.New("profile template cannot be empty")
 
 type generatedProfile struct {
 	AccountID string
@@ -53,7 +54,11 @@ func buildProfileIndex(cfg *Config, profiles []DiscoveredProfile) ([]string, map
 		return nil, nil, errors.New("aws config is nil")
 	}
 
-	profileTemplate, err := template.New("profile").Parse(cfg.ProfileTemplate)
+	if strings.TrimSpace(cfg.ProfileTemplate) == "" {
+		return nil, nil, errProfileTemplateEmpty
+	}
+
+	profileTemplate, err := template.New("profile").Option("missingkey=error").Parse(cfg.ProfileTemplate)
 	if err != nil {
 		return nil, nil, fmt.Errorf("parse profile template: %w", err)
 	}
@@ -85,12 +90,27 @@ func buildProfileIndex(cfg *Config, profiles []DiscoveredProfile) ([]string, map
 }
 
 func executeTemplate(tmpl *template.Template, profile DiscoveredProfile) (string, error) {
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, profile); err != nil {
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, newTemplateData(profile)); err != nil {
 		return "", fmt.Errorf("execute profile template: %w", err)
 	}
 
-	return buf.String(), nil
+	return builder.String(), nil
+}
+
+func newTemplateData(profile DiscoveredProfile) map[string]string {
+	return map[string]string{
+		"AccountID":    profile.AccountID,
+		"AccountName":  profile.AccountName,
+		"RoleName":     profile.RoleName,
+		"SSORegion":    profile.SSORegion,
+		"account":      profile.AccountName,
+		"account_id":   profile.AccountID,
+		"account_name": profile.AccountName,
+		"role":         profile.RoleName,
+		"role_name":    profile.RoleName,
+		"sso_region":   profile.SSORegion,
+	}
 }
 
 func writeSSOSession(builder *strings.Builder, cfg *Config) error {
