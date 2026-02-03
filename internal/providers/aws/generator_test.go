@@ -67,7 +67,7 @@ func TestBuildConfigContentTemplateAliases(t *testing.T) {
 		},
 	}
 
-	content, err := BuildConfigContent(cfg, profiles)
+	content, _, err := BuildConfigContent(cfg, profiles)
 	if err != nil {
 		t.Fatalf("BuildConfigContent failed: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestBuildConfigContentOverwritesOnCollision(t *testing.T) {
 		},
 	}
 
-	content, err := BuildConfigContent(cfg, profiles)
+	content, _, err := BuildConfigContent(cfg, profiles)
 	if err != nil {
 		t.Fatalf("BuildConfigContent failed: %v", err)
 	}
