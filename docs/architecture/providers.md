@@ -203,6 +203,55 @@ lazycfg generate kubernetes --dry-run
 lazycfg generate kubernetes --kube-demo
 ```
 
+## AWS Provider
+
+The AWS provider discovers IAM Identity Center roles and writes AWS config profiles. It can optionally
+generate credential_process entries in the credentials file and prune stale profiles.
+
+Example configuration:
+
+```yaml
+providers:
+  aws:
+    enabled: true
+    sso:
+      start_url: https://example.awsapps.com/start
+      region: us-east-1
+      session_name: lazycfg
+    profile_template: "{{ .AccountName }}/{{ .RoleName }}"
+    profile_prefix: ""
+    prune: false
+    generate_credentials: false
+    use_credential_process: false
+    roles: []
+```
+
+CLI usage:
+
+```bash
+# Generate AWS config
+lazycfg generate aws
+
+# Filter by role names
+lazycfg generate aws --aws-roles AdminAccess,ReadOnly
+
+# Use credential_process entries
+lazycfg generate aws --aws-credential-process
+
+# Generate credentials output
+lazycfg generate aws --aws-credentials
+
+# Custom profile template and prefix
+lazycfg generate aws --aws-template "{{ .account }}-{{ .role }}"
+lazycfg generate aws --aws-prefix sso_
+
+# Prune stale profiles
+lazycfg generate aws --aws-prune
+
+# Demo mode with fake data
+lazycfg generate aws --aws-demo
+```
+
 ## Error Handling
 
 Providers should return descriptive errors that help users fix issues:

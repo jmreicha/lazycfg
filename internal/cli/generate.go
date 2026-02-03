@@ -84,6 +84,13 @@ Examples:
 	}
 
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing files")
+	cmd.Flags().BoolVar(&awsCredentialProcess, "aws-credential-process", false, "use credential_process for AWS profiles")
+	cmd.Flags().BoolVar(&awsCredentials, "aws-credentials", false, "generate AWS credentials output")
+	cmd.Flags().BoolVar(&awsDemo, "aws-demo", false, "use fake AWS discovery data")
+	cmd.Flags().StringVar(&awsPrefix, "aws-prefix", "", "prefix for generated AWS profile names")
+	cmd.Flags().BoolVar(&awsPrune, "aws-prune", false, "remove stale AWS profiles with marker key")
+	cmd.Flags().StringVar(&awsRoleFilters, "aws-roles", "", "comma-separated AWS role names")
+	cmd.Flags().StringVar(&awsTemplate, "aws-template", "", "template for AWS profile names")
 	cmd.Flags().BoolVar(&kubeDemo, "kube-demo", false, "use fake kubernetes discovery data")
 	cmd.Flags().BoolVar(&kubeMerge, "kube-merge", false, "merge existing kubeconfig files")
 	cmd.Flags().BoolVar(&kubeMergeOnly, "kube-merge-only", false, "merge existing kubeconfig files without AWS discovery")

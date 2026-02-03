@@ -31,6 +31,15 @@ var (
 	kubeProfiles  string
 	kubeRegions   string
 
+	// AWS generate flags.
+	awsCredentialProcess bool
+	awsCredentials       bool
+	awsDemo              bool
+	awsPrefix            string
+	awsPrune             bool
+	awsRoleFilters       string
+	awsTemplate          string
+
 	// Shared components.
 	registry      *core.Registry
 	backupManager *core.BackupManager
@@ -156,6 +165,7 @@ func initializeComponents() error {
 		}
 		awsConfig = typedConfig
 	}
+	applyAWSCLIOverrides(awsConfig)
 	if err := registry.Register(aws.NewProvider(awsConfig)); err != nil {
 		return fmt.Errorf("failed to register aws provider: %w", err)
 	}
@@ -202,6 +212,40 @@ func applyKubernetesCLIOverrides(cfg *kubernetes.Config) {
 
 	if kubeDemo {
 		cfg.Demo = true
+	}
+}
+
+func applyAWSCLIOverrides(cfg *aws.Config) {
+	if cfg == nil {
+		return
+	}
+
+	if awsCredentialProcess {
+		cfg.UseCredentialProcess = true
+	}
+
+	if awsCredentials {
+		cfg.GenerateCredentials = true
+	}
+
+	if awsDemo {
+		cfg.Demo = true
+	}
+
+	if strings.TrimSpace(awsPrefix) != "" {
+		cfg.ProfilePrefix = strings.TrimSpace(awsPrefix)
+	}
+
+	if awsPrune {
+		cfg.Prune = true
+	}
+
+	if strings.TrimSpace(awsTemplate) != "" {
+		cfg.ProfileTemplate = strings.TrimSpace(awsTemplate)
+	}
+
+	if roles := parseCSVFlag(awsRoleFilters); len(roles) > 0 {
+		cfg.Roles = roles
 	}
 }
 

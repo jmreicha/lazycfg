@@ -36,6 +36,10 @@ func discoverProfiles(ctx context.Context, cfg *Config, factory SSOClientFactory
 		return nil, errors.New("aws config is nil")
 	}
 
+	if cfg.Demo {
+		return demoProfiles(cfg), nil
+	}
+
 	if factory == nil {
 		factory = NewSSOClientFactory()
 	}
@@ -85,6 +89,32 @@ func discoverProfiles(ctx context.Context, cfg *Config, factory SSOClientFactory
 
 	sortProfiles(profiles)
 	return profiles, nil
+}
+
+func demoProfiles(cfg *Config) []DiscoveredProfile {
+	return []DiscoveredProfile{
+		{
+			AccountID:   "111111111111",
+			AccountName: "demo",
+			RoleName:    "AdminAccess",
+			SSORegion:   cfg.SSO.Region,
+			SSOStartURL: cfg.SSO.StartURL,
+		},
+		{
+			AccountID:   "111111111111",
+			AccountName: "demo",
+			RoleName:    "ReadOnly",
+			SSORegion:   cfg.SSO.Region,
+			SSOStartURL: cfg.SSO.StartURL,
+		},
+		{
+			AccountID:   "222222222222",
+			AccountName: "sandbox",
+			RoleName:    "AdminAccess",
+			SSORegion:   cfg.SSO.Region,
+			SSOStartURL: cfg.SSO.StartURL,
+		},
+	}
 }
 
 func listAccounts(ctx context.Context, client SSOClient, accessToken string) ([]types.AccountInfo, error) {
