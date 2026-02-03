@@ -5,9 +5,11 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"reflect"
 	"testing"
 
 	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/lazycfg/internal/providers/aws"
 )
 
 type commandProvider struct {
@@ -81,6 +83,53 @@ func TestInitializeComponents(t *testing.T) {
 	}
 	if providers[0] != "aws" || providers[1] != "granted" || providers[2] != "kubernetes" || providers[3] != "ssh" {
 		t.Fatalf("expected aws, granted, kubernetes, and ssh providers, got %v", providers)
+	}
+}
+
+func TestInitializeComponentsAWSCLIOverrides(t *testing.T) {
+	cfgFile = ""
+	dryRun = false
+	noBackup = false
+	sshConfigPath = ""
+	verbose = false
+	awsCredentialProcess = true
+	awsCredentials = true
+	awsDemo = true
+	awsPrefix = "team-"
+	awsPrune = true
+	awsRoleFilters = "AdminAccess,ReadOnly"
+	awsTemplate = "{{ .account }}-{{ .role }}"
+
+	if err := initializeComponents(); err != nil {
+		t.Fatalf("initializeComponents failed: %v", err)
+	}
+
+	providerConfig := config.GetProviderConfig(aws.ProviderName)
+	awsConfig, ok := providerConfig.(*aws.Config)
+	if !ok {
+		t.Fatalf("expected aws config, got %T", providerConfig)
+	}
+
+	if !awsConfig.UseCredentialProcess {
+		t.Fatal("expected credential_process enabled")
+	}
+	if !awsConfig.GenerateCredentials {
+		t.Fatal("expected credentials generation enabled")
+	}
+	if !awsConfig.Demo {
+		t.Fatal("expected demo enabled")
+	}
+	if awsConfig.ProfilePrefix != "team-" {
+		t.Fatalf("profile prefix = %q", awsConfig.ProfilePrefix)
+	}
+	if !awsConfig.Prune {
+		t.Fatal("expected prune enabled")
+	}
+	if awsConfig.ProfileTemplate != "{{ .account }}-{{ .role }}" {
+		t.Fatalf("profile template = %q", awsConfig.ProfileTemplate)
+	}
+	if !reflect.DeepEqual(awsConfig.Roles, []string{"AdminAccess", "ReadOnly"}) {
+		t.Fatalf("roles = %#v", awsConfig.Roles)
 	}
 }
 

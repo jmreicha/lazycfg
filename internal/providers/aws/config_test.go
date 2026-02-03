@@ -191,6 +191,17 @@ func TestConfigValidateErrors(t *testing.T) {
 			name: "config nil",
 			cfg:  nil,
 		},
+		{
+			name: "demo mode skips token validation",
+			cfg: func() *Config {
+				cfg := *base
+				cfg.Demo = true
+				cfg.TokenCachePaths = nil
+				cfg.SSO.StartURL = ""
+				cfg.SSO.Region = ""
+				return &cfg
+			}(),
+		},
 	}
 
 	for _, tt := range tests {
@@ -202,7 +213,14 @@ func TestConfigValidateErrors(t *testing.T) {
 				}
 				return
 			}
-			if err := tt.cfg.Validate(); err == nil {
+			err := tt.cfg.Validate()
+			if tt.name == "demo mode skips token validation" {
+				if err != nil {
+					t.Fatalf("expected no error for %s, got %v", tt.name, err)
+				}
+				return
+			}
+			if err == nil {
 				t.Fatalf("expected error for %s", tt.name)
 			}
 		})

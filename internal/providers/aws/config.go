@@ -21,6 +21,8 @@ func init() {
 const (
 	defaultMarkerKey       = "automatically_generated"
 	defaultProfileTemplate = "{{ .AccountName }}/{{ .RoleName }}"
+	defaultDemoRegion      = "us-east-1"
+	defaultDemoStartURL    = "https://example.awsapps.com/start"
 	defaultSSOScopes       = "sso:account:access"
 	defaultSSOSessionName  = "lazycfg"
 )
@@ -37,6 +39,9 @@ var (
 type Config struct {
 	// Enabled indicates whether this provider should be active.
 	Enabled bool `yaml:"enabled"`
+
+	// Demo enables fake data without AWS calls.
+	Demo bool `yaml:"-"`
 
 	// ConfigPath is the output path for the AWS config file.
 	ConfigPath string `yaml:"config_path"`
@@ -141,6 +146,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		ConfigPath:           defaultConfigPath(),
 		CredentialsPath:      defaultCredentialsPath(),
+		Demo:                 false,
 		Enabled:              true,
 		GenerateCredentials:  false,
 		MarkerKey:            defaultMarkerKey,
@@ -161,16 +167,18 @@ func (c *Config) Validate() error {
 		return errors.New("aws config is nil")
 	}
 
-	if strings.TrimSpace(c.SSO.StartURL) == "" {
-		return errSSOStartURLEmpty
-	}
+	if !c.Demo {
+		if strings.TrimSpace(c.SSO.StartURL) == "" {
+			return errSSOStartURLEmpty
+		}
 
-	if strings.TrimSpace(c.SSO.Region) == "" {
-		return errSSORegionEmpty
-	}
+		if strings.TrimSpace(c.SSO.Region) == "" {
+			return errSSORegionEmpty
+		}
 
-	if len(c.TokenCachePaths) == 0 {
-		return errTokenCachePathsEmpty
+		if len(c.TokenCachePaths) == 0 {
+			return errTokenCachePathsEmpty
+		}
 	}
 
 	configPath, err := normalizeConfigPath(c.ConfigPath)
@@ -196,6 +204,14 @@ func (c *Config) Validate() error {
 
 	c.SSO.Region = strings.TrimSpace(c.SSO.Region)
 	c.SSO.StartURL = strings.TrimSpace(c.SSO.StartURL)
+	if c.Demo {
+		if c.SSO.Region == "" {
+			c.SSO.Region = defaultDemoRegion
+		}
+		if c.SSO.StartURL == "" {
+			c.SSO.StartURL = defaultDemoStartURL
+		}
+	}
 	if c.SSO.SessionName == "" {
 		c.SSO.SessionName = defaultSSOSessionName
 	}

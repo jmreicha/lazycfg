@@ -143,6 +143,21 @@ func TestDiscoverProfiles(t *testing.T) {
 	}
 }
 
+func TestDiscoverProfilesDemo(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Demo = true
+	cfg.SSO.Region = discoveryTestRegion
+	cfg.SSO.StartURL = discoveryTestStartURL
+
+	profiles, err := discoverProfiles(context.Background(), cfg, nil, nil, time.Now())
+	if err != nil {
+		t.Fatalf("discoverProfiles failed: %v", err)
+	}
+	if len(profiles) == 0 {
+		t.Fatal("expected demo profiles")
+	}
+}
+
 func TestDiscoverProfilesErrors(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.SSO.Region = discoveryTestRegion
