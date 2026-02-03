@@ -52,6 +52,9 @@ type Config struct {
 
 	// TokenCachePaths lists cache locations for SSO tokens.
 	TokenCachePaths []string `yaml:"token_cache_paths"`
+
+	// RoleChains define cross-account role assumptions.
+	RoleChains []RoleChain `yaml:"role_chains"`
 }
 
 // SSOConfig represents shared SSO configuration.
@@ -60,6 +63,14 @@ type SSOConfig struct {
 	RegistrationScopes string `yaml:"registration_scopes"`
 	SessionName        string `yaml:"session_name"`
 	StartURL           string `yaml:"start_url"`
+}
+
+// RoleChain defines a cross-account role assumption profile.
+type RoleChain struct {
+	Name          string `yaml:"name"`
+	Region        string `yaml:"region,omitempty"`
+	RoleARN       string `yaml:"role_arn"`
+	SourceProfile string `yaml:"source_profile"`
 }
 
 // ConfigFromMap builds a typed configuration from a raw provider map.
@@ -108,6 +119,7 @@ func DefaultConfig() *Config {
 		ProfilePrefix:   "",
 		ProfileTemplate: defaultProfileTemplate,
 		Roles:           []string{},
+		RoleChains:      []RoleChain{},
 		SSO:             defaultSSOConfig(),
 		TokenCachePaths: defaultTokenCachePaths(),
 	}

@@ -2,12 +2,14 @@ package aws
 
 import "testing"
 
+const testProfilePrefix = "sso_"
+
 func TestBuildConfigContent(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.ProfilePrefix = "sso_"
+	cfg.ProfilePrefix = testProfilePrefix
 	cfg.SSO.Region = testRegion
-	cfg.SSO.RegistrationScopes = "sso:account:access"
-	cfg.SSO.SessionName = "lazycfg"
+	cfg.SSO.RegistrationScopes = defaultSSOScopes
+	cfg.SSO.SessionName = defaultSSOSessionName
 	cfg.SSO.StartURL = testStartURL
 
 	profiles := []DiscoveredProfile{
@@ -23,9 +25,12 @@ func TestBuildConfigContent(t *testing.T) {
 		},
 	}
 
-	content, err := BuildConfigContent(cfg, profiles)
+	content, warnings, err := BuildConfigContent(cfg, profiles)
 	if err != nil {
 		t.Fatalf("BuildConfigContent failed: %v", err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %v", warnings)
 	}
 
 	expected := `[sso-session lazycfg]
@@ -127,7 +132,7 @@ func TestBuildConfigContentErrorsOnEmptySessionName(t *testing.T) {
 	cfg.SSO.StartURL = testStartURL
 	cfg.SSO.SessionName = ""
 
-	_, err := BuildConfigContent(cfg, nil)
+	_, _, err := BuildConfigContent(cfg, nil)
 	if err == nil {
 		t.Fatal("expected error for empty session name")
 	}
@@ -139,8 +144,105 @@ func TestBuildConfigContentErrorsOnEmptyTemplate(t *testing.T) {
 	cfg.SSO.Region = testRegion
 	cfg.SSO.StartURL = testStartURL
 
-	_, err := BuildConfigContent(cfg, nil)
+	_, _, err := BuildConfigContent(cfg, nil)
 	if err == nil {
 		t.Fatal("expected error for empty template")
+	}
+}
+
+func TestBuildConfigContentRoleChains(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ProfilePrefix = testProfilePrefix
+	cfg.SSO.Region = testRegion
+	cfg.SSO.RegistrationScopes = defaultSSOScopes
+	cfg.SSO.SessionName = defaultSSOSessionName
+	cfg.SSO.StartURL = testStartURL
+	cfg.RoleChains = []RoleChain{
+		{
+			Name:          "prod-readonly",
+			RoleARN:       "arn:aws:iam::111111111111:role/ReadOnly",
+			SourceProfile: "sso_prod/Admin",
+		},
+		{
+			Name:          "staging-deploy",
+			Region:        "us-west-2",
+			RoleARN:       "arn:aws:iam::222222222222:role/DeployRole",
+			SourceProfile: "sso_staging/PowerUser",
+		},
+	}
+
+	profiles := []DiscoveredProfile{
+		{
+			AccountID:   "111111111111",
+			AccountName: "prod",
+			RoleName:    "Admin",
+		},
+		{
+			AccountID:   "222222222222",
+			AccountName: "staging",
+			RoleName:    "PowerUser",
+		},
+	}
+
+	content, warnings, err := BuildConfigContent(cfg, profiles)
+	if err != nil {
+		t.Fatalf("BuildConfigContent failed: %v", err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %v", warnings)
+	}
+
+	expected := `[sso-session lazycfg]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+sso_registration_scopes = sso:account:access
+
+[profile sso_prod/Admin]
+sso_session = lazycfg
+sso_account_id = 111111111111
+sso_role_name = Admin
+
+[profile sso_staging/PowerUser]
+sso_session = lazycfg
+sso_account_id = 222222222222
+sso_role_name = PowerUser
+
+[profile sso_prod-readonly]
+source_profile = sso_prod/Admin
+role_arn = arn:aws:iam::111111111111:role/ReadOnly
+
+[profile sso_staging-deploy]
+source_profile = sso_staging/PowerUser
+role_arn = arn:aws:iam::222222222222:role/DeployRole
+region = us-west-2`
+
+	if content != expected {
+		t.Fatalf("config content = %q", content)
+	}
+}
+
+func TestBuildConfigContentRoleChainWarnings(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ProfilePrefix = testProfilePrefix
+	cfg.SSO.Region = testRegion
+	cfg.SSO.RegistrationScopes = defaultSSOScopes
+	cfg.SSO.SessionName = defaultSSOSessionName
+	cfg.SSO.StartURL = testStartURL
+	cfg.RoleChains = []RoleChain{
+		{
+			Name:          "prod-readonly",
+			RoleARN:       "arn:aws:iam::111111111111:role/ReadOnly",
+			SourceProfile: "sso_prod/Admin",
+		},
+	}
+
+	profiles := []DiscoveredProfile{}
+
+	_, warnings, err := BuildConfigContent(cfg, profiles)
+	if err != nil {
+		t.Fatalf("BuildConfigContent failed: %v", err)
+	}
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %v", warnings)
 	}
 }

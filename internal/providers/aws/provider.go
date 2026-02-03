@@ -94,10 +94,11 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 		return nil, err
 	}
 
-	configContent, err := BuildConfigContent(p.config, profiles)
+	configContent, warnings, err := BuildConfigContent(p.config, profiles)
 	if err != nil {
 		return nil, err
 	}
+	result.Warnings = append(result.Warnings, warnings...)
 
 	if opts != nil && opts.DryRun {
 		result.Warnings = append(result.Warnings, "dry-run mode: no files were actually created")
