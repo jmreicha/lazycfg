@@ -22,23 +22,33 @@ type generatedProfile struct {
 }
 
 // BuildConfigContent renders the AWS shared config content for discovered profiles.
-func BuildConfigContent(cfg *Config, profiles []DiscoveredProfile) (string, error) {
+func BuildConfigContent(cfg *Config, profiles []DiscoveredProfile) (string, []string, error) {
 	if cfg == nil {
-		return "", errors.New("aws config is nil")
+		return "", nil, errors.New("aws config is nil")
 	}
 
 	if strings.TrimSpace(cfg.SSO.SessionName) == "" {
-		return "", errors.New("sso session name is empty")
+		return "", nil, errors.New("sso session name is empty")
 	}
 
 	profileNames, lookup, err := buildProfileIndex(cfg, profiles)
 	if err != nil {
-		return "", err
+		return "", nil, err
+	}
+
+	sourceProfiles := make(map[string]bool, len(lookup))
+	for name := range lookup {
+		sourceProfiles[name] = true
+	}
+
+	roleChainNames, roleChainLookup, warnings, err := buildRoleChainIndex(cfg, sourceProfiles)
+	if err != nil {
+		return "", nil, err
 	}
 
 	builder := &strings.Builder{}
 	if err := writeSSOSession(builder, cfg); err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	for _, name := range profileNames {
@@ -46,7 +56,12 @@ func BuildConfigContent(cfg *Config, profiles []DiscoveredProfile) (string, erro
 		writeProfileSection(builder, cfg, profile)
 	}
 
-	return strings.TrimRight(builder.String(), "\n"), nil
+	for _, name := range roleChainNames {
+		profile := roleChainLookup[name]
+		writeRoleChainSection(builder, profile)
+	}
+
+	return strings.TrimRight(builder.String(), "\n"), warnings, nil
 }
 
 func buildProfileIndex(cfg *Config, profiles []DiscoveredProfile) ([]string, map[string]generatedProfile, error) {
@@ -113,6 +128,57 @@ func newTemplateData(profile DiscoveredProfile) map[string]string {
 	}
 }
 
+type roleChainProfile struct {
+	Name          string
+	Region        string
+	RoleARN       string
+	SourceProfile string
+}
+
+func buildRoleChainIndex(cfg *Config, sourceProfiles map[string]bool) ([]string, map[string]roleChainProfile, []string, error) {
+	if cfg == nil {
+		return nil, nil, nil, errors.New("aws config is nil")
+	}
+
+	profileMap := make(map[string]roleChainProfile)
+	order := make([]string, 0, len(cfg.RoleChains))
+	warnings := []string{}
+	for i, chain := range cfg.RoleChains {
+		name := strings.TrimSpace(chain.Name)
+		if name == "" {
+			return nil, nil, nil, fmt.Errorf("role chain name is empty at index %d", i)
+		}
+		name = cfg.ProfilePrefix + name
+
+		sourceProfile := strings.TrimSpace(chain.SourceProfile)
+		if sourceProfile == "" {
+			return nil, nil, nil, fmt.Errorf("role chain source_profile is empty for %s", name)
+		}
+
+		roleARN := strings.TrimSpace(chain.RoleARN)
+		if roleARN == "" {
+			return nil, nil, nil, fmt.Errorf("role chain role_arn is empty for %s", name)
+		}
+
+		if _, ok := sourceProfiles[sourceProfile]; !ok {
+			warnings = append(warnings, fmt.Sprintf("source_profile %q not found in discovered profiles", sourceProfile))
+		}
+
+		if _, exists := profileMap[name]; !exists {
+			order = append(order, name)
+		}
+		profileMap[name] = roleChainProfile{
+			Name:          name,
+			Region:        strings.TrimSpace(chain.Region),
+			RoleARN:       roleARN,
+			SourceProfile: sourceProfile,
+		}
+	}
+
+	sort.Strings(order)
+	return order, profileMap, warnings, nil
+}
+
 func writeSSOSession(builder *strings.Builder, cfg *Config) error {
 	if cfg == nil {
 		return errors.New("aws config is nil")
@@ -135,6 +201,16 @@ func writeProfileSection(builder *strings.Builder, cfg *Config, profile generate
 	writeKeyValue(builder, "sso_session", cfg.SSO.SessionName)
 	writeKeyValue(builder, "sso_account_id", profile.AccountID)
 	writeKeyValue(builder, "sso_role_name", profile.RoleName)
+	builder.WriteString("\n")
+}
+
+func writeRoleChainSection(builder *strings.Builder, profile roleChainProfile) {
+	writeSectionHeader(builder, profileSectionPrefix+profile.Name)
+	writeKeyValue(builder, "source_profile", profile.SourceProfile)
+	writeKeyValue(builder, "role_arn", profile.RoleARN)
+	if profile.Region != "" {
+		writeKeyValue(builder, "region", profile.Region)
+	}
 	builder.WriteString("\n")
 }
 
