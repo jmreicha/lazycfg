@@ -55,6 +55,90 @@ automatically_generated = true`
 	}
 }
 
+func TestBuildConfigContentCredentialProcess(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ProfilePrefix = testProfilePrefix
+	cfg.SSO.Region = testRegion
+	cfg.SSO.RegistrationScopes = defaultSSOScopes
+	cfg.SSO.SessionName = defaultSSOSessionName
+	cfg.SSO.StartURL = testStartURL
+	cfg.UseCredentialProcess = true
+
+	profiles := []DiscoveredProfile{
+		{
+			AccountID:   "111111111111",
+			AccountName: "prod",
+			RoleName:    "Admin",
+		},
+	}
+
+	content, warnings, err := BuildConfigContent(cfg, profiles)
+	if err != nil {
+		t.Fatalf("BuildConfigContent failed: %v", err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %v", warnings)
+	}
+
+	expected := `[sso-session lazycfg]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+sso_registration_scopes = sso:account:access
+
+[profile sso_prod/Admin]
+credential_process = granted credential-process --profile sso_prod/Admin
+automatically_generated = true`
+
+	if content != expected {
+		t.Fatalf("config content = %q", content)
+	}
+}
+
+func TestBuildCredentialProcessContent(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ProfilePrefix = testProfilePrefix
+	cfg.SSO.Region = testRegion
+	cfg.SSO.RegistrationScopes = defaultSSOScopes
+	cfg.SSO.SessionName = defaultSSOSessionName
+	cfg.SSO.StartURL = testStartURL
+	cfg.RoleChains = []RoleChain{
+		{
+			Name:          "prod-readonly",
+			RoleARN:       "arn:aws:iam::111111111111:role/ReadOnly",
+			SourceProfile: "sso_prod/Admin",
+		},
+	}
+
+	profiles := []DiscoveredProfile{
+		{
+			AccountID:   "111111111111",
+			AccountName: "prod",
+			RoleName:    "Admin",
+		},
+	}
+
+	content, generatedNames, warnings, err := BuildCredentialProcessContent(cfg, profiles)
+	if err != nil {
+		t.Fatalf("BuildCredentialProcessContent failed: %v", err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %v", warnings)
+	}
+	if len(generatedNames) != 2 {
+		t.Fatalf("expected 2 generated names, got %v", generatedNames)
+	}
+
+	expected := `[sso_prod/Admin]
+credential_process = granted credential-process --profile sso_prod/Admin
+
+[sso_prod-readonly]
+credential_process = granted credential-process --profile sso_prod-readonly`
+
+	if content != expected {
+		t.Fatalf("credential content = %q", content)
+	}
+}
+
 func TestBuildConfigContentTemplateAliases(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.ProfileTemplate = "{{ .account }}-{{ .role }}"

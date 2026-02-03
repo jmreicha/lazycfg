@@ -18,7 +18,14 @@ var errProviderConfigNil = errors.New("aws provider configuration is nil")
 
 // Provider implements the core.Provider interface for AWS configuration management.
 type Provider struct {
-	config *Config
+	config   *Config
+	discover discoverProfilesFunc
+}
+
+type discoverProfilesFunc func(context.Context, *Config) ([]DiscoveredProfile, error)
+
+func defaultDiscoverProfiles(ctx context.Context, cfg *Config) ([]DiscoveredProfile, error) {
+	return DiscoverProfiles(ctx, cfg, nil)
 }
 
 // NewProvider creates a new AWS provider instance with the given configuration.
@@ -28,7 +35,8 @@ func NewProvider(config *Config) *Provider {
 	}
 
 	return &Provider{
-		config: config,
+		config:   config,
+		discover: defaultDiscoverProfiles,
 	}
 }
 
@@ -60,19 +68,7 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 		Metadata:     make(map[string]interface{}),
 	}
 
-	if p.config == nil {
-		return nil, errProviderConfigNil
-	}
-
-	if opts != nil && opts.Config != nil {
-		cfg, ok := opts.Config.(*Config)
-		if !ok {
-			return nil, errors.New("aws config has unexpected type")
-		}
-		p.config = cfg
-	}
-
-	if err := p.config.Validate(); err != nil {
+	if err := p.applyGenerateOptions(opts); err != nil {
 		return nil, err
 	}
 
@@ -81,38 +77,32 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 		return result, nil
 	}
 
-	outputPath := p.config.ConfigPath
+	if p.discover == nil {
+		p.discover = defaultDiscoverProfiles
+	}
 
-	if _, err := os.Stat(outputPath); err == nil && opts != nil && !opts.Force && !opts.DryRun {
-		result.FilesSkipped = append(result.FilesSkipped, outputPath)
-		result.Warnings = append(result.Warnings, "config file exists, use --force to overwrite")
+	outputPath := p.config.ConfigPath
+	if checkExistingOutput(outputPath, opts, result) {
 		return result, nil
 	}
 
-	profiles, err := DiscoverProfiles(ctx, p.config, nil)
+	profiles, err := p.discover(ctx, p.config)
 	if err != nil {
 		return nil, err
 	}
 
-	configContent, generatedNames, warnings, err := BuildGeneratedConfigContent(p.config, profiles)
+	finalContent, _, err := buildConfigContent(p.config, outputPath, profiles, result)
 	if err != nil {
 		return nil, err
 	}
-	result.Warnings = append(result.Warnings, warnings...)
 
-	finalContent := configContent
-	if p.config.Prune {
-		mergedContent, err := mergeConfigContent(outputPath, configContent, generatedNames, p.config.MarkerKey, p.config.SSO.SessionName)
-		if err != nil {
-			return nil, err
-		}
-		finalContent = mergedContent
+	credentialsEnabled, credentialsPath, credentialsContent, err := buildCredentialsContent(p.config, profiles, result)
+	if err != nil {
+		return nil, err
 	}
 
 	if opts != nil && opts.DryRun {
-		result.Warnings = append(result.Warnings, "dry-run mode: no files were actually created")
-		result.Metadata["config_path"] = outputPath
-		result.Metadata["config_content"] = finalContent
+		applyDryRunMetadata(result, outputPath, finalContent, credentialsEnabled, credentialsPath, credentialsContent)
 		return result, nil
 	}
 
@@ -120,14 +110,125 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	if err := os.WriteFile(outputPath, []byte(finalContent), 0600); err != nil {
-		return nil, fmt.Errorf("failed to write config file: %w", err)
+	credentialsWriteAllowed := allowCredentialsWrite(credentialsEnabled, credentialsPath, opts, result)
+	if err := writeConfigFile(outputPath, finalContent); err != nil {
+		return nil, err
 	}
 
 	result.FilesCreated = append(result.FilesCreated, outputPath)
 	result.Metadata["discovered_profiles"] = len(profiles)
 
+	if credentialsEnabled && credentialsWriteAllowed {
+		if err := writeCredentialsFile(credentialsPath, credentialsContent); err != nil {
+			return nil, err
+		}
+		result.FilesCreated = append(result.FilesCreated, credentialsPath)
+	}
+
 	return result, nil
+}
+
+func (p *Provider) applyGenerateOptions(opts *core.GenerateOptions) error {
+	if p.config == nil {
+		return errProviderConfigNil
+	}
+
+	if opts != nil && opts.Config != nil {
+		cfg, ok := opts.Config.(*Config)
+		if !ok {
+			return errors.New("aws config has unexpected type")
+		}
+		p.config = cfg
+	}
+
+	return p.config.Validate()
+}
+
+func checkExistingOutput(outputPath string, opts *core.GenerateOptions, result *core.Result) bool {
+	if _, err := os.Stat(outputPath); err == nil && opts != nil && !opts.Force && !opts.DryRun {
+		result.FilesSkipped = append(result.FilesSkipped, outputPath)
+		result.Warnings = append(result.Warnings, "config file exists, use --force to overwrite")
+		return true
+	}
+	return false
+}
+
+func buildConfigContent(cfg *Config, outputPath string, profiles []DiscoveredProfile, result *core.Result) (string, []string, error) {
+	configContent, generatedNames, warnings, err := BuildGeneratedConfigContent(cfg, profiles)
+	if err != nil {
+		return "", nil, err
+	}
+	result.Warnings = append(result.Warnings, warnings...)
+
+	finalContent := configContent
+	if cfg.Prune {
+		mergedContent, err := mergeConfigContent(outputPath, configContent, generatedNames, cfg.MarkerKey, cfg.SSO.SessionName)
+		if err != nil {
+			return "", nil, err
+		}
+		finalContent = mergedContent
+	}
+
+	return finalContent, generatedNames, nil
+}
+
+func buildCredentialsContent(cfg *Config, profiles []DiscoveredProfile, result *core.Result) (bool, string, string, error) {
+	credentialsEnabled := cfg.GenerateCredentials && cfg.UseCredentialProcess
+	credentialsPath := cfg.CredentialsPath
+	credentialsContent := ""
+	if cfg.GenerateCredentials && !cfg.UseCredentialProcess {
+		result.Warnings = append(result.Warnings, "credentials generation disabled: use_credential_process is false")
+	}
+	if credentialsEnabled {
+		content, credentialProfiles, warnings, err := BuildCredentialProcessContent(cfg, profiles)
+		if err != nil {
+			return false, "", "", err
+		}
+		result.Warnings = append(result.Warnings, warnings...)
+		credentialsContent = content
+		result.Metadata["credential_profiles"] = len(credentialProfiles)
+	}
+	return credentialsEnabled, credentialsPath, credentialsContent, nil
+}
+
+func applyDryRunMetadata(result *core.Result, outputPath, finalContent string, credentialsEnabled bool, credentialsPath, credentialsContent string) {
+	result.Warnings = append(result.Warnings, "dry-run mode: no files were actually created")
+	result.Metadata["config_path"] = outputPath
+	result.Metadata["config_content"] = finalContent
+	if credentialsEnabled {
+		result.Metadata["credentials_path"] = credentialsPath
+		result.Metadata["credentials_content"] = credentialsContent
+	}
+}
+
+func allowCredentialsWrite(credentialsEnabled bool, credentialsPath string, opts *core.GenerateOptions, result *core.Result) bool {
+	if !credentialsEnabled {
+		return false
+	}
+	if _, err := os.Stat(credentialsPath); err == nil && opts != nil && !opts.Force {
+		result.FilesSkipped = append(result.FilesSkipped, credentialsPath)
+		result.Warnings = append(result.Warnings, "credentials file exists, use --force to overwrite")
+		return false
+	}
+	return true
+}
+
+func writeConfigFile(outputPath, content string) error {
+	if err := os.WriteFile(outputPath, []byte(content), 0600); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+	return nil
+}
+
+func writeCredentialsFile(credentialsPath, content string) error {
+	if err := os.MkdirAll(filepath.Dir(credentialsPath), 0700); err != nil {
+		return fmt.Errorf("failed to create credentials directory: %w", err)
+	}
+
+	if err := os.WriteFile(credentialsPath, []byte(content), 0600); err != nil {
+		return fmt.Errorf("failed to write credentials file: %w", err)
+	}
+	return nil
 }
 
 // Backup creates a backup of existing configuration files.

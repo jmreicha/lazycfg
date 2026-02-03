@@ -2,8 +2,12 @@ package aws
 
 import (
 	"context"
+	"errors"
+	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/jmreicha/lazycfg/internal/core"
 )
 
 func TestProviderName(t *testing.T) {
@@ -43,6 +47,66 @@ func TestProviderGenerateDisabled(t *testing.T) {
 	}
 	if len(result.Warnings) == 0 {
 		t.Fatal("expected warnings")
+	}
+}
+
+func TestProviderGenerateCredentialsDisabledWhenUseCredentialProcessFalse(t *testing.T) {
+	configDir := t.TempDir()
+	cfg := DefaultConfig()
+	cfg.ConfigPath = filepath.Join(configDir, "config")
+	cfg.CredentialsPath = filepath.Join(configDir, "credentials")
+	cfg.GenerateCredentials = true
+	cfg.UseCredentialProcess = false
+	cfg.SSO.Region = testRegion
+	cfg.SSO.StartURL = testStartURL
+	cfg.TokenCachePaths = []string{t.TempDir()}
+	provider := NewProvider(cfg)
+	provider.discover = func(context.Context, *Config) ([]DiscoveredProfile, error) {
+		return []DiscoveredProfile{}, nil
+	}
+
+	result, err := provider.Generate(context.Background(), &core.GenerateOptions{Force: true})
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+	if _, err := os.Stat(cfg.CredentialsPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected no credentials file, got %v", err)
+	}
+	if len(result.Warnings) == 0 {
+		t.Fatal("expected warning about credentials generation")
+	}
+}
+
+func TestProviderGenerateCredentialsWithCredentialProcess(t *testing.T) {
+	configDir := t.TempDir()
+	cfg := DefaultConfig()
+	cfg.ConfigPath = filepath.Join(configDir, "config")
+	cfg.CredentialsPath = filepath.Join(configDir, "credentials")
+	cfg.GenerateCredentials = true
+	cfg.UseCredentialProcess = true
+	cfg.SSO.Region = testRegion
+	cfg.SSO.StartURL = testStartURL
+	cfg.TokenCachePaths = []string{t.TempDir()}
+	provider := NewProvider(cfg)
+	provider.discover = func(context.Context, *Config) ([]DiscoveredProfile, error) {
+		return []DiscoveredProfile{
+			{
+				AccountID:   "111111111111",
+				AccountName: "prod",
+				RoleName:    "Admin",
+			},
+		}, nil
+	}
+
+	result, err := provider.Generate(context.Background(), &core.GenerateOptions{Force: true})
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected result")
+	}
+	if _, err := os.Stat(cfg.CredentialsPath); err != nil {
+		t.Fatalf("expected credentials file: %v", err)
 	}
 }
 

@@ -212,9 +212,7 @@ func writeSSOSession(builder *strings.Builder, cfg *Config) error {
 
 func writeProfileSection(builder *strings.Builder, cfg *Config, profile generatedProfile) {
 	writeSectionHeader(builder, profileSectionPrefix+profile.Name)
-	writeKeyValue(builder, "sso_session", cfg.SSO.SessionName)
-	writeKeyValue(builder, "sso_account_id", profile.AccountID)
-	writeKeyValue(builder, "sso_role_name", profile.RoleName)
+	writeProfileEntry(builder, cfg, profile.Name, profile.AccountID, profile.RoleName)
 	writeMarker(builder, cfg)
 	builder.WriteString("\n")
 }
@@ -228,6 +226,60 @@ func writeRoleChainSection(builder *strings.Builder, cfg *Config, profile roleCh
 	}
 	writeMarker(builder, cfg)
 	builder.WriteString("\n")
+}
+
+// BuildCredentialProcessContent renders credentials file content using credential_process.
+func BuildCredentialProcessContent(cfg *Config, profiles []DiscoveredProfile) (string, []string, []string, error) {
+	if cfg == nil {
+		return "", nil, nil, errors.New("aws config is nil")
+	}
+
+	profileNames, lookup, err := buildProfileIndex(cfg, profiles)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	sourceProfiles := make(map[string]bool, len(lookup))
+	for name := range lookup {
+		sourceProfiles[name] = true
+	}
+
+	roleChainNames, roleChainLookup, warnings, err := buildRoleChainIndex(cfg, sourceProfiles)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	builder := &strings.Builder{}
+	generatedNames := make([]string, 0, len(profileNames)+len(roleChainNames))
+	for _, name := range profileNames {
+		profile := lookup[name]
+		writeCredentialProcessSection(builder, profile.Name)
+		generatedNames = append(generatedNames, profile.Name)
+	}
+
+	for _, name := range roleChainNames {
+		profile := roleChainLookup[name]
+		writeCredentialProcessSection(builder, profile.Name)
+		generatedNames = append(generatedNames, profile.Name)
+	}
+
+	return strings.TrimRight(builder.String(), "\n"), generatedNames, warnings, nil
+}
+
+func writeCredentialProcessSection(builder *strings.Builder, profileName string) {
+	writeSectionHeader(builder, profileName)
+	writeKeyValue(builder, "credential_process", "granted credential-process --profile "+profileName)
+	builder.WriteString("\n")
+}
+
+func writeProfileEntry(builder *strings.Builder, cfg *Config, profileName, accountID, roleName string) {
+	if cfg.UseCredentialProcess {
+		writeKeyValue(builder, "credential_process", "granted credential-process --profile "+profileName)
+		return
+	}
+	writeKeyValue(builder, "sso_session", cfg.SSO.SessionName)
+	writeKeyValue(builder, "sso_account_id", accountID)
+	writeKeyValue(builder, "sso_role_name", roleName)
 }
 
 func writeSectionHeader(builder *strings.Builder, name string) {
