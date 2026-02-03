@@ -42,11 +42,13 @@ sso_registration_scopes = sso:account:access
 sso_session = lazycfg
 sso_account_id = 111111111111
 sso_role_name = Admin
+automatically_generated = true
 
 [profile sso_prod/ReadOnly]
 sso_session = lazycfg
 sso_account_id = 111111111111
-sso_role_name = ReadOnly`
+sso_role_name = ReadOnly
+automatically_generated = true`
 
 	if content != expected {
 		t.Fatalf("config content = %q", content)
@@ -80,7 +82,8 @@ sso_registration_scopes = sso:account:access
 [profile prod-account-AdminAccess]
 sso_session = lazycfg
 sso_account_id = 123456789012
-sso_role_name = AdminAccess`
+sso_role_name = AdminAccess
+automatically_generated = true`
 
 	if content != expected {
 		t.Fatalf("config content = %q", content)
@@ -119,7 +122,8 @@ sso_registration_scopes = sso:account:access
 [profile prod-Admin]
 sso_session = lazycfg
 sso_account_id = 999999999999
-sso_role_name = Admin`
+sso_role_name = Admin
+automatically_generated = true`
 
 	if content != expected {
 		t.Fatalf("config content = %q", content)
@@ -201,20 +205,24 @@ sso_registration_scopes = sso:account:access
 sso_session = lazycfg
 sso_account_id = 111111111111
 sso_role_name = Admin
+automatically_generated = true
 
 [profile sso_staging/PowerUser]
 sso_session = lazycfg
 sso_account_id = 222222222222
 sso_role_name = PowerUser
+automatically_generated = true
 
 [profile sso_prod-readonly]
 source_profile = sso_prod/Admin
 role_arn = arn:aws:iam::111111111111:role/ReadOnly
+automatically_generated = true
 
 [profile sso_staging-deploy]
 source_profile = sso_staging/PowerUser
 role_arn = arn:aws:iam::222222222222:role/DeployRole
-region = us-west-2`
+region = us-west-2
+automatically_generated = true`
 
 	if content != expected {
 		t.Fatalf("config content = %q", content)
