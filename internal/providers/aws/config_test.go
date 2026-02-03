@@ -44,18 +44,24 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.ConfigPath != filepath.Join(home, ".aws", "config") {
 		t.Fatalf("config path = %q", cfg.ConfigPath)
 	}
+	if cfg.CredentialsPath != filepath.Join(home, ".aws", "credentials") {
+		t.Fatalf("credentials path = %q", cfg.CredentialsPath)
+	}
 }
 
 func TestConfigFromMapOverrides(t *testing.T) {
 	raw := map[string]interface{}{
-		"roles": []interface{}{"Admin"},
+		"credentials_path":     "/custom/credentials",
+		"generate_credentials": true,
+		"roles":                []interface{}{"Admin"},
 		"sso": map[string]interface{}{
 			"region":       testRegion,
 			"session_name": "custom",
 			"start_url":    testStartURL,
 		},
-		"token_cache_paths": []interface{}{`/cache`},
-		"marker_key":        "custom-marker",
+		"token_cache_paths":      []interface{}{`/cache`},
+		"use_credential_process": true,
+		"marker_key":             "custom-marker",
 	}
 
 	cfg, err := ConfigFromMap(raw)
@@ -78,6 +84,12 @@ func TestConfigFromMapOverrides(t *testing.T) {
 	if cfg.ProfileTemplate != defaultProfileTemplate {
 		t.Fatalf("profile template = %q", cfg.ProfileTemplate)
 	}
+	if cfg.CredentialsPath != "/custom/credentials" {
+		t.Fatalf("credentials path = %q", cfg.CredentialsPath)
+	}
+	if !cfg.GenerateCredentials {
+		t.Fatal("expected generate credentials enabled")
+	}
 	if cfg.MarkerKey != "custom-marker" {
 		t.Fatalf("marker key = %q", cfg.MarkerKey)
 	}
@@ -86,6 +98,9 @@ func TestConfigFromMapOverrides(t *testing.T) {
 	}
 	if !reflect.DeepEqual(cfg.TokenCachePaths, []string{"/cache"}) {
 		t.Fatalf("token cache paths = %#v", cfg.TokenCachePaths)
+	}
+	if !cfg.UseCredentialProcess {
+		t.Fatal("expected credential process enabled")
 	}
 }
 
@@ -143,6 +158,24 @@ func TestConfigValidateErrors(t *testing.T) {
 			cfg: func() *Config {
 				cfg := *base
 				cfg.TokenCachePaths = nil
+				return &cfg
+			}(),
+		},
+		{
+			name: "missing credentials path",
+			cfg: func() *Config {
+				cfg := *base
+				cfg.GenerateCredentials = true
+				cfg.CredentialsPath = ""
+				return &cfg
+			}(),
+		},
+		{
+			name: "relative credentials path",
+			cfg: func() *Config {
+				cfg := *base
+				cfg.GenerateCredentials = true
+				cfg.CredentialsPath = "relative"
 				return &cfg
 			}(),
 		},

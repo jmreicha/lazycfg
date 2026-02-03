@@ -26,6 +26,7 @@ const (
 )
 
 var (
+	errCredentialsPathEmpty = errors.New("credentials path cannot be empty")
 	errConfigPathEmpty      = errors.New("config path cannot be empty")
 	errSSORegionEmpty       = errors.New("sso region cannot be empty")
 	errSSOStartURLEmpty     = errors.New("sso start url cannot be empty")
@@ -39,6 +40,12 @@ type Config struct {
 
 	// ConfigPath is the output path for the AWS config file.
 	ConfigPath string `yaml:"config_path"`
+
+	// CredentialsPath is the output path for the AWS credentials file.
+	CredentialsPath string `yaml:"credentials_path"`
+
+	// GenerateCredentials enables credentials file generation.
+	GenerateCredentials bool `yaml:"generate_credentials"`
 
 	// MarkerKey tags generated profiles for pruning.
 	MarkerKey string `yaml:"marker_key"`
@@ -62,6 +69,9 @@ type Config struct {
 
 	// RoleChains define cross-account role assumptions.
 	RoleChains []RoleChain `yaml:"role_chains"`
+
+	// UseCredentialProcess configures profiles to use credential_process.
+	UseCredentialProcess bool `yaml:"use_credential_process"`
 }
 
 // SSOConfig represents shared SSO configuration.
@@ -104,6 +114,10 @@ func ConfigFromMap(raw map[string]interface{}) (*Config, error) {
 		cfg.ConfigPath = defaultConfigPath()
 	}
 
+	if cfg.CredentialsPath == "" {
+		cfg.CredentialsPath = defaultCredentialsPath()
+	}
+
 	if cfg.ProfileTemplate == "" {
 		cfg.ProfileTemplate = defaultProfileTemplate
 	}
@@ -125,16 +139,19 @@ func ConfigFromMap(raw map[string]interface{}) (*Config, error) {
 // DefaultConfig returns the default AWS provider configuration.
 func DefaultConfig() *Config {
 	return &Config{
-		ConfigPath:      defaultConfigPath(),
-		Enabled:         true,
-		MarkerKey:       defaultMarkerKey,
-		ProfilePrefix:   "",
-		ProfileTemplate: defaultProfileTemplate,
-		Prune:           false,
-		Roles:           []string{},
-		RoleChains:      []RoleChain{},
-		SSO:             defaultSSOConfig(),
-		TokenCachePaths: defaultTokenCachePaths(),
+		ConfigPath:           defaultConfigPath(),
+		CredentialsPath:      defaultCredentialsPath(),
+		Enabled:              true,
+		GenerateCredentials:  false,
+		MarkerKey:            defaultMarkerKey,
+		ProfilePrefix:        "",
+		ProfileTemplate:      defaultProfileTemplate,
+		Prune:                false,
+		Roles:                []string{},
+		RoleChains:           []RoleChain{},
+		SSO:                  defaultSSOConfig(),
+		TokenCachePaths:      defaultTokenCachePaths(),
+		UseCredentialProcess: false,
 	}
 }
 
@@ -160,6 +177,14 @@ func (c *Config) Validate() error {
 	if err != nil {
 		return err
 	}
+
+	credentialsPath := ""
+	if c.GenerateCredentials {
+		credentialsPath, err = normalizeCredentialsPath(c.CredentialsPath)
+		if err != nil {
+			return err
+		}
+	}
 	normalized := make([]string, 0, len(c.TokenCachePaths))
 	for _, path := range c.TokenCachePaths {
 		normalizedPath, err := normalizePath(path)
@@ -184,6 +209,9 @@ func (c *Config) Validate() error {
 		c.MarkerKey = defaultMarkerKey
 	}
 	c.ConfigPath = configPath
+	if c.GenerateCredentials {
+		c.CredentialsPath = credentialsPath
+	}
 	c.TokenCachePaths = normalized
 
 	return nil
@@ -218,6 +246,16 @@ func defaultConfigPath() string {
 
 	return filepath.Join(home, ".aws", "config")
 }
+
+func defaultCredentialsPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return ""
+	}
+
+	return filepath.Join(home, ".aws", "credentials")
+}
+
 func expandHomeDir(path string) (string, error) {
 	if path == "" || path[0] != '~' {
 		return path, nil
@@ -260,6 +298,24 @@ func normalizePath(path string) (string, error) {
 func normalizeConfigPath(path string) (string, error) {
 	if strings.TrimSpace(path) == "" {
 		return "", errConfigPathEmpty
+	}
+
+	expanded, err := expandHomeDir(os.ExpandEnv(path))
+	if err != nil {
+		return "", err
+	}
+
+	expanded = filepath.Clean(expanded)
+	if !filepath.IsAbs(expanded) {
+		return "", fmt.Errorf("path must be absolute: %s", path)
+	}
+
+	return expanded, nil
+}
+
+func normalizeCredentialsPath(path string) (string, error) {
+	if strings.TrimSpace(path) == "" {
+		return "", errCredentialsPathEmpty
 	}
 
 	expanded, err := expandHomeDir(os.ExpandEnv(path))

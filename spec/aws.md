@@ -63,7 +63,7 @@ sso_account_id = 123456789012
 sso_role_name = AdminAccess
 ```
 
-When `use_credential_process: true`:
+When `use_credential_process: true` (and `generate_credentials: true` for credentials output):
 
 ```ini
 [profile prod-account/AdminAccess]
