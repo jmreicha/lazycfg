@@ -29,6 +29,9 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.ProfileTemplate != defaultProfileTemplate {
 		t.Fatalf("profile template = %q", cfg.ProfileTemplate)
 	}
+	if cfg.MarkerKey != defaultMarkerKey {
+		t.Fatalf("marker key = %q", cfg.MarkerKey)
+	}
 
 	expectedPaths := []string{
 		filepath.Join(home, ".aws", "sso", "cache"),
@@ -52,6 +55,7 @@ func TestConfigFromMapOverrides(t *testing.T) {
 			"start_url":    testStartURL,
 		},
 		"token_cache_paths": []interface{}{`/cache`},
+		"marker_key":        "custom-marker",
 	}
 
 	cfg, err := ConfigFromMap(raw)
@@ -73,6 +77,9 @@ func TestConfigFromMapOverrides(t *testing.T) {
 	}
 	if cfg.ProfileTemplate != defaultProfileTemplate {
 		t.Fatalf("profile template = %q", cfg.ProfileTemplate)
+	}
+	if cfg.MarkerKey != "custom-marker" {
+		t.Fatalf("marker key = %q", cfg.MarkerKey)
 	}
 	if !reflect.DeepEqual(cfg.Roles, []string{"Admin"}) {
 		t.Fatalf("roles = %#v", cfg.Roles)

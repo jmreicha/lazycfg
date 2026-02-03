@@ -94,16 +94,25 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 		return nil, err
 	}
 
-	configContent, warnings, err := BuildConfigContent(p.config, profiles)
+	configContent, generatedNames, warnings, err := BuildGeneratedConfigContent(p.config, profiles)
 	if err != nil {
 		return nil, err
 	}
 	result.Warnings = append(result.Warnings, warnings...)
 
+	finalContent := configContent
+	if p.config.Prune {
+		mergedContent, err := mergeConfigContent(outputPath, configContent, generatedNames, p.config.MarkerKey, p.config.SSO.SessionName)
+		if err != nil {
+			return nil, err
+		}
+		finalContent = mergedContent
+	}
+
 	if opts != nil && opts.DryRun {
 		result.Warnings = append(result.Warnings, "dry-run mode: no files were actually created")
 		result.Metadata["config_path"] = outputPath
-		result.Metadata["config_content"] = configContent
+		result.Metadata["config_content"] = finalContent
 		return result, nil
 	}
 
@@ -111,7 +120,7 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	if err := os.WriteFile(outputPath, []byte(configContent), 0600); err != nil {
+	if err := os.WriteFile(outputPath, []byte(finalContent), 0600); err != nil {
 		return nil, fmt.Errorf("failed to write config file: %w", err)
 	}
 
