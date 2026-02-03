@@ -3,9 +3,9 @@ package aws
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"sort"
 	"strings"
-	"text/template"
 )
 
 const (

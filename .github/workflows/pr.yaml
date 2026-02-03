@@ -21,7 +21,7 @@ jobs:
             // Add debugging to see what's in the PR body
             console.log('PR Body:', prBody);
 
-            const placeholderRegex = /^###\s*Description of intended changes\s*[\r\n]+###\s*Links to related Jira tickets or other references\s*$/i;
+            const placeholderRegex = /^###\s*Description of intended changes\s*[\r\n]+###\s*Links to issues, tickets or other references\s*$/i;
 
             // Debug regex match result
             const isPlaceholder = placeholderRegex.test(prBody);
@@ -32,7 +32,7 @@ jobs:
             // Capture common parts of messages
             const commonContent = [
               "",
-              "- A clear explanation of **why** the changes are needed and any relevant Jira tickets or references",
+              "- A clear explanation of **why** the changes are needed and any relevant issue, tickets or references",
               "",
               "This helps reviewers understand the purpose of the change and is required before this PR can be merged."
             ].join("\n");
