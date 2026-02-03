@@ -23,17 +23,27 @@ type generatedProfile struct {
 
 // BuildConfigContent renders the AWS shared config content for discovered profiles.
 func BuildConfigContent(cfg *Config, profiles []DiscoveredProfile) (string, []string, error) {
+	content, _, warnings, err := BuildGeneratedConfigContent(cfg, profiles)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return content, warnings, nil
+}
+
+// BuildGeneratedConfigContent renders config content and returns generated profile names.
+func BuildGeneratedConfigContent(cfg *Config, profiles []DiscoveredProfile) (string, []string, []string, error) {
 	if cfg == nil {
-		return "", nil, errors.New("aws config is nil")
+		return "", nil, nil, errors.New("aws config is nil")
 	}
 
 	if strings.TrimSpace(cfg.SSO.SessionName) == "" {
-		return "", nil, errors.New("sso session name is empty")
+		return "", nil, nil, errors.New("sso session name is empty")
 	}
 
 	profileNames, lookup, err := buildProfileIndex(cfg, profiles)
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
 	sourceProfiles := make(map[string]bool, len(lookup))
@@ -43,12 +53,16 @@ func BuildConfigContent(cfg *Config, profiles []DiscoveredProfile) (string, []st
 
 	roleChainNames, roleChainLookup, warnings, err := buildRoleChainIndex(cfg, sourceProfiles)
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
+
+	generatedNames := make([]string, 0, len(profileNames)+len(roleChainNames))
+	generatedNames = append(generatedNames, profileNames...)
+	generatedNames = append(generatedNames, roleChainNames...)
 
 	builder := &strings.Builder{}
 	if err := writeSSOSession(builder, cfg); err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
 	for _, name := range profileNames {
@@ -58,10 +72,10 @@ func BuildConfigContent(cfg *Config, profiles []DiscoveredProfile) (string, []st
 
 	for _, name := range roleChainNames {
 		profile := roleChainLookup[name]
-		writeRoleChainSection(builder, profile)
+		writeRoleChainSection(builder, cfg, profile)
 	}
 
-	return strings.TrimRight(builder.String(), "\n"), warnings, nil
+	return strings.TrimRight(builder.String(), "\n"), generatedNames, warnings, nil
 }
 
 func buildProfileIndex(cfg *Config, profiles []DiscoveredProfile) ([]string, map[string]generatedProfile, error) {
@@ -201,16 +215,18 @@ func writeProfileSection(builder *strings.Builder, cfg *Config, profile generate
 	writeKeyValue(builder, "sso_session", cfg.SSO.SessionName)
 	writeKeyValue(builder, "sso_account_id", profile.AccountID)
 	writeKeyValue(builder, "sso_role_name", profile.RoleName)
+	writeMarker(builder, cfg)
 	builder.WriteString("\n")
 }
 
-func writeRoleChainSection(builder *strings.Builder, profile roleChainProfile) {
+func writeRoleChainSection(builder *strings.Builder, cfg *Config, profile roleChainProfile) {
 	writeSectionHeader(builder, profileSectionPrefix+profile.Name)
 	writeKeyValue(builder, "source_profile", profile.SourceProfile)
 	writeKeyValue(builder, "role_arn", profile.RoleARN)
 	if profile.Region != "" {
 		writeKeyValue(builder, "region", profile.Region)
 	}
+	writeMarker(builder, cfg)
 	builder.WriteString("\n")
 }
 
@@ -225,4 +241,15 @@ func writeKeyValue(builder *strings.Builder, key, value string) {
 	builder.WriteString(" = ")
 	builder.WriteString(value)
 	builder.WriteString("\n")
+}
+
+func writeMarker(builder *strings.Builder, cfg *Config) {
+	if cfg == nil {
+		return
+	}
+	marker := strings.TrimSpace(cfg.MarkerKey)
+	if marker == "" {
+		return
+	}
+	writeKeyValue(builder, marker, "true")
 }

@@ -19,6 +19,7 @@ func init() {
 }
 
 const (
+	defaultMarkerKey       = "automatically_generated"
 	defaultProfileTemplate = "{{ .AccountName }}/{{ .RoleName }}"
 	defaultSSOScopes       = "sso:account:access"
 	defaultSSOSessionName  = "lazycfg"
@@ -38,6 +39,12 @@ type Config struct {
 
 	// ConfigPath is the output path for the AWS config file.
 	ConfigPath string `yaml:"config_path"`
+
+	// MarkerKey tags generated profiles for pruning.
+	MarkerKey string `yaml:"marker_key"`
+
+	// Prune removes stale generated profiles.
+	Prune bool `yaml:"prune"`
 
 	// ProfilePrefix is prepended to generated profile names.
 	ProfilePrefix string `yaml:"profile_prefix"`
@@ -101,6 +108,10 @@ func ConfigFromMap(raw map[string]interface{}) (*Config, error) {
 		cfg.ProfileTemplate = defaultProfileTemplate
 	}
 
+	if strings.TrimSpace(cfg.MarkerKey) == "" {
+		cfg.MarkerKey = defaultMarkerKey
+	}
+
 	if cfg.SSO.RegistrationScopes == "" {
 		cfg.SSO.RegistrationScopes = defaultSSOScopes
 	}
@@ -116,8 +127,10 @@ func DefaultConfig() *Config {
 	return &Config{
 		ConfigPath:      defaultConfigPath(),
 		Enabled:         true,
+		MarkerKey:       defaultMarkerKey,
 		ProfilePrefix:   "",
 		ProfileTemplate: defaultProfileTemplate,
+		Prune:           false,
 		Roles:           []string{},
 		RoleChains:      []RoleChain{},
 		SSO:             defaultSSOConfig(),
@@ -166,6 +179,9 @@ func (c *Config) Validate() error {
 	}
 	if strings.TrimSpace(c.ProfileTemplate) == "" {
 		c.ProfileTemplate = defaultProfileTemplate
+	}
+	if strings.TrimSpace(c.MarkerKey) == "" {
+		c.MarkerKey = defaultMarkerKey
 	}
 	c.ConfigPath = configPath
 	c.TokenCachePaths = normalized
