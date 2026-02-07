@@ -31,6 +31,13 @@ jobs:
         with:
           go-version-file: .go-version
 
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: --version
+
       - name: Install semantic-release
         run: |
           npm install -g semantic-release @semantic-release/changelog @semantic-release/commit-analyzer @semantic-release/exec @semantic-release/git @semantic-release/release-notes-generator
