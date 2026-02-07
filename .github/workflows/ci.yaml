@@ -55,7 +55,6 @@ jobs:
       - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6
         with:
           python-version: "3.x"
-          cache: pip
       - name: Configure Trivy cache
         run: |
           echo "TRIVY_CACHE_DIR=$HOME/.cache/trivy" >> "$GITHUB_ENV"
@@ -72,6 +71,13 @@ jobs:
       - name: Run Trivy
         run: |
           trivy fs --cache-dir "${TRIVY_CACHE_DIR}" --exit-code 1 --ignore-unfixed --no-progress --severity HIGH,CRITICAL .
+      - name: Cache pip downloads
+        uses: actions/cache@b7e8d49f17405cc70c1c120101943203c98d3a4b # v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ github.ref }}
+          restore-keys: |
+            pip-${{ runner.os }}-
       - name: Install Semgrep
         run: |
           pip install semgrep
