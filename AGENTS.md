@@ -276,3 +276,8 @@ Use these rules to apply my own personal style and preferences to your responses
 - If push or PR creation fails, resolve and retry until it succeeds
 
 ## Findings
+
+- Use the [findings skill](.claude/skills/findings/SKILL.md) at the start of every session.
+- Read `./context/findings.md` before any other work.
+- Update `./context/findings.md` continuously while you work.
+- Log your own mistakes and corrections, not just user feedback.
