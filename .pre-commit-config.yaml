@@ -1,12 +1,12 @@
 ---
 repos:
   - repo: https://github.com/common-repo/common-repo
-    rev: v0.27.0
+    rev: v0.28.0
     hooks:
       - id: common-repo-update
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.12.1
+    rev: v4.13.6
     hooks:
       - id: commitizen
 
