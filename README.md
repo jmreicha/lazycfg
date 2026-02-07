@@ -162,3 +162,16 @@ OPENCODE_TIMEOUT=3600 task iterate
 8. Sync beads: `bd sync`
 9. Create pull request: `gh pr create --title "feat: your feature" --body "Description"`
 10. Address review feedback and push updates to the PR
+
+### Releases
+
+Releases are automated on pushes to `main` with semantic-release and GoReleaser.
+
+Required secrets:
+
+- `GITHUB_TOKEN` (provided automatically by GitHub Actions)
+
+Optional secrets (only if configured in `.goreleaser.yml`):
+
+- `GORELEASER_KEY` for GoReleaser Pro
+- `TAP_GITHUB_TOKEN` for Homebrew tap publishing
