@@ -2,12 +2,13 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*.*.*"
+    branches:
+      - main
 
 permissions:
   contents: write
-  id-token: write
+  issues: write
+  pull-requests: write
   packages: write
 
 jobs:
@@ -20,16 +21,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go
+      - name: Setup Node.js
+        uses: actions/setup-node@aeb8638f5a8dd1d6f84f1f6b2e0a7b8d4f60f223 # v4
+        with:
+          node-version: "lts/*"
+
+      - name: Setup Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
         with:
           go-version-file: .go-version
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean
+      - name: Install semantic-release
+        run: |
+          npm install -g semantic-release @semantic-release/changelog @semantic-release/commit-analyzer @semantic-release/exec @semantic-release/git @semantic-release/release-notes-generator
+
+      - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release

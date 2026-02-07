@@ -2,9 +2,10 @@
 
 ## Corrections
 
-| Date       | Source | What Went Wrong                                                | What To Do Instead                                                        |
-| ---------- | ------ | -------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| 2026-02-07 | self   | Did not read or update `context/findings.md` at session start. | Read `context/findings.md` before any other work and update continuously. |
+| Date       | Source | What Went Wrong                                                  | What To Do Instead                                                          |
+| ---------- | ------ | ---------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 2026-02-07 | self   | Did not read or update `context/findings.md` at session start.   | Read `context/findings.md` before any other work and update continuously.   |
+| 2026-02-07 | self   | Edited files in the main worktree instead of the issue worktree. | Confirm `git rev-parse --show-toplevel` in the issue worktree before edits. |
 
 ## User Preferences
 

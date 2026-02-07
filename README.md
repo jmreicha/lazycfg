@@ -165,7 +165,7 @@ OPENCODE_TIMEOUT=3600 task iterate
 
 ### Releases
 
-Releases are automated on pushes to `main` with semantic-release and GoReleaser.
+Releases are automated on pushes to `main` with semantic-release and GoReleaser. The workflow uses `.releaserc.yaml` and installs the semantic-release Node.js packages at runtime.
 
 Required secrets:
 
