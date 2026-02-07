@@ -24,7 +24,7 @@
       "automerge": true,
       "automergeType": "pr",
       "managers": ["github-actions"],
-      "matchUpdateTypes": ["digest", "pin"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "minimumReleaseAge": "14 days"
     }
   ],
