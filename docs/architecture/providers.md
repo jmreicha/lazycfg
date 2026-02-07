@@ -90,6 +90,17 @@ The core engine orchestrates the provider lifecycle in this order:
 3. **Generation** - Create/update configuration files
 4. **Rollback** (on error) - Restore from backup if generation fails
 
+Providers may disable themselves during validation when required tools are not available. In that case, the provider returns a warning and is skipped during generation.
+
+### Tool Discovery
+
+Providers are skipped when required tools are missing. Tool discovery uses `PATH` and common install locations.
+
+- `aws`: requires `aws`
+- `granted`: requires `granted`
+- `kubernetes`: requires `kubectl` and `k9s`
+- `ssh`: requires `ssh`
+
 ## Provider Registration
 
 Providers must register themselves with the global registry. This typically happens in an `init()` function:

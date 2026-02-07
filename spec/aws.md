@@ -343,6 +343,10 @@ require (
 )
 ```
 
+Required tools:
+
+- `aws`
+
 ## Testing
 
 - Mock `SSOClient` interface for unit tests

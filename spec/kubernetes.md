@@ -153,6 +153,11 @@ require (
 )
 ```
 
+Required tools:
+
+- `kubectl`
+- `k9s`
+
 ## Testing
 
 - Mock `EKSClient` interface for unit tests

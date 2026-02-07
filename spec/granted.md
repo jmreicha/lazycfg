@@ -83,6 +83,10 @@ CredentialProcessAutoLogin = true
 
 - Standard library only.
 
+Required tools:
+
+- `granted`
+
 ## Testing
 
 - Verify file creation at default and custom paths.
