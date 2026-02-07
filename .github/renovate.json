@@ -4,15 +4,28 @@
     {
       "managers": ["gomod"],
       "groupName": "go dependencies",
-      "schedule": ["before 3:00am"]
+      "schedule": ["before 3:00am"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "14 days"
     },
     {
-      "groupName": "pre-commit auto-update",
+      "groupName": "pre-commit",
       "automerge": true,
       "automergeType": "branch",
       "automergeSchedule": ["before 3:00am"],
       "managers": ["pre-commit"],
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "groupName": "github actions",
+      "automerge": true,
+      "automergeType": "pr",
+      "managers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "pin"],
+      "minimumReleaseAge": "14 days"
     }
   ],
   "labels": ["dependencies"],
