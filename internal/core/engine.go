@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 )
 
 // Engine coordinates provider lifecycle: validation, backup, generation, error handling, and rollback.
@@ -74,6 +75,24 @@ func (e *Engine) Execute(ctx context.Context, opts *ExecuteOptions) (map[string]
 	for _, provider := range providers {
 		providerName := provider.Name()
 		e.logger.Info("processing provider", "provider", providerName)
+
+		missingTools := e.providerMissingTools(providerName)
+		if len(missingTools) > 0 {
+			if !e.providerEnabled(providerName) {
+				result := &Result{
+					Provider: providerName,
+					Warnings: []string{providerName + " provider is disabled"},
+				}
+				results[providerName] = result
+				continue
+			}
+			result := &Result{
+				Provider: providerName,
+				Warnings: []string{fmt.Sprintf("%s provider disabled: missing tools %s", providerName, strings.Join(missingTools, ", "))},
+			}
+			results[providerName] = result
+			continue
+		}
 
 		// Phase 1: Validate
 		if err := e.validateProvider(ctx, provider); err != nil {
@@ -215,4 +234,32 @@ func (e *Engine) generateProvider(ctx context.Context, provider Provider, opts *
 
 	result.Provider = provider.Name()
 	return result, nil
+}
+
+func (e *Engine) providerMissingTools(providerName string) []string {
+	switch providerName {
+	case "aws":
+		return MissingExecutables("aws")
+	case "granted":
+		return MissingExecutables("granted")
+	case "kubernetes":
+		return MissingExecutables("k9s", "kubectl")
+	case "ssh":
+		return MissingExecutables("ssh")
+	default:
+		return nil
+	}
+}
+
+func (e *Engine) providerEnabled(providerName string) bool {
+	providerCfg := e.config.GetProviderConfig(providerName)
+	if providerCfg == nil {
+		return true
+	}
+
+	if enabledCfg, ok := providerCfg.(EnabledProviderConfig); ok {
+		return enabledCfg.IsEnabled()
+	}
+
+	return true
 }

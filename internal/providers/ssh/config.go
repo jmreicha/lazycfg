@@ -92,6 +92,15 @@ func DefaultConfig() *Config {
 	}
 }
 
+// IsEnabled reports whether the provider is enabled.
+func (c *Config) IsEnabled() bool {
+	if c == nil {
+		return false
+	}
+
+	return c.Enabled
+}
+
 func defaultConfigPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil || home == "" {

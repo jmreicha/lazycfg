@@ -233,6 +233,15 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// IsEnabled reports whether the provider is enabled.
+func (c *Config) IsEnabled() bool {
+	if c == nil {
+		return false
+	}
+
+	return c.Enabled
+}
+
 func defaultSSOConfig() SSOConfig {
 	return SSOConfig{
 		Region:             "",

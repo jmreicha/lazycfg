@@ -59,6 +59,9 @@ func TestGenerateCmd(t *testing.T) {
 	if err := registry.Register(&mockProvider{name: "kubernetes"}); err != nil {
 		t.Fatalf("failed to register kubernetes provider: %v", err)
 	}
+	if err := registry.Register(&mockProvider{name: "ssh"}); err != nil {
+		t.Fatalf("failed to register ssh provider: %v", err)
+	}
 
 	tests := []struct {
 		name               string
@@ -82,6 +85,12 @@ func TestGenerateCmd(t *testing.T) {
 			name:               "multiple providers",
 			args:               []string{"aws", "kubernetes"},
 			expectProviders:    []string{"aws", "kubernetes"},
+			expectAllProviders: false,
+		},
+		{
+			name:               "multiple providers without kubernetes",
+			args:               []string{"aws", "ssh"},
+			expectProviders:    []string{"aws", "ssh"},
 			expectAllProviders: false,
 		},
 		{
