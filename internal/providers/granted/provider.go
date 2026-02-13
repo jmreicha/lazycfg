@@ -121,7 +121,10 @@ func (p *Provider) Generate(_ context.Context, opts *core.GenerateOptions) (*cor
 
 // Backup creates a backup of existing configuration files.
 func (p *Provider) Backup(_ context.Context) (string, error) {
-	return "", nil
+	if p.config == nil {
+		return "", nil
+	}
+	return core.BackupFile(p.config.ConfigPath)
 }
 
 // Restore recovers configuration from a backup.

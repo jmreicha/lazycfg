@@ -91,6 +91,8 @@ Examples:
 	cmd.Flags().StringVar(&awsPrefix, "aws-prefix", "", "prefix for generated AWS profile names")
 	cmd.Flags().BoolVar(&awsPrune, "aws-prune", false, "remove stale AWS profiles with marker key")
 	cmd.Flags().StringVar(&awsRoleFilters, "aws-roles", "", "comma-separated AWS role names")
+	cmd.Flags().StringVar(&awsSSOStartURL, "aws-sso-url", "", "AWS SSO start URL")
+	cmd.Flags().StringVar(&awsSSORegion, "aws-sso-region", "", "AWS SSO region")
 	cmd.Flags().StringVar(&awsTemplate, "aws-template", "", "template for AWS profile names")
 	cmd.Flags().BoolVar(&kubeDemo, "kube-demo", false, "use fake kubernetes discovery data")
 	cmd.Flags().BoolVar(&kubeMerge, "kube-merge", false, "merge existing kubeconfig files")

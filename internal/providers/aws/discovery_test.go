@@ -99,7 +99,7 @@ func TestDiscoverProfiles(t *testing.T) {
 		}, nil
 	}
 
-	loader := func(_ []string, _ time.Time) (SSOToken, error) {
+	loader := func(_ []string, _, _ string, _ time.Time) (SSOToken, error) {
 		return SSOToken{
 			AccessToken: "token",
 			ExpiresAt:   time.Now().Add(time.Hour),
@@ -164,7 +164,7 @@ func TestDiscoverProfilesErrors(t *testing.T) {
 	cfg.SSO.StartURL = discoveryTestStartURL
 	cfg.TokenCachePaths = []string{"/cache"}
 
-	loader := func(_ []string, _ time.Time) (SSOToken, error) {
+	loader := func(_ []string, _, _ string, _ time.Time) (SSOToken, error) {
 		return SSOToken{}, errNoValidToken
 	}
 
@@ -180,7 +180,7 @@ func TestDiscoverProfilesErrorsInvalidSession(t *testing.T) {
 	cfg.SSO.StartURL = discoveryTestStartURL
 	cfg.TokenCachePaths = []string{"/cache"}
 
-	loader := func(_ []string, _ time.Time) (SSOToken, error) {
+	loader := func(_ []string, _, _ string, _ time.Time) (SSOToken, error) {
 		return SSOToken{
 			AccessToken: "token",
 			ExpiresAt:   time.Now().Add(time.Hour),
@@ -213,7 +213,7 @@ func TestDiscoverProfilesErrorsAccountRolesFailure(t *testing.T) {
 		}, nil
 	}
 
-	loader := func(_ []string, _ time.Time) (SSOToken, error) {
+	loader := func(_ []string, _, _ string, _ time.Time) (SSOToken, error) {
 		return SSOToken{
 			AccessToken: "token",
 			ExpiresAt:   time.Now().Add(time.Hour),
@@ -241,7 +241,7 @@ func TestDiscoverProfilesErrorsAccountListFailure(t *testing.T) {
 		}, nil
 	}
 
-	loader := func(_ []string, _ time.Time) (SSOToken, error) {
+	loader := func(_ []string, _, _ string, _ time.Time) (SSOToken, error) {
 		return SSOToken{
 			AccessToken: "token",
 			ExpiresAt:   time.Now().Add(time.Hour),

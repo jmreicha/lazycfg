@@ -26,10 +26,13 @@ type DiscoveredProfile struct {
 
 // DiscoverProfiles uses the AWS SSO API to enumerate accounts and roles.
 func DiscoverProfiles(ctx context.Context, cfg *Config, factory SSOClientFactory) ([]DiscoveredProfile, error) {
-	return discoverProfiles(ctx, cfg, factory, LoadNewestToken, time.Now().UTC())
+	loader := func(cachePaths []string, startURL, region string, now time.Time) (SSOToken, error) {
+		return LoadMatchingToken(cachePaths, startURL, region, now)
+	}
+	return discoverProfiles(ctx, cfg, factory, loader, time.Now().UTC())
 }
 
-type tokenLoader func(cachePaths []string, now time.Time) (SSOToken, error)
+type tokenLoader func(cachePaths []string, startURL, region string, now time.Time) (SSOToken, error)
 
 func discoverProfiles(ctx context.Context, cfg *Config, factory SSOClientFactory, loader tokenLoader, now time.Time) ([]DiscoveredProfile, error) {
 	if cfg == nil {
@@ -44,16 +47,12 @@ func discoverProfiles(ctx context.Context, cfg *Config, factory SSOClientFactory
 		factory = NewSSOClientFactory()
 	}
 
-	token, err := loader(cfg.TokenCachePaths, now)
+	token, err := loader(cfg.TokenCachePaths, cfg.SSO.StartURL, cfg.SSO.Region, now)
 	if err != nil {
 		if errors.Is(err, errNoValidToken) {
 			return nil, errSSOLoginRequired
 		}
 		return nil, err
-	}
-
-	if !token.MatchesSession(cfg.SSO.StartURL, cfg.SSO.Region) {
-		return nil, errSSOLoginRequired
 	}
 
 	client, err := factory(ctx, cfg.SSO.Region, token.AccessToken)

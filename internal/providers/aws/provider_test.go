@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jmreicha/lazycfg/internal/core"
@@ -110,15 +111,45 @@ func TestProviderGenerateCredentialsWithCredentialProcess(t *testing.T) {
 	}
 }
 
-func TestProviderBackup(t *testing.T) {
-	provider := NewProvider(DefaultConfig())
+func TestProviderBackupNoFile(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ConfigPath = filepath.Join(t.TempDir(), "nonexistent")
+	provider := NewProvider(cfg)
 
 	backup, err := provider.Backup(context.Background())
 	if err != nil {
 		t.Fatalf("Backup failed: %v", err)
 	}
 	if backup != "" {
-		t.Fatalf("backup = %q", backup)
+		t.Fatalf("expected empty backup path, got %q", backup)
+	}
+}
+
+func TestProviderBackupCreatesBackup(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config")
+	if err := os.WriteFile(cfgPath, []byte("[default]\nregion = us-east-1\n"), 0600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	cfg := DefaultConfig()
+	cfg.ConfigPath = cfgPath
+	provider := NewProvider(cfg)
+
+	backup, err := provider.Backup(context.Background())
+	if err != nil {
+		t.Fatalf("Backup failed: %v", err)
+	}
+	if !strings.HasPrefix(backup, cfgPath+".") || !strings.HasSuffix(backup, ".bak") {
+		t.Fatalf("backup = %q, expected timestamped .bak file", backup)
+	}
+
+	data, err := os.ReadFile(backup)
+	if err != nil {
+		t.Fatalf("read backup: %v", err)
+	}
+	if string(data) != "[default]\nregion = us-east-1\n" {
+		t.Fatalf("backup content = %q", string(data))
 	}
 }
 

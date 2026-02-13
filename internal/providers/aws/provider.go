@@ -88,7 +88,16 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 
 	profiles, err := p.discover(ctx, p.config)
 	if err != nil {
-		return nil, err
+		if !errors.Is(err, errSSOLoginRequired) {
+			return nil, err
+		}
+		if loginErr := runSSOLogin(ctx, p.config); loginErr != nil {
+			return nil, fmt.Errorf("auto sso login: %w", loginErr)
+		}
+		profiles, err = p.discover(ctx, p.config)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	finalContent, _, err := buildConfigContent(p.config, outputPath, profiles, result)
@@ -233,7 +242,10 @@ func writeCredentialsFile(credentialsPath, content string) error {
 
 // Backup creates a backup of existing configuration files.
 func (p *Provider) Backup(_ context.Context) (string, error) {
-	return "", nil
+	if p.config == nil {
+		return "", nil
+	}
+	return core.BackupFile(p.config.ConfigPath)
 }
 
 // Restore recovers configuration from a backup.
