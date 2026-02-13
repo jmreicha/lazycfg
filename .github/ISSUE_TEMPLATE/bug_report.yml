@@ -21,7 +21,7 @@ body:
     attributes:
       label: Current behavior
       description: What happened? Include exact error messages if you can.
-      placeholder: "Running lazycfg sync exits with status 1 and prints..."
+      placeholder: "Running cfgctl sync exits with status 1 and prints..."
     validations:
       required: true
   - type: textarea
@@ -38,7 +38,7 @@ body:
       label: Steps to reproduce
       description: Numbered list of minimal steps to reproduce.
       placeholder: |
-        1. Run `lazycfg sync`
+        1. Run `cfgctl sync`
         2. ...
     validations:
       required: true
@@ -50,8 +50,8 @@ body:
       placeholder: |
         - OS: macOS
         - Version: vX.Y.Z
-        - Command: lazycfg sync
-        - Config: ~/.config/lazycfg/config.yaml
+        - Command: cfgctl sync
+        - Config: ~/.config/cfgctl/config.yaml
     validations:
       required: true
   - type: textarea

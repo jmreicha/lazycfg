@@ -1,11 +1,11 @@
-// Package main is the entry point for the lazycfg CLI.
+// Package main is the entry point for the cfgctl CLI.
 package main
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/jmreicha/lazycfg/internal/cli"
+	"github.com/jmreicha/cfgctl/internal/cli"
 )
 
 // Build information set via ldflags.

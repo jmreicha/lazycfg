@@ -26,10 +26,7 @@ type DiscoveredProfile struct {
 
 // DiscoverProfiles uses the AWS SSO API to enumerate accounts and roles.
 func DiscoverProfiles(ctx context.Context, cfg *Config, factory SSOClientFactory) ([]DiscoveredProfile, error) {
-	loader := func(cachePaths []string, startURL, region string, now time.Time) (SSOToken, error) {
-		return LoadMatchingToken(cachePaths, startURL, region, now)
-	}
-	return discoverProfiles(ctx, cfg, factory, loader, time.Now().UTC())
+	return discoverProfiles(ctx, cfg, factory, LoadMatchingToken, time.Now().UTC())
 }
 
 type tokenLoader func(cachePaths []string, startURL, region string, now time.Time) (SSOToken, error)

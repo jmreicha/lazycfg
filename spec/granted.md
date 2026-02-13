@@ -26,13 +26,13 @@ providers:
 
 ```bash
 # Generate Granted config
-lazycfg generate granted
+cfgctl generate granted
 
 # Dry run
-lazycfg generate granted --dry-run
+cfgctl generate granted --dry-run
 
 # Overwrite existing config
-lazycfg generate granted --force
+cfgctl generate granted --force
 ```
 
 ## Implementation

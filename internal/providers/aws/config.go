@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/cfgctl/internal/core"
 	"gopkg.in/yaml.v3"
 )
 
@@ -24,7 +24,7 @@ const (
 	defaultDemoRegion      = "us-east-1"
 	defaultDemoStartURL    = "https://example.awsapps.com/start"
 	defaultSSOScopes       = "sso:account:access"
-	defaultSSOSessionName  = "lazycfg"
+	defaultSSOSessionName  = "cfgctl"
 )
 
 var (

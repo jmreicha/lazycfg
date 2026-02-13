@@ -51,6 +51,8 @@ type ExecuteOptions struct {
 
 // Execute runs the generation process for the specified providers.
 // Returns a map of provider names to their results, or an error if the process fails.
+//
+//nolint:gocognit // Execution flow coordinates multiple phases and providers.
 func (e *Engine) Execute(ctx context.Context, opts *ExecuteOptions) (map[string]*Result, error) {
 	if opts == nil {
 		opts = &ExecuteOptions{}

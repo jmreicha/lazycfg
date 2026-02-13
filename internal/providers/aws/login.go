@@ -39,6 +39,7 @@ func ensureSSOSessionBlock(cfg *Config) error {
 		return err
 	}
 
+	// #nosec G304 -- path is derived from config and trusted
 	existing, err := os.ReadFile(path)
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("read config %q: %w", path, err)
@@ -58,7 +59,7 @@ func ensureSSOSessionBlock(cfg *Config) error {
 	block.WriteString("sso_region = " + cfg.SSO.Region + "\n")
 	block.WriteString("sso_registration_scopes = " + cfg.SSO.RegistrationScopes + "\n")
 
-	// #nosec G306 -- AWS config files use 0600 permissions.
+	// #nosec G304 -- path is derived from config and trusted
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return fmt.Errorf("open config %q for append: %w", path, err)

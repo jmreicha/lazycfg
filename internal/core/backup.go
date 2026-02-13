@@ -1,4 +1,4 @@
-// Package core provides the core functionality for lazycfg.
+// Package core provides the core functionality for cfgctl.
 // This includes the provider interface, registry, configuration management, and orchestration engine.
 package core
 
@@ -13,7 +13,7 @@ import (
 
 const (
 	// DefaultBackupDir is the default directory for storing backups.
-	DefaultBackupDir = ".lazycfg/backups"
+	DefaultBackupDir = ".cfgctl/backups"
 )
 
 // BackupManager handles creation and restoration of configuration file backups.
@@ -22,7 +22,7 @@ type BackupManager struct {
 }
 
 // NewBackupManager creates a new backup manager.
-// If backupDir is empty, uses ~/.lazycfg/backups.
+// If backupDir is empty, uses ~/.cfgctl/backups.
 func NewBackupManager(backupDir string) *BackupManager {
 	if backupDir == "" {
 		home := os.Getenv("HOME")

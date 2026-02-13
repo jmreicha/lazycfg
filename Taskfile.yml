@@ -1,7 +1,7 @@
 version: "3"
 
 vars:
-  BINARY_NAME: lazycfg
+  BINARY_NAME: cfgctl
   BUILD_DIR: dist
   GO_VERSION: 1.24.0
 
@@ -271,7 +271,7 @@ tasks:
     cmds:
       - echo "Building binary..."
       - mkdir -p "{{.BUILD_DIR}}"
-      - go build -o "{{.BUILD_DIR}}/{{.BINARY_NAME}}" ./cmd/lazycfg
+      - go build -o "{{.BUILD_DIR}}/{{.BINARY_NAME}}" ./cmd/cfgctl
       - echo "Built successfully - {{.BUILD_DIR}}/{{.BINARY_NAME}}"
 
   fmt:
@@ -323,7 +323,7 @@ tasks:
     deps: [build]
     cmds:
       - echo "Installing binary..."
-      - go install ./cmd/lazycfg
+      - go install ./cmd/cfgctl
       - echo "Installed successfully!"
 
   dev:
@@ -354,7 +354,7 @@ tasks:
         echo "Examples:"
         echo "  task iterate                                    # Run with defaults"
         echo "  task iterate -- --max-iterations 10             # Limit iterations"
-        echo "  task iterate -- --issue-id lazycfg-abc          # Specific issue"
+        echo "  task iterate -- --issue-id cfgctl-abc          # Specific issue"
         echo "  AI_AGENT='aider --yes' task iterate             # Use aider"
         echo "  OPENCODE_TIMEOUT=3600 task iterate              # 1 hour timeout"
         echo ""

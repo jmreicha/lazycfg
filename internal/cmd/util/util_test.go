@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jmreicha/lazycfg/internal/cmd/util"
+	"github.com/jmreicha/cfgctl/internal/cmd/util"
 )
 
 func TestBackupConfig_NoFile(t *testing.T) {
@@ -50,7 +50,7 @@ func TestBackupConfig_File(t *testing.T) {
 		t.Fatal("expected backup file")
 	}
 
-	backupData, err := os.ReadFile(backupPath) // #nosec G304 -- test file path from temp dir
+	backupData, err := os.ReadFile(backupPath)
 	if err != nil {
 		t.Fatalf("failed to read backup: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestBackupConfig_Directory(t *testing.T) {
 }
 
 func TestGetEnvOrDefault(t *testing.T) {
-	key := "LAZYCFG_ENV_TEST"
+	key := "CFGCTL_ENV_TEST"
 	defaultValue := "default"
 
 	if value := util.GetEnvOrDefault(key, defaultValue); value != defaultValue {

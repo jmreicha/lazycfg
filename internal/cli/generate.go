@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/cfgctl/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -97,13 +97,13 @@ func newGenerateCmd() *cobra.Command {
 If no providers are specified, all registered providers will be executed.
 
 Examples:
-  lazycfg generate aws
-  lazycfg generate kubernetes
-  lazycfg generate ssh --ssh-config-path ~/.ssh
-  lazycfg generate aws ssh
-  lazycfg generate all
-  lazycfg generate --dry-run
-  lazycfg generate --force`,
+  cfgctl generate aws
+  cfgctl generate kubernetes
+  cfgctl generate ssh --ssh-config-path ~/.ssh
+  cfgctl generate aws ssh
+  cfgctl generate all
+  cfgctl generate --dry-run
+  cfgctl generate --force`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			ctx := context.Background()
 

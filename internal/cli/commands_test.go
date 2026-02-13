@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jmreicha/lazycfg/internal/core"
-	"github.com/jmreicha/lazycfg/internal/providers/aws"
-	"github.com/jmreicha/lazycfg/internal/providers/kubernetes"
+	"github.com/jmreicha/cfgctl/internal/core"
+	"github.com/jmreicha/cfgctl/internal/providers/aws"
+	"github.com/jmreicha/cfgctl/internal/providers/kubernetes"
 )
 
 type commandProvider struct {

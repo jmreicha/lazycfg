@@ -1,4 +1,4 @@
-# lazycfg
+# cfgctl
 
 A command line tool to simplify the creation and management of complicated configurations.
 
@@ -15,7 +15,7 @@ This setup process can be time-consuming and error-prone. Additionally, you may
 not understand (or care about) security implications or know about advanced
 configuration which you may want but don't know exist.
 
-`lazycfg` aims to simplify all of this setup by providing a simple command line
+`cfgctl` aims to simplify all of this setup by providing a simple command line
 interface to handle this for you so you can focus on more important things.
 
 ## Getting Started
@@ -39,8 +39,8 @@ This project requires the following tools:
 1. Clone the repository:
 
 ```bash
-git clone git@github.com:jmreicha/lazycfg.git
-cd lazycfg
+git clone git@github.com:jmreicha/cfgctl.git
+cd cfgctl
 ```
 
 2. Bootstrap the development environment:
@@ -63,35 +63,35 @@ AWS provider example:
 
 ```bash
 # Generate AWS config with SSO (auto-triggers login if needed)
-lazycfg generate aws --aws-sso-region us-west-2 --aws-sso-url https://<id>.awsapps.com/start
+cfgctl generate aws --aws-sso-region us-west-2 --aws-sso-url https://<id>.awsapps.com/start
 
 # Overwrite existing config
-lazycfg generate aws --aws-sso-region us-west-2 --aws-sso-url https://<id>.awsapps.com/start --force
+cfgctl generate aws --aws-sso-region us-west-2 --aws-sso-url https://<id>.awsapps.com/start --force
 
 # Filter to specific roles
-lazycfg generate aws --aws-sso-region us-west-2 --aws-sso-url https://<id>.awsapps.com/start --aws-roles Admin,ReadOnly
+cfgctl generate aws --aws-sso-region us-west-2 --aws-sso-url https://<id>.awsapps.com/start --aws-roles Admin,ReadOnly
 
 # Preview changes without writing
-lazycfg generate aws --dry-run
+cfgctl generate aws --dry-run
 ```
 
 SSH provider example:
 
 ```bash
 # List available providers
-lazycfg list
+cfgctl list
 
 # Preview SSH changes
-lazycfg generate ssh --dry-run
+cfgctl generate ssh --dry-run
 
 # Generate SSH config
-lazycfg generate ssh
+cfgctl generate ssh
 
 # Overwrite existing config
-lazycfg generate ssh --force
+cfgctl generate ssh --force
 
 # Validate config
-lazycfg validate
+cfgctl validate
 ```
 
 ### Working with Beads

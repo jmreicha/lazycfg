@@ -1,13 +1,13 @@
 version: 2
 
 # Project metadata
-project_name: lazycfg
+project_name: cfgctl
 
 # Build configuration
 builds:
-  - id: lazycfg
-    main: ./cmd/lazycfg
-    binary: lazycfg
+  - id: cfgctl
+    main: ./cmd/cfgctl
+    binary: cfgctl
     env:
       - CGO_ENABLED=0
     goos:
@@ -90,7 +90,7 @@ changelog:
 release:
   github:
     owner: jmreicha
-    name: lazycfg
+    name: cfgctl
   draft: false
   prerelease: auto
   mode: append
@@ -98,4 +98,4 @@ release:
   header: |
     ## Release {{.Version}}
 
-    **Full Changelog**: https://github.com/jmreicha/lazycfg/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/jmreicha/cfgctl/compare/{{ .PreviousTag }}...{{ .Tag }}

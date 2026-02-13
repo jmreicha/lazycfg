@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/cfgctl/internal/core"
 )
 
 func TestProvider_Name(t *testing.T) {
@@ -224,7 +224,7 @@ func TestProvider_GenerateIntegration(t *testing.T) {
 		t.Errorf("file permissions = %o, want 0600", info.Mode().Perm())
 	}
 
-	content, err := os.ReadFile(configPath) //nolint:gosec // test file path from t.TempDir
+	content, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("failed to read config file: %v", err)
 	}
@@ -314,7 +314,7 @@ func TestProvider_GenerateWithExistingConfig(t *testing.T) {
 		t.Error("expected file to be skipped without force")
 	}
 
-	content, _ := os.ReadFile(configPath) //nolint:gosec // test file path from t.TempDir
+	content, _ := os.ReadFile(configPath)
 	if string(content) != existingContent {
 		t.Error("existing config was modified without force")
 	}
@@ -330,7 +330,7 @@ func TestProvider_GenerateWithExistingConfig(t *testing.T) {
 		t.Error("expected file to be created with force")
 	}
 
-	content, _ = os.ReadFile(configPath) //nolint:gosec // test file path from t.TempDir
+	content, _ = os.ReadFile(configPath)
 	if !strings.Contains(string(content), `DefaultBrowser = "STDOUT"`) {
 		t.Error("config was not overwritten with force")
 	}
@@ -502,7 +502,7 @@ func TestProvider_GenerateWithOptsConfig(t *testing.T) {
 		t.Fatalf("generation failed: %v", err)
 	}
 
-	content, _ := os.ReadFile(configPath) //nolint:gosec // test file path from t.TempDir
+	content, _ := os.ReadFile(configPath)
 	if !strings.Contains(string(content), `DefaultBrowser = "FIREFOX"`) {
 		t.Error("opts.Config was not used")
 	}
