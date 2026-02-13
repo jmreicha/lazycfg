@@ -36,13 +36,6 @@ This project requires the following tools:
 
 ### Installation
 
-#### Homebrew
-
-```bash
-brew tap jmreicha/homebrew-tap
-brew install cfgctl
-```
-
 1. Clone the repository:
 
 ```bash

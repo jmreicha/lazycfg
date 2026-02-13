@@ -39,17 +39,6 @@
       "datasourceTemplate": "github-releases"
     }
   ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "fileMatch": ["^Formula/.*\\.rb$"],
-      "matchStrings": [
-        "url \\\"https://github\\.com/jmreicha/cfgctl/archive/refs/tags/v(?<currentValue>[^\\\"]+)\\.tar\\.gz\\\""
-      ],
-      "depNameTemplate": "jmreicha/cfgctl",
-      "datasourceTemplate": "github-releases"
-    }
-  ],
   "pre-commit": {
     "enabled": true
   },
