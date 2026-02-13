@@ -43,6 +43,23 @@ sboms:
   - id: archive
     artifacts: archive
 
+# Homebrew tap configuration
+brews:
+  - name: cfgctl
+    ids:
+      - cfgctl
+    repository:
+      owner: jmreicha
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/jmreicha/cfgctl"
+    description: "CLI for managing complex configuration setup"
+    install: |
+      bin.install "cfgctl"
+    test: |
+      system "#{bin}/cfgctl", "version"
+
 # Docker configuration
 dockers_v2:
   - id: default

@@ -22,6 +22,7 @@
 - Use core-level tool discovery with common PATH fallbacks and skip providers with missing tools.
 - Gate backups with a provider-level check so we only create backups when generation will write.
 - For full renames, update module path, CLI binary, config paths, release metadata, and docs together.
+- GoReleaser already installed in release workflow; use brew tap config in .goreleaser.yaml.
 
 ## Patterns That Don't Work
 
