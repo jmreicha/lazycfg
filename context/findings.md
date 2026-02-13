@@ -19,6 +19,7 @@
 ## Patterns That Work
 
 - Use core-level tool discovery with common PATH fallbacks and skip providers with missing tools.
+- Gate backups with a provider-level check so we only create backups when generation will write.
 
 ## Patterns That Don't Work
 

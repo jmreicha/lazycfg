@@ -36,6 +36,11 @@ type Provider interface {
 	Clean(ctx context.Context) error
 }
 
+// BackupDecider allows providers to determine whether a backup is needed.
+type BackupDecider interface {
+	NeedsBackup(opts *GenerateOptions) (bool, error)
+}
+
 // GenerateOptions contains options that can be passed to Generate.
 type GenerateOptions struct {
 	// DryRun indicates whether to simulate generation without making changes.

@@ -233,6 +233,27 @@ func (p *Provider) Backup(_ context.Context) (string, error) {
 	return core.BackupFile(configFile)
 }
 
+// NeedsBackup reports whether a backup should be created before generation.
+func (p *Provider) NeedsBackup(opts *core.GenerateOptions) (bool, error) {
+	if p.config == nil {
+		return false, nil
+	}
+	if opts != nil && opts.Config != nil {
+		cfg, ok := opts.Config.(*Config)
+		if !ok {
+			return false, errors.New("ssh config has unexpected type")
+		}
+		p.config = cfg
+	}
+	if opts != nil && (opts.DryRun || !opts.Force) {
+		configFile := filepath.Join(p.config.ConfigPath, "config")
+		if _, err := os.Stat(configFile); err == nil {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // Restore recovers configuration from a backup.
 // The backupPath should be a path returned by Backup().
 func (p *Provider) Restore(_ context.Context, backupPath string) error {
