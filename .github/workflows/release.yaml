@@ -41,7 +41,7 @@ jobs:
           go-version-file: .go-version
 
       - name: Install GoReleaser
-        run: go install github.com/goreleaser/goreleaser@v2
+        run: go install github.com/goreleaser/goreleaser/v2@latest
 
       - name: Install semantic-release
         run: |
