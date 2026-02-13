@@ -553,6 +553,44 @@ func TestProvider_Backup(t *testing.T) {
 	}
 }
 
+func TestProviderNeedsBackup(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config")
+	provider := NewProvider(&Config{ConfigPath: configPath, Enabled: true})
+
+	if needsBackup, err := provider.NeedsBackup(&core.GenerateOptions{DryRun: true}); err != nil {
+		t.Fatalf("NeedsBackup error: %v", err)
+	} else if needsBackup {
+		t.Fatal("expected NeedsBackup to be false for dry-run")
+	}
+
+	if err := os.WriteFile(configPath, []byte("data"), 0600); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	if needsBackup, err := provider.NeedsBackup(&core.GenerateOptions{Force: false}); err != nil {
+		t.Fatalf("NeedsBackup error: %v", err)
+	} else if needsBackup {
+		t.Fatal("expected NeedsBackup to be false when config exists without force")
+	}
+
+	if needsBackup, err := provider.NeedsBackup(&core.GenerateOptions{Force: true}); err != nil {
+		t.Fatalf("NeedsBackup error: %v", err)
+	} else if !needsBackup {
+		t.Fatal("expected NeedsBackup to be true when forcing overwrite")
+	}
+}
+
+func TestProviderNeedsBackupDisabled(t *testing.T) {
+	provider := NewProvider(&Config{ConfigPath: "/tmp/config", Enabled: false})
+
+	if needsBackup, err := provider.NeedsBackup(&core.GenerateOptions{Force: true}); err != nil {
+		t.Fatalf("NeedsBackup error: %v", err)
+	} else if needsBackup {
+		t.Fatal("expected NeedsBackup to be false when provider is disabled")
+	}
+}
+
 func TestProvider_Restore(t *testing.T) {
 	provider := NewProvider(&Config{
 		ConfigPath: "/home/user/.granted/config",

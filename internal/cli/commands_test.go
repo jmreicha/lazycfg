@@ -10,6 +10,7 @@ import (
 
 	"github.com/jmreicha/lazycfg/internal/core"
 	"github.com/jmreicha/lazycfg/internal/providers/aws"
+	"github.com/jmreicha/lazycfg/internal/providers/kubernetes"
 )
 
 type commandProvider struct {
@@ -65,6 +66,7 @@ func setupCommandEngine(t *testing.T, providers ...core.Provider) {
 func TestInitializeComponents(t *testing.T) {
 	cfgFile = ""
 	dryRun = false
+	debug = false
 	noBackup = false
 	sshConfigPath = ""
 	verbose = false
@@ -83,6 +85,79 @@ func TestInitializeComponents(t *testing.T) {
 	}
 	if providers[0] != "aws" || providers[1] != "granted" || providers[2] != "kubernetes" || providers[3] != "ssh" {
 		t.Fatalf("expected aws, granted, kubernetes, and ssh providers, got %v", providers)
+	}
+}
+
+func TestNewRootCmdFlags(t *testing.T) {
+	cmd := NewRootCmd("1.0.0")
+	flags := cmd.PersistentFlags()
+
+	for _, name := range []string{"config", "debug", "dry-run", "no-backup", "ssh-config-path", "verbose"} {
+		if flags.Lookup(name) == nil {
+			t.Fatalf("expected %s flag", name)
+		}
+	}
+}
+
+func TestApplyKubernetesCLIOverrides(t *testing.T) {
+	prevKubeDemo := kubeDemo
+	prevKubeMerge := kubeMerge
+	prevKubeMergeOnly := kubeMergeOnly
+	prevKubeProfiles := kubeProfiles
+	prevKubeRegions := kubeRegions
+	defer func() {
+		kubeDemo = prevKubeDemo
+		kubeMerge = prevKubeMerge
+		kubeMergeOnly = prevKubeMergeOnly
+		kubeProfiles = prevKubeProfiles
+		kubeRegions = prevKubeRegions
+	}()
+
+	kubeDemo = true
+	kubeMerge = true
+	kubeMergeOnly = false
+	kubeProfiles = "prod,dev"
+	kubeRegions = "us-west-2,us-east-1"
+
+	cfg := kubernetes.DefaultConfig()
+	applyKubernetesCLIOverrides(cfg)
+
+	if !cfg.Demo {
+		t.Fatal("expected demo to be enabled")
+	}
+	if !cfg.MergeEnabled {
+		t.Fatal("expected merge to be enabled")
+	}
+	if cfg.MergeOnly {
+		t.Fatal("expected merge-only to be false")
+	}
+	if !reflect.DeepEqual(cfg.AWS.Profiles, []string{"dev", "prod"}) {
+		t.Fatalf("profiles = %v", cfg.AWS.Profiles)
+	}
+	if !reflect.DeepEqual(cfg.AWS.Regions, []string{"us-east-1", "us-west-2"}) {
+		t.Fatalf("regions = %v", cfg.AWS.Regions)
+	}
+}
+
+func TestApplyKubernetesCLIOverridesMergeOnly(t *testing.T) {
+	prevKubeMerge := kubeMerge
+	prevKubeMergeOnly := kubeMergeOnly
+	defer func() {
+		kubeMerge = prevKubeMerge
+		kubeMergeOnly = prevKubeMergeOnly
+	}()
+
+	kubeMerge = false
+	kubeMergeOnly = true
+
+	cfg := kubernetes.DefaultConfig()
+	applyKubernetesCLIOverrides(cfg)
+
+	if !cfg.MergeOnly {
+		t.Fatal("expected merge-only to be true")
+	}
+	if !cfg.MergeEnabled {
+		t.Fatal("expected merge to be enabled")
 	}
 }
 

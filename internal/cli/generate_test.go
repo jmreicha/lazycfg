@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/jmreicha/lazycfg/internal/core"
@@ -142,5 +143,44 @@ func TestGenerateCmdAllKeyword(t *testing.T) {
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("command execution with 'all' failed: %v", err)
+	}
+}
+
+func TestPrintGenerateResults(t *testing.T) {
+	results := map[string]*core.Result{
+		"test": {
+			Provider:     "test",
+			FilesCreated: []string{filepath.Join("/tmp", "created")},
+			FilesSkipped: []string{filepath.Join("/tmp", "skipped")},
+			BackupPath:   filepath.Join("/tmp", "backup"),
+			Warnings:     []string{"warning"},
+		},
+	}
+
+	prevStdout := os.Stdout
+	tmpFile, err := os.CreateTemp("", "lazycfg-output")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	t.Cleanup(func() {
+		os.Stdout = prevStdout
+		if err := tmpFile.Close(); err != nil {
+			t.Fatalf("failed to close temp file: %v", err)
+		}
+		if err := os.Remove(tmpFile.Name()); err != nil {
+			t.Fatalf("failed to remove temp file: %v", err)
+		}
+	})
+
+	os.Stdout = tmpFile
+	printGenerateResults(results)
+}
+
+func TestColorize(t *testing.T) {
+	if got := colorize(false, "value", "1"); got != "value" {
+		t.Fatalf("expected uncolored output, got %q", got)
+	}
+	if got := colorize(true, "value", "1"); got == "value" {
+		t.Fatal("expected colored output")
 	}
 }
