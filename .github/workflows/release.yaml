@@ -45,6 +45,9 @@ jobs:
         with:
           install-only: true
 
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@28d71544de8eaf1b958d335707167c5f783590ad # v0
+
       - name: Install semantic-release
         run: |
           npm install -g semantic-release @semantic-release/changelog @semantic-release/commit-analyzer @semantic-release/exec @semantic-release/git @semantic-release/release-notes-generator
