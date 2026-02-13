@@ -34,6 +34,23 @@ func NewBackupManager(backupDir string) *BackupManager {
 	}
 }
 
+// BackupFile creates a timestamped copy of the file at srcPath.
+// Returns the backup path, or empty string if the source does not exist.
+func BackupFile(srcPath string) (string, error) {
+	if _, err := os.Stat(srcPath); os.IsNotExist(err) {
+		return "", nil
+	}
+
+	timestamp := time.Now().Format("20060102-150405")
+	backupPath := fmt.Sprintf("%s.%s.bak", srcPath, timestamp)
+
+	if err := copyFile(srcPath, backupPath); err != nil {
+		return "", fmt.Errorf("backup %q: %w", srcPath, err)
+	}
+
+	return backupPath, nil
+}
+
 // BackupMetadata contains information about a backup.
 type BackupMetadata struct {
 	Provider      string    `json:"provider"`

@@ -225,14 +225,12 @@ func (p *Provider) Generate(_ context.Context, opts *core.GenerateOptions) (*cor
 }
 
 // Backup creates a backup of existing configuration files.
-// Returns the path to the backup location.
 func (p *Provider) Backup(_ context.Context) (string, error) {
-	// TODO: Implement backup logic
-	// - Create backup of existing SSH configuration files
-	// - Return backup path
-	// - Return empty string if no backup is needed
-
-	return "", nil
+	if p.config == nil {
+		return "", nil
+	}
+	configFile := filepath.Join(p.config.ConfigPath, "config")
+	return core.BackupFile(configFile)
 }
 
 // Restore recovers configuration from a backup.

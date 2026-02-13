@@ -59,6 +59,22 @@ This will:
 
 ### Usage
 
+AWS provider example:
+
+```bash
+# Generate AWS config with SSO (auto-triggers login if needed)
+lazycfg generate aws --aws-sso-region us-west-2 --aws-sso-url https://<id>.awsapps.com/start
+
+# Overwrite existing config
+lazycfg generate aws --aws-sso-region us-west-2 --aws-sso-url https://<id>.awsapps.com/start --force
+
+# Filter to specific roles
+lazycfg generate aws --aws-sso-region us-west-2 --aws-sso-url https://<id>.awsapps.com/start --aws-roles Admin,ReadOnly
+
+# Preview changes without writing
+lazycfg generate aws --dry-run
+```
+
 SSH provider example:
 
 ```bash

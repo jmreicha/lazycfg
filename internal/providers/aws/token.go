@@ -18,12 +18,30 @@ var errNoValidToken = errors.New("no valid sso token found")
 
 // LoadNewestToken finds the newest valid SSO token across cache paths.
 func LoadNewestToken(cachePaths []string, now time.Time) (SSOToken, error) {
+	return LoadMatchingToken(cachePaths, "", "", now)
+}
+
+// LoadMatchingToken finds the newest valid SSO token that matches the given
+// start URL and region. If startURL and region are empty, any valid token is
+// accepted.
+func LoadMatchingToken(cachePaths []string, startURL, region string, now time.Time) (SSOToken, error) {
 	tokens, err := loadTokens(cachePaths)
 	if err != nil {
 		return SSOToken{}, err
 	}
 
 	valid := filterValidTokens(tokens, now)
+
+	if startURL != "" || region != "" {
+		matching := make([]SSOToken, 0, len(valid))
+		for _, t := range valid {
+			if t.MatchesSession(startURL, region) {
+				matching = append(matching, t)
+			}
+		}
+		valid = matching
+	}
+
 	if len(valid) == 0 {
 		return SSOToken{}, errNoValidToken
 	}
@@ -78,7 +96,7 @@ func loadTokensFromPath(path string) ([]SSOToken, error) {
 		}
 		token, err := readToken(filepath.Join(path, entry.Name()))
 		if err != nil {
-			return nil, err
+			continue
 		}
 		tokens = append(tokens, token)
 	}
@@ -146,9 +164,12 @@ func (t tokenFile) toToken() (SSOToken, error) {
 	if err != nil {
 		return SSOToken{}, fmt.Errorf("parse expiresAt: %w", err)
 	}
-	issuedAt, err := time.Parse(tokenExpiryLayout, t.IssuedAt)
-	if err != nil {
-		return SSOToken{}, fmt.Errorf("parse issuedAt: %w", err)
+	var issuedAt time.Time
+	if strings.TrimSpace(t.IssuedAt) != "" {
+		issuedAt, err = time.Parse(tokenExpiryLayout, t.IssuedAt)
+		if err != nil {
+			return SSOToken{}, fmt.Errorf("parse issuedAt: %w", err)
+		}
 	}
 
 	return SSOToken{

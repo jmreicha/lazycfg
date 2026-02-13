@@ -23,7 +23,7 @@ sso_role_name = Admin
 sso_session = lazycfg
 sso_account_id = 222222222222
 sso_role_name = ReadOnly
-automatically_generated = true
+sso_auto_populated = true
 `
 
 	if err := os.WriteFile(configPath, []byte(initial), 0600); err != nil {
@@ -39,10 +39,10 @@ sso_registration_scopes = sso:account:access
 sso_session = lazycfg
 sso_account_id = 333333333333
 sso_role_name = Admin
-automatically_generated = true
+sso_auto_populated = true
 `
 
-	merged, err := mergeConfigContent(configPath, generated, []string{"fresh-marked"}, "automatically_generated", "lazycfg")
+	merged, err := mergeConfigContent(configPath, generated, []string{"fresh-marked"}, "sso_auto_populated", "lazycfg")
 	if err != nil {
 		t.Fatalf("merge config content: %v", err)
 	}
@@ -61,7 +61,7 @@ sso_registration_scopes = sso:account:access
 sso_session = lazycfg
 sso_account_id = 333333333333
 sso_role_name = Admin
-automatically_generated = true`
+sso_auto_populated = true`
 
 	if merged != expected {
 		t.Fatalf("merged content = %q", merged)

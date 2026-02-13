@@ -38,6 +38,8 @@ var (
 	awsPrefix            string
 	awsPrune             bool
 	awsRoleFilters       string
+	awsSSOStartURL       string
+	awsSSORegion         string
 	awsTemplate          string
 
 	// Shared components.
@@ -246,6 +248,14 @@ func applyAWSCLIOverrides(cfg *aws.Config) {
 
 	if roles := parseCSVFlag(awsRoleFilters); len(roles) > 0 {
 		cfg.Roles = roles
+	}
+
+	if strings.TrimSpace(awsSSOStartURL) != "" {
+		cfg.SSO.StartURL = strings.TrimSpace(awsSSOStartURL)
+	}
+
+	if strings.TrimSpace(awsSSORegion) != "" {
+		cfg.SSO.Region = strings.TrimSpace(awsSSORegion)
 	}
 }
 

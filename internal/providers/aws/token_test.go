@@ -80,6 +80,49 @@ func TestLoadNewestTokenInvalidTokenFile(t *testing.T) {
 	}
 }
 
+func TestLoadNewestTokenMissingIssuedAt(t *testing.T) {
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	cache := t.TempDir()
+	token := `{"accessToken":"valid","expiresAt":"2026-01-01T14:00:00Z","region":"` + tokenTestRegion + `","startUrl":"https://example.awsapps.com/start"}`
+	if err := os.WriteFile(filepath.Join(cache, "token.json"), []byte(token), 0600); err != nil {
+		t.Fatalf("write token: %v", err)
+	}
+
+	selected, err := LoadNewestToken([]string{cache}, now)
+	if err != nil {
+		t.Fatalf("LoadNewestToken failed: %v", err)
+	}
+	if selected.AccessToken != "valid" {
+		t.Fatalf("selected token = %q, want %q", selected.AccessToken, "valid")
+	}
+	if !selected.IssuedAt.IsZero() {
+		t.Fatalf("expected zero IssuedAt, got %v", selected.IssuedAt)
+	}
+}
+
+func TestLoadMatchingTokenFiltersSession(t *testing.T) {
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	cache := t.TempDir()
+	other := `{"accessToken":"other","expiresAt":"2026-01-01T15:00:00Z","issuedAt":"2026-01-01T10:00:00Z","region":"eu-west-1","startUrl":"https://other.awsapps.com/start"}`
+	matching := `{"accessToken":"match","expiresAt":"2026-01-01T14:00:00Z","issuedAt":"2026-01-01T10:00:00Z","region":"` + tokenTestRegion + `","startUrl":"https://example.awsapps.com/start"}`
+	if err := os.WriteFile(filepath.Join(cache, "other.json"), []byte(other), 0600); err != nil {
+		t.Fatalf("write other token: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cache, "match.json"), []byte(matching), 0600); err != nil {
+		t.Fatalf("write matching token: %v", err)
+	}
+
+	selected, err := LoadMatchingToken([]string{cache}, "https://example.awsapps.com/start", tokenTestRegion, now)
+	if err != nil {
+		t.Fatalf("LoadMatchingToken failed: %v", err)
+	}
+	if selected.AccessToken != "match" {
+		t.Fatalf("selected token = %q, want %q", selected.AccessToken, "match")
+	}
+}
+
 func TestLoadTokensFromMissingPath(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "missing")
 

@@ -19,7 +19,7 @@ func init() {
 }
 
 const (
-	defaultMarkerKey       = "automatically_generated"
+	defaultMarkerKey       = "sso_auto_populated"
 	defaultProfileTemplate = "{{ .AccountName }}/{{ .RoleName }}"
 	defaultDemoRegion      = "us-east-1"
 	defaultDemoStartURL    = "https://example.awsapps.com/start"
