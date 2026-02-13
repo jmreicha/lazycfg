@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -186,5 +187,42 @@ func TestBackupManager_Clean(t *testing.T) {
 
 	if len(backups) != 2 {
 		t.Errorf("expected 2 backups after clean, got %d", len(backups))
+	}
+}
+
+func TestBackupFile_NoFile(t *testing.T) {
+	backup, err := BackupFile(filepath.Join(t.TempDir(), "missing"))
+	if err != nil {
+		t.Fatalf("BackupFile failed: %v", err)
+	}
+	if backup != "" {
+		t.Fatalf("expected empty backup path, got %q", backup)
+	}
+}
+
+func TestBackupFile_CreatesCopy(t *testing.T) {
+	tmpDir := t.TempDir()
+	srcPath := filepath.Join(tmpDir, "config")
+	content := []byte("config data")
+
+	if err := os.WriteFile(srcPath, content, 0o600); err != nil {
+		t.Fatalf("write file: %v", err)
+	}
+
+	backup, err := BackupFile(srcPath)
+	if err != nil {
+		t.Fatalf("BackupFile failed: %v", err)
+	}
+	if !strings.HasPrefix(backup, srcPath+".") || !strings.HasSuffix(backup, ".bak") {
+		t.Fatalf("backup = %q, expected timestamped .bak file", backup)
+	}
+
+	// #nosec G304 -- backup path is generated under test temp dir
+	data, err := os.ReadFile(backup)
+	if err != nil {
+		t.Fatalf("read backup: %v", err)
+	}
+	if string(data) != string(content) {
+		t.Fatalf("backup content = %q", string(data))
 	}
 }

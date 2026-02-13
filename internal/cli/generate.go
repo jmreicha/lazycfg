@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/jmreicha/lazycfg/internal/core"
 	"github.com/spf13/cobra"
@@ -10,34 +11,80 @@ import (
 
 // printGenerateResults outputs the results of generation to stdout.
 func printGenerateResults(results map[string]*core.Result) {
+	colorEnabled := supportsColor()
 	for providerName, result := range results {
-		fmt.Printf("\n%s:\n", providerName)
+		fmt.Printf("\n%s:\n", formatSection(colorEnabled, providerName))
 
 		if len(result.FilesCreated) > 0 {
-			fmt.Println("  Files created:")
+			fmt.Println(formatLabel(colorEnabled, "  Files created:"))
 			for _, file := range result.FilesCreated {
-				fmt.Printf("    - %s\n", file)
+				fmt.Printf("    - %s\n", formatPath(colorEnabled, file))
 			}
 		}
 
 		if len(result.FilesSkipped) > 0 {
-			fmt.Println("  Files skipped:")
+			fmt.Println(formatLabel(colorEnabled, "  Files skipped:"))
 			for _, file := range result.FilesSkipped {
-				fmt.Printf("    - %s\n", file)
+				fmt.Printf("    - %s\n", formatPath(colorEnabled, file))
 			}
 		}
 
 		if result.BackupPath != "" {
-			fmt.Printf("  Backup: %s\n", result.BackupPath)
+			fmt.Printf("%s %s\n", formatLabel(colorEnabled, "  Backup:"), formatPath(colorEnabled, result.BackupPath))
 		}
 
 		if len(result.Warnings) > 0 {
-			fmt.Println("  Warnings:")
+			fmt.Println(formatLabel(colorEnabled, "  Warnings:"))
 			for _, warning := range result.Warnings {
-				fmt.Printf("    - %s\n", warning)
+				fmt.Printf("    - %s\n", formatWarning(colorEnabled, warning))
 			}
 		}
 	}
+}
+
+func formatLabel(colorEnabled bool, value string) string {
+	return colorize(colorEnabled, value, "1")
+}
+
+func formatPath(colorEnabled bool, value string) string {
+	return colorize(colorEnabled, value, "36")
+}
+
+func formatSection(colorEnabled bool, value string) string {
+	return colorize(colorEnabled, value, "1;36")
+}
+
+func formatWarning(colorEnabled bool, value string) string {
+	return colorize(colorEnabled, value, "33")
+}
+
+func colorize(colorEnabled bool, value, code string) string {
+	if !colorEnabled {
+		return value
+	}
+	return fmt.Sprintf("\x1b[%sm%s\x1b[0m", code, value)
+}
+
+func supportsColor() bool {
+	if !isTerminal(os.Stdout) {
+		return false
+	}
+	if noColor := os.Getenv("NO_COLOR"); noColor != "" {
+		return false
+	}
+	term := os.Getenv("TERM")
+	if term == "" || term == "dumb" {
+		return false
+	}
+	return true
+}
+
+func isTerminal(file *os.File) bool {
+	info, err := file.Stat()
+	if err != nil {
+		return false
+	}
+	return (info.Mode() & os.ModeCharDevice) != 0
 }
 
 func newGenerateCmd() *cobra.Command {

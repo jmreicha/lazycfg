@@ -10,6 +10,7 @@ import (
 type engineTestProvider struct {
 	backupErr   error
 	backupPath  string
+	backupCheck func(*GenerateOptions) (bool, error)
 	cleanErr    error
 	generateErr error
 	name        string
@@ -19,6 +20,7 @@ type engineTestProvider struct {
 	cleanCalled    bool
 	generateCalled bool
 	validateCalled bool
+	backupCalled   bool
 }
 
 func (p *engineTestProvider) Name() string {
@@ -42,6 +44,7 @@ func (p *engineTestProvider) Generate(_ context.Context, _ *GenerateOptions) (*R
 }
 
 func (p *engineTestProvider) Backup(_ context.Context) (string, error) {
+	p.backupCalled = true
 	return p.backupPath, p.backupErr
 }
 
@@ -52,6 +55,13 @@ func (p *engineTestProvider) Restore(_ context.Context, _ string) error {
 func (p *engineTestProvider) Clean(_ context.Context) error {
 	p.cleanCalled = true
 	return p.cleanErr
+}
+
+func (p *engineTestProvider) NeedsBackup(opts *GenerateOptions) (bool, error) {
+	if p.backupCheck == nil {
+		return true, nil
+	}
+	return p.backupCheck(opts)
 }
 
 type testEnabledConfig struct {
@@ -249,6 +259,56 @@ func TestEngineExecute_ValidateError(t *testing.T) {
 	}
 	if !provider.validateCalled {
 		t.Error("expected validate to be called")
+	}
+}
+
+func TestEngineExecute_BackupDeciderSkipsBackup(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	provider := &engineTestProvider{
+		name: "aws",
+		backupCheck: func(_ *GenerateOptions) (bool, error) {
+			return false, nil
+		},
+	}
+	if err := registry.Register(provider); err != nil {
+		t.Fatalf("failed to register provider: %v", err)
+	}
+
+	_, err := engine.Execute(context.Background(), &ExecuteOptions{Providers: []string{"aws"}})
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+	if provider.backupCalled {
+		t.Fatal("expected backup to be skipped")
+	}
+}
+
+func TestEngineExecute_BackupDeciderError(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, newTestLogger())
+
+	provider := &engineTestProvider{
+		name: "aws",
+		backupCheck: func(_ *GenerateOptions) (bool, error) {
+			return false, ErrInvalidProviderName
+		},
+	}
+	if err := registry.Register(provider); err != nil {
+		t.Fatalf("failed to register provider: %v", err)
+	}
+
+	_, err := engine.Execute(context.Background(), &ExecuteOptions{Providers: []string{"aws"}})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if provider.backupCalled {
+		t.Fatal("expected backup to be skipped")
 	}
 }
 

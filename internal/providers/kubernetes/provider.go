@@ -190,6 +190,32 @@ func (p *Provider) Backup(_ context.Context) (string, error) {
 	return core.BackupFile(p.config.ConfigPath)
 }
 
+// NeedsBackup reports whether a backup should be created before generation.
+func (p *Provider) NeedsBackup(opts *core.GenerateOptions) (bool, error) {
+	if p.config == nil {
+		return false, nil
+	}
+	if opts != nil && opts.Config != nil {
+		cfg, ok := opts.Config.(*Config)
+		if !ok {
+			return false, errors.New("kubernetes config has unexpected type")
+		}
+		p.config = cfg
+	}
+	if opts != nil && opts.DryRun {
+		return false, nil
+	}
+	if !p.config.Enabled {
+		return false, nil
+	}
+	if opts != nil && (opts.DryRun || !opts.Force) {
+		if _, err := os.Stat(p.config.ConfigPath); err == nil {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // Restore recovers configuration from a backup.
 func (p *Provider) Restore(_ context.Context, _ string) error {
 	return errors.New("restore not yet implemented for kubernetes provider")

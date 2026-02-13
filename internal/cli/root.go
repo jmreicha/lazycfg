@@ -22,6 +22,7 @@ var (
 	dryRun        bool
 	noBackup      bool
 	sshConfigPath string
+	debug         bool
 	verbose       bool
 
 	// Kubernetes generate flags.
@@ -70,9 +71,10 @@ func NewRootCmd(version string) *cobra.Command {
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: search in standard locations)")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "simulate actions without making changes")
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enable debug logging")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose provider output")
 	rootCmd.PersistentFlags().BoolVar(&noBackup, "no-backup", false, "skip backup creation before generation")
 	rootCmd.PersistentFlags().StringVar(&sshConfigPath, "ssh-config-path", "", "ssh config directory (default: ~/.ssh)")
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	// Add subcommands
 	rootCmd.AddCommand(newGenerateCmd())
@@ -87,8 +89,8 @@ func NewRootCmd(version string) *cobra.Command {
 // initializeComponents sets up the core components needed by all commands.
 func initializeComponents() error {
 	// Set up logger
-	logLevel := slog.LevelInfo
-	if verbose {
+	logLevel := slog.LevelError
+	if debug {
 		logLevel = slog.LevelDebug
 	}
 	logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{

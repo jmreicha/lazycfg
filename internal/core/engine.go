@@ -101,7 +101,22 @@ func (e *Engine) Execute(ctx context.Context, opts *ExecuteOptions) (map[string]
 
 		// Phase 2: Backup (unless disabled or dry-run)
 		var backupPath string
-		if !opts.NoBackup && !opts.DryRun {
+		shouldBackup := !opts.NoBackup && !opts.DryRun
+		if shouldBackup {
+			if decider, ok := provider.(BackupDecider); ok {
+				backupNeeded, err := decider.NeedsBackup(&GenerateOptions{
+					DryRun:  opts.DryRun,
+					Force:   opts.Force,
+					Verbose: opts.Verbose,
+					Config:  e.config.GetProviderConfig(providerName),
+				})
+				if err != nil {
+					return results, fmt.Errorf("backup check failed for provider %q: %w", providerName, err)
+				}
+				shouldBackup = backupNeeded
+			}
+		}
+		if shouldBackup {
 			backupPath, err = e.backupProvider(ctx, provider)
 			if err != nil {
 				e.logger.Warn("backup failed", "provider", providerName, "error", err)
