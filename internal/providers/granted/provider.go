@@ -139,6 +139,9 @@ func (p *Provider) NeedsBackup(opts *core.GenerateOptions) (bool, error) {
 		}
 		p.config = cfg
 	}
+	if !p.config.Enabled {
+		return false, nil
+	}
 	if opts != nil && (opts.DryRun || !opts.Force) {
 		if _, err := os.Stat(p.config.ConfigPath); err == nil {
 			return false, nil

@@ -11,6 +11,7 @@
 | 2026-02-13 | self   | Wired GoReleaser to `prepareCmd` causing tag mismatch errors.    | Run GoReleaser at publish step after semantic-release creates tags.         |
 | 2026-02-13 | self   | Missed required Syft binary for SBOM generation.                 | Install syft in release workflow when sboms are enabled.                    |
 | 2026-02-13 | self   | Assumed `skip_push` supported in `dockers_v2` config.            | Verify dockers_v2 fields; use `disable` when skipping docker builds.        |
+| 2026-02-13 | self   | Used `python` in shell but only `python3` exists.                | Use `python3` for scripting in this environment.                            |
 
 ## User Preferences
 

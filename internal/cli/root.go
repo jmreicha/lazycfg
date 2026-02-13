@@ -111,9 +111,6 @@ func initializeComponents() error {
 	if verbose {
 		config.Verbose = true
 	}
-	if debug {
-		config.Verbose = true
-	}
 	if dryRun {
 		config.DryRun = true
 	}
