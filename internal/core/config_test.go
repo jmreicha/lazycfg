@@ -118,7 +118,7 @@ func TestLoadConfig_InvalidYAML(t *testing.T) {
 
 func TestFindConfigFile(t *testing.T) {
 	tmpDir := t.TempDir()
-	cfgPath := filepath.Join(tmpDir, "lazycfg.yaml")
+	cfgPath := filepath.Join(tmpDir, "cfgctl.yaml")
 
 	if err := os.WriteFile(cfgPath, []byte("verbose: true\n"), 0o600); err != nil {
 		t.Fatalf("failed to write test config: %v", err)
@@ -148,7 +148,7 @@ func TestFindConfigFile(t *testing.T) {
 		t.Fatal("expected config file to be found")
 	}
 
-	if found == "./lazycfg.yaml" {
+	if found == "./cfgctl.yaml" {
 		return
 	}
 

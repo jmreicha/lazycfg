@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/cfgctl/internal/core"
 )
 
 func TestProviderName(t *testing.T) {

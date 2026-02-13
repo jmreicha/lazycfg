@@ -1,8 +1,8 @@
-# Lazycfg Rewrite Plan
+# Cfgctl Rewrite Plan
 
 ## Executive Summary
 
-Complete rewrite of lazycfg with a plugin-based modular architecture. The goal is to create an extensible configuration management tool that can handle multiple config types (AWS/Granted, Kubernetes, SSH) with a CLI-first interface and optional YAML configuration support.
+Complete rewrite of cfgctl with a plugin-based modular architecture. The goal is to create an extensible configuration management tool that can handle multiple config types (AWS/Granted, Kubernetes, SSH) with a CLI-first interface and optional YAML configuration support.
 
 ## Why Rewrite?
 
@@ -95,9 +95,9 @@ type ProviderConfig interface {
 ### Directory Structure
 
 ```
-lazycfg/
+cfgctl/
 ├── cmd/
-│   └── lazycfg/
+│   └── cfgctl/
 │       └── main.go                 # Entry point
 ├── internal/
 │   ├── cli/
@@ -131,10 +131,10 @@ lazycfg/
 │       ├── template.go             # Template rendering
 │       └── command.go              # Command execution
 ├── pkg/
-│   └── lazycfg/
+│   └── cfgctl/
 │       └── client.go               # Public API (future SDK)
 ├── config/
-│   └── lazycfg.example.yaml        # Example configuration
+│   └── cfgctl.example.yaml        # Example configuration
 └── README.md
 ```
 
@@ -239,25 +239,25 @@ This "simplest-first" approach allows us to validate and refine the core plugin 
 
 ```bash
 # Generate SSH config
-lazycfg generate ssh
+cfgctl generate ssh
 
 # Generate AWS/Granted config
-lazycfg generate aws --sso-start-url https://example.awsapps.com/start
+cfgctl generate aws --sso-start-url https://example.awsapps.com/start
 
 # Generate all configs
-lazycfg generate all --config lazycfg.yaml
+cfgctl generate all --config cfgctl.yaml
 
 # Clean specific provider
-lazycfg clean ssh
+cfgctl clean ssh
 
 # Dry run
-lazycfg generate kubernetes --dry-run
+cfgctl generate kubernetes --dry-run
 ```
 
 ### YAML Configuration (Optional)
 
 ```yaml
-# lazycfg.yaml
+# cfgctl.yaml
 backup: true
 verbose: false
 

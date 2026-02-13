@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jmreicha/lazycfg/internal/core"
-	"github.com/jmreicha/lazycfg/internal/providers/ssh"
+	"github.com/jmreicha/cfgctl/internal/core"
+	"github.com/jmreicha/cfgctl/internal/providers/ssh"
 )
 
-// TestE2E_SSHProvider_GenerateWorkflow tests the complete 'lazycfg generate ssh' workflow.
+// TestE2E_SSHProvider_GenerateWorkflow tests the complete 'cfgctl generate ssh' workflow.
 func TestE2E_SSHProvider_GenerateWorkflow(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "config")

@@ -1,4 +1,4 @@
-// Package cli provides the command-line interface for lazycfg.
+// Package cli provides the command-line interface for cfgctl.
 package cli
 
 import (
@@ -8,11 +8,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jmreicha/lazycfg/internal/core"
-	"github.com/jmreicha/lazycfg/internal/providers/aws"
-	"github.com/jmreicha/lazycfg/internal/providers/granted"
-	"github.com/jmreicha/lazycfg/internal/providers/kubernetes"
-	"github.com/jmreicha/lazycfg/internal/providers/ssh"
+	"github.com/jmreicha/cfgctl/internal/core"
+	"github.com/jmreicha/cfgctl/internal/providers/aws"
+	"github.com/jmreicha/cfgctl/internal/providers/granted"
+	"github.com/jmreicha/cfgctl/internal/providers/kubernetes"
+	"github.com/jmreicha/cfgctl/internal/providers/ssh"
 	"github.com/spf13/cobra"
 )
 
@@ -51,12 +51,12 @@ var (
 	logger        *slog.Logger
 )
 
-// NewRootCmd creates the root command for lazycfg.
+// NewRootCmd creates the root command for cfgctl.
 func NewRootCmd(version string) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:   "lazycfg",
+		Use:   "cfgctl",
 		Short: "A tool for creating and managing configurations",
-		Long: `lazycfg simplifies the creation and management of complicated configurations.
+		Long: `cfgctl simplifies the creation and management of complicated configurations.
 	It provides a plugin-based architecture for managing AWS, Kubernetes, SSH, and other configurations.
 
 	Use --ssh-config-path to override the default SSH config directory.`,

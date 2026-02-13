@@ -14,8 +14,8 @@ func TestEnsureSSOSessionBlockCreatesFile(t *testing.T) {
 
 	cfg := DefaultConfig()
 	cfg.ConfigPath = cfgPath
-	cfg.SSO.StartURL = "https://example.awsapps.com/start"
-	cfg.SSO.Region = "us-east-1"
+	cfg.SSO.StartURL = testStartURL
+	cfg.SSO.Region = testRegion
 
 	if err := ensureSSOSessionBlock(cfg); err != nil {
 		t.Fatalf("ensureSSOSessionBlock failed: %v", err)
@@ -27,13 +27,13 @@ func TestEnsureSSOSessionBlockCreatesFile(t *testing.T) {
 	}
 
 	content := string(data)
-	if !strings.Contains(content, "[sso-session lazycfg]") {
+	if !strings.Contains(content, "[sso-session cfgctl]") {
 		t.Fatal("missing sso-session header")
 	}
-	if !strings.Contains(content, "sso_start_url = https://example.awsapps.com/start") {
+	if !strings.Contains(content, "sso_start_url = "+testStartURL) {
 		t.Fatal("missing sso_start_url")
 	}
-	if !strings.Contains(content, "sso_region = us-east-1") {
+	if !strings.Contains(content, "sso_region = "+testRegion) {
 		t.Fatal("missing sso_region")
 	}
 }
@@ -49,8 +49,8 @@ func TestEnsureSSOSessionBlockAppendsToExisting(t *testing.T) {
 
 	cfg := DefaultConfig()
 	cfg.ConfigPath = cfgPath
-	cfg.SSO.StartURL = "https://example.awsapps.com/start"
-	cfg.SSO.Region = "us-east-1"
+	cfg.SSO.StartURL = testStartURL
+	cfg.SSO.Region = testRegion
 
 	if err := ensureSSOSessionBlock(cfg); err != nil {
 		t.Fatalf("ensureSSOSessionBlock failed: %v", err)
@@ -65,7 +65,7 @@ func TestEnsureSSOSessionBlockAppendsToExisting(t *testing.T) {
 	if !strings.Contains(content, "[profile existing]") {
 		t.Fatal("existing content was lost")
 	}
-	if !strings.Contains(content, "[sso-session lazycfg]") {
+	if !strings.Contains(content, "[sso-session cfgctl]") {
 		t.Fatal("missing sso-session header")
 	}
 }
@@ -74,15 +74,15 @@ func TestEnsureSSOSessionBlockSkipsIfPresent(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "config")
 
-	existing := "[sso-session lazycfg]\nsso_start_url = https://example.awsapps.com/start\nsso_region = us-east-1\n"
+	existing := "[sso-session cfgctl]\nsso_start_url = " + testStartURL + "\nsso_region = " + testRegion + "\n"
 	if err := os.WriteFile(cfgPath, []byte(existing), 0600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 
 	cfg := DefaultConfig()
 	cfg.ConfigPath = cfgPath
-	cfg.SSO.StartURL = "https://example.awsapps.com/start"
-	cfg.SSO.Region = "us-east-1"
+	cfg.SSO.StartURL = testStartURL
+	cfg.SSO.Region = testRegion
 
 	if err := ensureSSOSessionBlock(cfg); err != nil {
 		t.Fatalf("ensureSSOSessionBlock failed: %v", err)
@@ -105,8 +105,8 @@ func TestRunSSOLoginMissingBinary(t *testing.T) {
 
 	cfg := DefaultConfig()
 	cfg.ConfigPath = filepath.Join(t.TempDir(), "config")
-	cfg.SSO.StartURL = "https://example.awsapps.com/start"
-	cfg.SSO.Region = "us-east-1"
+	cfg.SSO.StartURL = testStartURL
+	cfg.SSO.Region = testRegion
 
 	err := runSSOLogin(context.Background(), cfg)
 	if err == nil {

@@ -1,6 +1,6 @@
 Goals
 
-When working with a lot of different tools and environments, configuration sprawl quickly becomes a problem. How do you know what you need? How do you keep track of the chaos? Lazycfg aims to a be an all encompassing local configuration tool.
+When working with a lot of different tools and environments, configuration sprawl quickly becomes a problem. How do you know what you need? How do you keep track of the chaos? Cfgctl aims to a be an all encompassing local configuration tool.
 
 - [x] Rewrite in Golang
 - [x] Use native Go libraries when possible instead of reaching out to the OS via process/commands

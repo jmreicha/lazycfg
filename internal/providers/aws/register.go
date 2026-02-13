@@ -1,6 +1,6 @@
 package aws
 
-import "github.com/jmreicha/lazycfg/internal/core"
+import "github.com/jmreicha/cfgctl/internal/core"
 
 //nolint:gochecknoinits // Required for registering provider config factory
 func init() {

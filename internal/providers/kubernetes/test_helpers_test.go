@@ -1,14 +1,17 @@
 package kubernetes
 
 import (
+	"embed"
 	"os"
 	"path/filepath"
 )
 
+//go:embed testdata/*
+var testdataFS embed.FS
+
 func readFixture(name string) ([]byte, error) {
 	path := filepath.Join("testdata", name)
-	// #nosec G304 -- path is limited to testdata fixtures.
-	return os.ReadFile(path)
+	return testdataFS.ReadFile(path)
 }
 
 func writeFixture(path, content string) error {

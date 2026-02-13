@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/cfgctl/internal/core"
 	"gopkg.in/yaml.v3"
 )
 

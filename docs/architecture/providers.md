@@ -1,10 +1,10 @@
 # Provider Architecture
 
-This document describes the provider interface and architecture for lazycfg.
+This document describes the provider interface and architecture for cfgctl.
 
 ## Overview
 
-Lazycfg uses a plugin-based architecture where each configuration type (AWS, Kubernetes, SSH, etc.) is implemented as a provider. Providers are registered with a central registry and orchestrated by the core engine.
+Cfgctl uses a plugin-based architecture where each configuration type (AWS, Kubernetes, SSH, etc.) is implemented as a provider. Providers are registered with a central registry and orchestrated by the core engine.
 
 ## Provider Interface
 
@@ -28,7 +28,7 @@ type Provider interface {
 Returns the unique identifier for the provider. This name is used for:
 
 - Registration in the registry
-- CLI commands (`lazycfg generate <name>`)
+- CLI commands (`cfgctl generate <name>`)
 - Configuration file sections
 - Backup directory organization
 
@@ -115,7 +115,7 @@ func init() {
 
 Providers can define their own configuration structure. Configuration is loaded from:
 
-1. YAML config file (`~/.config/lazycfg/config.yaml`)
+1. YAML config file (`~/.config/cfgctl/config.yaml`)
 2. CLI flags
 3. Defaults
 
@@ -150,13 +150,13 @@ CLI usage:
 
 ```bash
 # Generate Granted config
-lazycfg generate granted
+cfgctl generate granted
 
 # Dry run
-lazycfg generate granted --dry-run
+cfgctl generate granted --dry-run
 
 # Overwrite existing config
-lazycfg generate granted --force
+cfgctl generate granted --force
 ```
 
 ## Kubernetes Provider
@@ -195,23 +195,23 @@ CLI usage:
 
 ```bash
 # Generate kubeconfig for all EKS clusters
-lazycfg generate kubernetes
+cfgctl generate kubernetes
 
 # Generate with specific profiles or regions
-lazycfg generate kubernetes --kube-profiles prod,staging
-lazycfg generate kubernetes --kube-regions us-east-1,us-west-2
+cfgctl generate kubernetes --kube-profiles prod,staging
+cfgctl generate kubernetes --kube-regions us-east-1,us-west-2
 
 # Merge existing configs only
-lazycfg generate kubernetes --kube-merge-only
+cfgctl generate kubernetes --kube-merge-only
 
 # Discover clusters and merge existing configs
-lazycfg generate kubernetes --kube-merge
+cfgctl generate kubernetes --kube-merge
 
 # Dry run
-lazycfg generate kubernetes --dry-run
+cfgctl generate kubernetes --dry-run
 
 # Demo mode with fake data
-lazycfg generate kubernetes --kube-demo
+cfgctl generate kubernetes --kube-demo
 ```
 
 ## AWS Provider
@@ -228,7 +228,7 @@ providers:
     sso:
       start_url: https://example.awsapps.com/start
       region: us-east-1
-      session_name: lazycfg
+      session_name: cfgctl
     profile_template: "{{ .AccountName }}/{{ .RoleName }}"
     profile_prefix: ""
     prune: false
@@ -241,26 +241,26 @@ CLI usage:
 
 ```bash
 # Generate AWS config
-lazycfg generate aws
+cfgctl generate aws
 
 # Filter by role names
-lazycfg generate aws --aws-roles AdminAccess,ReadOnly
+cfgctl generate aws --aws-roles AdminAccess,ReadOnly
 
 # Use credential_process entries
-lazycfg generate aws --aws-credential-process
+cfgctl generate aws --aws-credential-process
 
 # Generate credentials output
-lazycfg generate aws --aws-credentials
+cfgctl generate aws --aws-credentials
 
 # Custom profile template and prefix
-lazycfg generate aws --aws-template "{{ .account }}-{{ .role }}"
-lazycfg generate aws --aws-prefix sso_
+cfgctl generate aws --aws-template "{{ .account }}-{{ .role }}"
+cfgctl generate aws --aws-prefix sso_
 
 # Prune stale profiles
-lazycfg generate aws --aws-prune
+cfgctl generate aws --aws-prune
 
 # Demo mode with fake data
-lazycfg generate aws --aws-demo
+cfgctl generate aws --aws-demo
 ```
 
 ## Error Handling
@@ -290,7 +290,7 @@ package myprovider
 
 import (
     "context"
-    "github.com/jmreicha/lazycfg/internal/core"
+    "github.com/jmreicha/cfgctl/internal/core"
 )
 
 type MyProvider struct {

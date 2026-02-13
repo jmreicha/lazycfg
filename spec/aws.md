@@ -41,13 +41,13 @@ session name comes from `sso.session_name`, and the session scopes default to
 `sso:account:access` unless overridden.
 
 ```ini
-[sso-session lazycfg]
+[sso-session cfgctl]
 sso_start_url = https://example.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
 
 [profile prod-account/AdminAccess]
-sso_session = lazycfg
+sso_session = cfgctl
 sso_account_id = 123456789012
 sso_role_name = AdminAccess
 ```
@@ -58,7 +58,7 @@ Each discovered account/role combination becomes a profile in `~/.aws/config`:
 
 ```ini
 [profile prod-account/AdminAccess]
-sso_session = lazycfg
+sso_session = cfgctl
 sso_account_id = 123456789012
 sso_role_name = AdminAccess
 ```
@@ -124,7 +124,7 @@ providers:
       registration_scopes: sso:account:access
       start_url: https://example.awsapps.com/start
       region: us-east-1
-      session_name: lazycfg # shared SSO session name
+      session_name: cfgctl # shared SSO session name
       registration_scopes: sso:account:access
 
     # Output paths
@@ -176,35 +176,35 @@ Example templates:
 
 ```bash
 # Generate AWS config from SSO
-lazycfg generate aws
+cfgctl generate aws
 
 # Filter to specific roles
-lazycfg generate aws --role AdminAccess
-lazycfg generate aws --role AdminAccess --role PowerUser
+cfgctl generate aws --role AdminAccess
+cfgctl generate aws --role AdminAccess --role PowerUser
 
 # Use credential_process instead of native SSO fields
-lazycfg generate aws --credential-process
+cfgctl generate aws --credential-process
 
 # Custom profile template
-lazycfg generate aws --template "{{ .account }}-{{ .role }}"
+cfgctl generate aws --template "{{ .account }}-{{ .role }}"
 
 # Prefix all generated profiles
-lazycfg generate aws --prefix sso_
+cfgctl generate aws --prefix sso_
 
 # Prune stale profiles
-lazycfg generate aws --prune
+cfgctl generate aws --prune
 
 # Also generate credentials file
-lazycfg generate aws --credentials
+cfgctl generate aws --credentials
 
 # Dry run
-lazycfg generate aws --dry-run
+cfgctl generate aws --dry-run
 
 # Force overwrite (no backup prompt)
-lazycfg generate aws --force
+cfgctl generate aws --force
 
 # Demo mode (fake data, no AWS calls)
-lazycfg generate aws --demo
+cfgctl generate aws --demo
 ```
 
 ## Implementation

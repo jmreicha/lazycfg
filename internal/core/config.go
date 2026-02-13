@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents the global configuration for lazycfg.
+// Config represents the global configuration for cfgctl.
 // It can be loaded from YAML files or set via CLI flags.
 type Config struct {
 	// Global settings
@@ -69,16 +69,16 @@ func LoadConfig(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// FindConfigFile searches for a lazycfg configuration file in standard locations.
+// FindConfigFile searches for a cfgctl configuration file in standard locations.
 // Returns an empty string if no config file is found.
 func FindConfigFile() string {
 	searchPaths := []string{
-		"./lazycfg.yaml",
-		"./lazycfg.yml",
-		filepath.Join(os.Getenv("HOME"), ".config", "lazycfg", "config.yaml"),
-		filepath.Join(os.Getenv("HOME"), ".config", "lazycfg", "config.yml"),
-		filepath.Join(os.Getenv("HOME"), ".lazycfg", "config.yaml"),
-		filepath.Join(os.Getenv("HOME"), ".lazycfg", "config.yml"),
+		"./cfgctl.yaml",
+		"./cfgctl.yml",
+		filepath.Join(os.Getenv("HOME"), ".config", "cfgctl", "config.yaml"),
+		filepath.Join(os.Getenv("HOME"), ".config", "cfgctl", "config.yml"),
+		filepath.Join(os.Getenv("HOME"), ".cfgctl", "config.yaml"),
+		filepath.Join(os.Getenv("HOME"), ".cfgctl", "config.yml"),
 	}
 
 	for _, path := range searchPaths {

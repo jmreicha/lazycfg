@@ -50,23 +50,23 @@ providers:
 
 ```bash
 # Generate kubeconfig for all EKS clusters
-lazycfg generate kubernetes
+cfgctl generate kubernetes
 
 # Generate with specific profiles/regions
-lazycfg generate kubernetes --profiles prod,staging
-lazycfg generate kubernetes --regions us-east-1,us-west-2
+cfgctl generate kubernetes --profiles prod,staging
+cfgctl generate kubernetes --regions us-east-1,us-west-2
 
 # Merge existing configs only (no AWS discovery)
-lazycfg generate kubernetes --merge-only
+cfgctl generate kubernetes --merge-only
 
 # Discover clusters AND merge existing configs
-lazycfg generate kubernetes --merge
+cfgctl generate kubernetes --merge
 
 # Dry run
-lazycfg generate kubernetes --dry-run
+cfgctl generate kubernetes --dry-run
 
 # Demo mode - use fake data, no AWS calls (for testing/development)
-lazycfg generate kubernetes --demo
+cfgctl generate kubernetes --demo
 ```
 
 ## Implementation

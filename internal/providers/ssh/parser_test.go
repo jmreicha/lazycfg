@@ -413,7 +413,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 
 	// Verify comments are preserved
-	content, err := os.ReadFile(tmpFile) // #nosec G304 - tmpFile is test-generated
+	content, err := os.ReadFile(tmpFile)
 	if err != nil {
 		t.Errorf("failed to read file: %v", err)
 	}

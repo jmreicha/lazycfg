@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jmreicha/lazycfg/internal/core"
+	"github.com/jmreicha/cfgctl/internal/core"
 )
 
 // mockProvider is a test implementation of the Provider interface.
@@ -158,7 +158,7 @@ func TestPrintGenerateResults(t *testing.T) {
 	}
 
 	prevStdout := os.Stdout
-	tmpFile, err := os.CreateTemp("", "lazycfg-output")
+	tmpFile, err := os.CreateTemp("", "cfgctl-output")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}

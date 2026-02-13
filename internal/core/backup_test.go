@@ -44,7 +44,6 @@ func TestBackupManager_Backup(t *testing.T) {
 	}
 
 	// Verify backup file exists and has correct content
-	// #nosec G304 -- test file path from test temp directory
 	content, err := os.ReadFile(backupPath)
 	if err != nil {
 		t.Fatalf("failed to read backup file: %v", err)
@@ -100,7 +99,6 @@ func TestBackupManager_Restore(t *testing.T) {
 	}
 
 	// Verify content was restored
-	// #nosec G304 -- test file path from test temp directory
 	content, err := os.ReadFile(testFile)
 	if err != nil {
 		t.Fatalf("failed to read restored file: %v", err)
@@ -217,7 +215,6 @@ func TestBackupFile_CreatesCopy(t *testing.T) {
 		t.Fatalf("backup = %q, expected timestamped .bak file", backup)
 	}
 
-	// #nosec G304 -- backup path is generated under test temp dir
 	data, err := os.ReadFile(backup)
 	if err != nil {
 		t.Fatalf("read backup: %v", err)

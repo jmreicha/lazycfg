@@ -82,6 +82,13 @@ linters:
     - rowserrcheck # Check sql.Rows.Err
     - sqlclosecheck # Check sql resource closing
 
+  exclusions:
+    rules:
+      - path: ".*_test\\.go$"
+        linters:
+          - gosec
+        text: "G304"
+
 formatters:
   enable:
     - gofmt # Standard Go formatter
@@ -96,7 +103,7 @@ linters-settings:
     check-blank: true
 
   goimports:
-    local-prefixes: github.com/jmreicha/lazycfg
+    local-prefixes: github.com/jmreicha/cfgctl
 
   gomodguard:
     blocked:
@@ -199,7 +206,6 @@ issues:
         - gocyclo
         - gocognit
         - errcheck
-        - gosec
         - dupl
         - funlen
     - path: cmd/
