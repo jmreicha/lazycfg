@@ -40,7 +40,7 @@ This project requires the following tools:
 
 ```bash
 brew tap jmreicha/cfgctl
-brew install cfgctl
+brew install --cask cfgctl
 ```
 
 1. Clone the repository:
