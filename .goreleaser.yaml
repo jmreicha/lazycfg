@@ -53,6 +53,7 @@ homebrew_casks:
     directory: Casks
     homepage: "https://github.com/jmreicha/cfgctl"
     description: "CLI for managing complex configuration setup"
+    license: "MIT"
     binaries:
       - cfgctl
     url:
