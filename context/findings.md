@@ -31,3 +31,5 @@
 ## Domain Notes
 
 - Tool discovery for providers is now centralized in `internal/core/engine.go` via `providerMissingTools`.
+- SSH provider uses comment-based markers to distinguish generated vs user content; a generic `BlockPreserver` interface is planned for `internal/core/` to make this reusable across providers (steampipe first, then SSH migration).
+- Provider interface includes `BackupDecider` (`NeedsBackup`) for conditional backups; engine handles backup/rollback orchestration.
