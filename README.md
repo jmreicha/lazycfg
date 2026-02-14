@@ -39,7 +39,7 @@ This project requires the following tools:
 #### Homebrew
 
 ```bash
-brew tap jmreicha/cfgctl
+brew tap jmreicha/cfgctl https://github.com/jmreicha/cfgctl
 brew install --cask cfgctl
 ```
 
