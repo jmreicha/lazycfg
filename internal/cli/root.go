@@ -64,6 +64,11 @@ func NewRootCmd(version string) *cobra.Command {
 		},
 	}
 
+	helpTemplate := strings.ReplaceAll(rootCmd.HelpTemplate(), "Available Commands:", "Commands:")
+	usageTemplate := strings.ReplaceAll(rootCmd.UsageTemplate(), "Available Commands:", "Commands:")
+	rootCmd.SetHelpTemplate(helpTemplate)
+	rootCmd.SetUsageTemplate(usageTemplate)
+
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: search in standard locations)")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "simulate actions without making changes")
