@@ -56,10 +56,6 @@ func NewRootCmd(version string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "cfgctl",
 		Short: "A tool for creating and managing configurations",
-		Long: `cfgctl simplifies the creation and management of complicated configurations.
-	It provides a plugin-based architecture for managing AWS, Kubernetes, SSH, and other configurations.
-
-	Use --ssh-config-path to override the default SSH config directory.`,
 
 		Version:      version,
 		SilenceUsage: true,
