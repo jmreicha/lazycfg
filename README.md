@@ -39,7 +39,7 @@ This project requires the following tools:
 #### Homebrew
 
 ```bash
-brew tap jmreicha/cfgctl https://github.com/jmreicha/cfgctl
+brew tap jmreicha/tap
 brew install --cask cfgctl
 ```
 
@@ -194,5 +194,4 @@ Required secrets:
 
 Optional secrets (only if configured in `.goreleaser.yml`):
 
-- `GORELEASER_KEY` for GoReleaser Pro
-- `TAP_GITHUB_TOKEN` for Homebrew tap publishing
+- `CI_GITHUB_TOKEN` for Homebrew tap publishing
