@@ -14,13 +14,6 @@ permissions:
   contents: read
 
 jobs:
-  preview:
-    name: Release preview
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - run: echo "Release preview"
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
