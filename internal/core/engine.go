@@ -188,14 +188,16 @@ func (e *Engine) CleanProvider(ctx context.Context, providerName string) error {
 
 // resolveProviders determines which providers to execute based on the input list.
 func (e *Engine) resolveProviders(providerNames []string) ([]Provider, error) {
-	if len(providerNames) == 0 {
+	uniqueNames := deduplicateStrings(providerNames)
+
+	if len(uniqueNames) == 0 {
 		// Return all registered providers
 		allProviders := e.registry.GetAll()
 		return reorderProvidersForDependencies(allProviders), nil
 	}
 
-	providers := make([]Provider, 0, len(providerNames))
-	for _, name := range providerNames {
+	providers := make([]Provider, 0, len(uniqueNames))
+	for _, name := range uniqueNames {
 		provider, err := e.registry.Get(name)
 		if err != nil {
 			return nil, err
@@ -204,6 +206,18 @@ func (e *Engine) resolveProviders(providerNames []string) ([]Provider, error) {
 	}
 
 	return reorderProvidersForDependencies(providers), nil
+}
+
+func deduplicateStrings(ss []string) []string {
+	seen := make(map[string]bool)
+	result := make([]string, 0, len(ss))
+	for _, s := range ss {
+		if !seen[s] {
+			seen[s] = true
+			result = append(result, s)
+		}
+	}
+	return result
 }
 
 // reorderProvidersForDependencies ensures AWS provider runs first when present.
