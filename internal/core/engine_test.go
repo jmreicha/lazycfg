@@ -7,6 +7,11 @@ import (
 	"testing"
 )
 
+const (
+	testProviderAWS        = "aws"
+	testProviderKubernetes = "kubernetes"
+)
+
 type engineTestProvider struct {
 	backupErr   error
 	backupPath  string
@@ -399,5 +404,115 @@ func TestEngineCleanProvider_Error(t *testing.T) {
 
 	if err := engine.CleanProvider(context.Background(), "clean"); err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestReorderProvidersForDependencies_AWSFirst(t *testing.T) {
+	providers := []Provider{
+		&engineTestProvider{name: testProviderKubernetes},
+		&engineTestProvider{name: "steampipe"},
+		&engineTestProvider{name: testProviderAWS},
+		&engineTestProvider{name: "ssh"},
+	}
+
+	result := reorderProvidersForDependencies(providers)
+
+	if len(result) != 4 {
+		t.Fatalf("expected 4 providers, got %d", len(result))
+	}
+	if result[0].Name() != testProviderAWS {
+		t.Errorf("expected aws first, got %s", result[0].Name())
+	}
+	if result[1].Name() != testProviderKubernetes {
+		t.Errorf("expected kubernetes second, got %s", result[1].Name())
+	}
+}
+
+func TestReorderProvidersForDependencies_AWSNotPresent(t *testing.T) {
+	providers := []Provider{
+		&engineTestProvider{name: testProviderKubernetes},
+		&engineTestProvider{name: "steampipe"},
+		&engineTestProvider{name: "ssh"},
+	}
+
+	result := reorderProvidersForDependencies(providers)
+
+	if len(result) != 3 {
+		t.Fatalf("expected 3 providers, got %d", len(result))
+	}
+	if result[0].Name() != testProviderKubernetes {
+		t.Errorf("expected kubernetes first, got %s", result[0].Name())
+	}
+}
+
+func TestReorderProvidersForDependencies_OnlyAWS(t *testing.T) {
+	providers := []Provider{
+		&engineTestProvider{name: testProviderAWS},
+	}
+
+	result := reorderProvidersForDependencies(providers)
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 provider, got %d", len(result))
+	}
+	if result[0].Name() != testProviderAWS {
+		t.Errorf("expected aws, got %s", result[0].Name())
+	}
+}
+
+func TestReorderProvidersForDependencies_OnlyOneOther(t *testing.T) {
+	providers := []Provider{
+		&engineTestProvider{name: testProviderKubernetes},
+	}
+
+	result := reorderProvidersForDependencies(providers)
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 provider, got %d", len(result))
+	}
+	if result[0].Name() != testProviderKubernetes {
+		t.Errorf("expected kubernetes, got %s", result[0].Name())
+	}
+}
+
+func TestReorderProvidersForDependencies_Empty(t *testing.T) {
+	providers := []Provider{}
+
+	result := reorderProvidersForDependencies(providers)
+
+	if len(result) != 0 {
+		t.Fatalf("expected 0 providers, got %d", len(result))
+	}
+}
+
+func TestReorderProvidersForDependencies_AWSAtStart(t *testing.T) {
+	providers := []Provider{
+		&engineTestProvider{name: testProviderAWS},
+		&engineTestProvider{name: testProviderKubernetes},
+		&engineTestProvider{name: "steampipe"},
+	}
+
+	result := reorderProvidersForDependencies(providers)
+
+	if result[0].Name() != testProviderAWS {
+		t.Errorf("expected aws first, got %s", result[0].Name())
+	}
+	if result[1].Name() != testProviderKubernetes {
+		t.Errorf("expected kubernetes second, got %s", result[1].Name())
+	}
+}
+
+func TestReorderProvidersForDependencies_MultipleAWS(t *testing.T) {
+	providers := []Provider{
+		&engineTestProvider{name: testProviderKubernetes},
+		&engineTestProvider{name: testProviderAWS},
+		&engineTestProvider{name: "steampipe"},
+		&engineTestProvider{name: testProviderAWS},
+	}
+
+	result := reorderProvidersForDependencies(providers)
+
+	if result[0].Name() != testProviderAWS {
+		t.Errorf("expected aws first, got %s", result[0].Name())
 	}
 }
