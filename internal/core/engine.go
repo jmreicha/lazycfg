@@ -190,7 +190,8 @@ func (e *Engine) CleanProvider(ctx context.Context, providerName string) error {
 func (e *Engine) resolveProviders(providerNames []string) ([]Provider, error) {
 	if len(providerNames) == 0 {
 		// Return all registered providers
-		return e.registry.GetAll(), nil
+		allProviders := e.registry.GetAll()
+		return reorderProvidersForDependencies(allProviders), nil
 	}
 
 	providers := make([]Provider, 0, len(providerNames))
@@ -202,7 +203,35 @@ func (e *Engine) resolveProviders(providerNames []string) ([]Provider, error) {
 		providers = append(providers, provider)
 	}
 
-	return providers, nil
+	return reorderProvidersForDependencies(providers), nil
+}
+
+// reorderProvidersForDependencies ensures AWS provider runs first when present.
+// Other providers (kubernetes, steampipe, etc.) depend on AWS config being generated.
+func reorderProvidersForDependencies(providers []Provider) []Provider {
+	if len(providers) <= 1 {
+		return providers
+	}
+
+	var awsProvider Provider
+	remaining := make([]Provider, 0, len(providers))
+
+	for _, p := range providers {
+		if p.Name() == "aws" {
+			awsProvider = p
+		} else {
+			remaining = append(remaining, p)
+		}
+	}
+
+	if awsProvider == nil {
+		return providers
+	}
+
+	result := make([]Provider, 0, len(providers))
+	result = append(result, awsProvider)
+	result = append(result, remaining...)
+	return result
 }
 
 // validateProvider runs validation for a single provider.
