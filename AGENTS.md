@@ -197,11 +197,11 @@ When work on a feature branch is complete, follow this workflow to create a pull
 
 ### Documentation Style Guide
 
+When writing documentation (README files, user guides, API docs), use the [humanizer skill](.claude/skills/humanizer/SKILL.md) to ensure documentation is clear, concise, and human-readable. In addition, use the following personal style rules.
+
 - Be concise. Avoid unnecessary and verbose explanations. Don't bold or emphasize wording.
 - Follow the Go [Style Guide](https://google.github.io/styleguide/go/) and [Best Practices](https://google.github.io/styleguide/go/best-practices) docs.
-- Avoid common AI writing patterns
 - Link to files/documentation appropriately
-- No emojis or hype language
 - No specific numbers that will change (versions, coverage percentages)
 - No line number references
 - Review for consistency and accuracy when done
