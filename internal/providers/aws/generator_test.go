@@ -43,14 +43,14 @@ sso_start_url = https://example.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
 
-[profile sso_prod/Admin]
+[profile sso_prod/admin]
 sso_session = cfgctl
 sso_account_id = 111111111111
 sso_account_name = prod
 sso_role_name = Admin
 sso_auto_populated = true
 
-[profile sso_prod/ReadOnly]
+[profile sso_prod/readonly]
 sso_session = cfgctl
 sso_account_id = 111111111111
 sso_account_name = prod
@@ -92,8 +92,8 @@ sso_start_url = https://example.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
 
-[profile sso_prod/Admin]
-credential_process = granted credential-process --profile sso_prod/Admin
+[profile sso_prod/admin]
+credential_process = granted credential-process --profile sso_prod/admin
 sso_auto_populated = true`
 
 	if content != expected {
@@ -112,7 +112,7 @@ func TestBuildCredentialProcessContent(t *testing.T) {
 		{
 			Name:          "prod-readonly",
 			RoleARN:       "arn:aws:iam::111111111111:role/ReadOnly",
-			SourceProfile: "sso_prod/Admin",
+			SourceProfile: "sso_prod/admin",
 		},
 	}
 
@@ -135,8 +135,8 @@ func TestBuildCredentialProcessContent(t *testing.T) {
 		t.Fatalf("expected 2 generated names, got %v", generatedNames)
 	}
 
-	expected := `[sso_prod/Admin]
-credential_process = granted credential-process --profile sso_prod/Admin
+	expected := `[sso_prod/admin]
+credential_process = granted credential-process --profile sso_prod/admin
 
 [sso_prod-readonly]
 credential_process = granted credential-process --profile sso_prod-readonly`
@@ -170,7 +170,7 @@ sso_start_url = https://example.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
 
-[profile prod-account-AdminAccess]
+[profile prod-account-adminaccess]
 sso_session = cfgctl
 sso_account_id = 123456789012
 sso_account_name = prod-account
@@ -211,7 +211,7 @@ sso_start_url = https://example.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
 
-[profile prod-Admin]
+[profile prod-admin]
 sso_session = cfgctl
 sso_account_id = 999999999999
 sso_account_name = prod
@@ -258,13 +258,13 @@ func TestBuildConfigContentRoleChains(t *testing.T) {
 		{
 			Name:          "prod-readonly",
 			RoleARN:       "arn:aws:iam::111111111111:role/ReadOnly",
-			SourceProfile: "sso_prod/Admin",
+			SourceProfile: "sso_prod/admin",
 		},
 		{
 			Name:          "staging-deploy",
 			Region:        "us-west-2",
 			RoleARN:       "arn:aws:iam::222222222222:role/DeployRole",
-			SourceProfile: "sso_staging/PowerUser",
+			SourceProfile: "sso_staging/poweruser",
 		},
 	}
 
@@ -294,14 +294,14 @@ sso_start_url = https://example.awsapps.com/start
 sso_region = us-east-1
 sso_registration_scopes = sso:account:access
 
-[profile sso_prod/Admin]
+[profile sso_prod/admin]
 sso_session = cfgctl
 sso_account_id = 111111111111
 sso_account_name = prod
 sso_role_name = Admin
 sso_auto_populated = true
 
-[profile sso_staging/PowerUser]
+[profile sso_staging/poweruser]
 sso_session = cfgctl
 sso_account_id = 222222222222
 sso_account_name = staging
@@ -309,12 +309,12 @@ sso_role_name = PowerUser
 sso_auto_populated = true
 
 [profile sso_prod-readonly]
-source_profile = sso_prod/Admin
+source_profile = sso_prod/admin
 role_arn = arn:aws:iam::111111111111:role/ReadOnly
 sso_auto_populated = true
 
 [profile sso_staging-deploy]
-source_profile = sso_staging/PowerUser
+source_profile = sso_staging/poweruser
 role_arn = arn:aws:iam::222222222222:role/DeployRole
 region = us-west-2
 sso_auto_populated = true`
@@ -335,7 +335,7 @@ func TestBuildConfigContentRoleChainWarnings(t *testing.T) {
 		{
 			Name:          "prod-readonly",
 			RoleARN:       "arn:aws:iam::111111111111:role/ReadOnly",
-			SourceProfile: "sso_prod/Admin",
+			SourceProfile: "sso_prod/admin",
 		},
 	}
 

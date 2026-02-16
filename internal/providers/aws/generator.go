@@ -102,7 +102,7 @@ func buildProfileIndex(cfg *Config, profiles []DiscoveredProfile) ([]string, map
 		if err != nil {
 			return nil, nil, err
 		}
-		name = strings.TrimSpace(name)
+		name = strings.ToLower(strings.TrimSpace(name))
 		if name == "" {
 			return nil, nil, errors.New("generated profile name is empty")
 		}
@@ -162,13 +162,13 @@ func buildRoleChainIndex(cfg *Config, sourceProfiles map[string]bool) ([]string,
 	order := make([]string, 0, len(cfg.RoleChains))
 	warnings := []string{}
 	for i, chain := range cfg.RoleChains {
-		name := strings.TrimSpace(chain.Name)
+		name := strings.ToLower(strings.TrimSpace(chain.Name))
 		if name == "" {
 			return nil, nil, nil, fmt.Errorf("role chain name is empty at index %d", i)
 		}
 		name = cfg.ProfilePrefix + name
 
-		sourceProfile := strings.TrimSpace(chain.SourceProfile)
+		sourceProfile := strings.ToLower(strings.TrimSpace(chain.SourceProfile))
 		if sourceProfile == "" {
 			return nil, nil, nil, fmt.Errorf("role chain source_profile is empty for %s", name)
 		}
