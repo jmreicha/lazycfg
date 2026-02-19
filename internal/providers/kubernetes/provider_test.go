@@ -61,10 +61,10 @@ func TestProvider_Validate(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "valid provider with demo mode",
+			name: "valid provider with merge-only mode",
 			provider: func() *Provider {
 				cfg := DefaultConfig()
-				cfg.Demo = true
+				cfg.MergeOnly = true
 				return NewProvider(cfg)
 			}(),
 			expectError: false,
@@ -81,7 +81,7 @@ func TestProvider_Validate(t *testing.T) {
 			provider: func() *Provider {
 				cfg := DefaultConfig()
 				cfg.ConfigPath = ""
-				cfg.Demo = true
+				cfg.MergeOnly = true
 				return NewProvider(cfg)
 			}(),
 			expectError: true,
@@ -120,11 +120,11 @@ func TestProvider_Generate(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "demo mode",
+			name: "merge-only mode",
 			provider: func() *Provider {
 				cfg := DefaultConfig()
 				cfg.ConfigPath = filepath.Join(t.TempDir(), "config")
-				cfg.Demo = true
+				cfg.MergeOnly = true
 				return NewProvider(cfg)
 			}(),
 			opts: &core.GenerateOptions{
@@ -138,7 +138,7 @@ func TestProvider_Generate(t *testing.T) {
 			provider: func() *Provider {
 				cfg := DefaultConfig()
 				cfg.ConfigPath = filepath.Join(t.TempDir(), "config")
-				cfg.Demo = true
+				cfg.MergeOnly = true
 				return NewProvider(cfg)
 			}(),
 			opts: &core.GenerateOptions{
@@ -208,7 +208,7 @@ func TestProvider_GenerateInvalidConfig(t *testing.T) {
 			provider: func() *Provider {
 				cfg := DefaultConfig()
 				cfg.ConfigPath = ""
-				cfg.Demo = true
+				cfg.MergeOnly = true
 				return NewProvider(cfg)
 			}(),
 			opts: &core.GenerateOptions{
@@ -351,7 +351,7 @@ func TestProvider_ValidateInvalidPaths(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name:        "absolute path with demo mode",
+			name:        "absolute path with merge-only mode",
 			configPath:  "/absolute/path",
 			expectError: false,
 		},
@@ -361,7 +361,7 @@ func TestProvider_ValidateInvalidPaths(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := DefaultConfig()
 			cfg.ConfigPath = tt.configPath
-			cfg.Demo = true
+			cfg.MergeOnly = true
 			provider := NewProvider(cfg)
 
 			ctx := context.Background()
@@ -382,14 +382,14 @@ func TestProvider_GenerateWithOptsConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	cfg := DefaultConfig()
 	cfg.ConfigPath = filepath.Join(tmpDir, "config")
-	cfg.Demo = true
+	cfg.MergeOnly = true
 
 	provider := NewProvider(cfg)
 
 	// Create new config for opts
 	optsConfig := DefaultConfig()
 	optsConfig.ConfigPath = filepath.Join(tmpDir, "opts-config")
-	optsConfig.Demo = true
+	optsConfig.MergeOnly = true
 
 	opts := &core.GenerateOptions{
 		Force:  true,
@@ -422,13 +422,13 @@ func TestProvider_GenerateExistingFileNoForce(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(configPath), 0700); err != nil {
 		t.Fatalf("failed to create directory: %v", err)
 	}
-	if err := os.WriteFile(configPath, []byte("existing"), 0600); err != nil {
+	if err := os.WriteFile(configPath, []byte("apiVersion: v1\nkind: Config\n"), 0600); err != nil {
 		t.Fatalf("failed to create existing file: %v", err)
 	}
 
 	cfg := DefaultConfig()
 	cfg.ConfigPath = configPath
-	cfg.Demo = true
+	cfg.MergeOnly = true
 
 	provider := NewProvider(cfg)
 

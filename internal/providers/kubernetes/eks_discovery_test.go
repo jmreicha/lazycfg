@@ -3,11 +3,18 @@ package kubernetes
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/eks/types"
 )
@@ -44,17 +51,18 @@ func (m *mockEKSClient) DescribeCluster(_ context.Context, params *eks.DescribeC
 
 func TestDiscoverEKSClusters(t *testing.T) {
 	tmpDir := t.TempDir()
-	credentialsData, err := readFixture("credentials_valid")
+	configData, err := readFixture("config_valid")
 	if err != nil {
 		t.Fatalf("readFixture failed: %v", err)
 	}
-	credentialsPath := filepath.Join(tmpDir, "credentials")
-	if err := writeFixture(credentialsPath, string(credentialsData)); err != nil {
+	configPath := filepath.Join(tmpDir, "config")
+	if err := writeFixture(configPath, string(configData)); err != nil {
 		t.Fatalf("writeFixture failed: %v", err)
 	}
 
 	cfg := DefaultConfig()
-	cfg.AWS.CredentialsFile = credentialsPath
+	cfg.AWS.ConfigFile = configPath
+	cfg.AWS.CredentialsFile = ""
 	cfg.AWS.Regions = []string{"us-west-2", "us-east-1"}
 	cfg.AWS.ParallelWorkers = 2
 	cfg.AWS.Timeout = 100 * time.Millisecond
@@ -81,30 +89,16 @@ func TestDiscoverEKSClusters(t *testing.T) {
 		}, nil
 	}
 
-	clusters, err := DiscoverEKSClusters(context.Background(), cfg, factory)
+	clusters, _, err := DiscoverEKSClusters(context.Background(), cfg, factory, nil)
 	if err != nil {
 		t.Fatalf("DiscoverEKSClusters failed: %v", err)
 	}
 
-	if len(clusters) != 6 {
-		t.Fatalf("clusters = %d", len(clusters))
+	if len(clusters) != 4 {
+		t.Fatalf("clusters = %d, want 4", len(clusters))
 	}
 
 	expected := []DiscoveredCluster{
-		{
-			Profile:  "default",
-			Region:   "us-east-1",
-			Name:     "default-us-east-1",
-			Endpoint: "https://default-us-east-1.example.com",
-			CAData:   []byte("demo"),
-		},
-		{
-			Profile:  "default",
-			Region:   "us-west-2",
-			Name:     "default-us-west-2",
-			Endpoint: "https://default-us-west-2.example.com",
-			CAData:   []byte("demo"),
-		},
 		{
 			Profile:  "prod",
 			Region:   "us-east-1",
@@ -142,40 +136,37 @@ func TestDiscoverEKSClusters(t *testing.T) {
 
 func TestDiscoverEKSClustersErrors(t *testing.T) {
 	tmpDir := t.TempDir()
-	credentialsPath := filepath.Join(tmpDir, "credentials")
+
+	// Empty config file with no profiles should fall back to credentials file.
+	emptyConfigPath := filepath.Join(tmpDir, "config_empty")
+	if err := writeFixture(emptyConfigPath, ""); err != nil {
+		t.Fatalf("writeFixture failed: %v", err)
+	}
+
 	credentialsData, err := readFixture("credentials_empty")
 	if err != nil {
 		t.Fatalf("readFixture failed: %v", err)
 	}
+	credentialsPath := filepath.Join(tmpDir, "credentials")
 	if err := writeFixture(credentialsPath, string(credentialsData)); err != nil {
 		t.Fatalf("writeFixture failed: %v", err)
 	}
 
 	cfg := DefaultConfig()
+	cfg.AWS.ConfigFile = emptyConfigPath
 	cfg.AWS.CredentialsFile = credentialsPath
 	cfg.AWS.Regions = []string{"us-west-2"}
 
-	_, err = DiscoverEKSClusters(context.Background(), cfg, nil)
+	_, _, err = DiscoverEKSClusters(context.Background(), cfg, nil, nil)
 	if err == nil {
-		t.Fatal("expected error for empty credentials file")
+		t.Fatal("expected error for empty config and credentials files")
 	}
 
+	cfg.AWS.ConfigFile = filepath.Join(tmpDir, "missing")
 	cfg.AWS.CredentialsFile = filepath.Join(tmpDir, "missing")
-	_, err = DiscoverEKSClusters(context.Background(), cfg, nil)
+	_, _, err = DiscoverEKSClusters(context.Background(), cfg, nil, nil)
 	if err == nil {
-		t.Fatal("expected error for missing credentials file")
-	}
-}
-
-func TestResolveProfilesExplicit(t *testing.T) {
-	profiles, err := resolveProfiles("", []string{"prod", "", "staging", "prod"})
-	if err != nil {
-		t.Fatalf("resolveProfiles failed: %v", err)
-	}
-
-	expected := []string{"prod", "staging"}
-	if !reflect.DeepEqual(profiles, expected) {
-		t.Fatalf("profiles = %v", profiles)
+		t.Fatal("expected error for missing files")
 	}
 }
 
@@ -242,6 +233,143 @@ func TestNormalizeRegions(t *testing.T) {
 		})
 	}
 }
+
+type mockRegionLister struct {
+	output *ec2.DescribeRegionsOutput
+	err    error
+}
+
+func (m *mockRegionLister) DescribeRegions(_ context.Context, _ *ec2.DescribeRegionsInput, _ ...func(*ec2.Options)) (*ec2.DescribeRegionsOutput, error) {
+	return m.output, m.err
+}
+
+func TestResolveRegionsExplicit(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	regions, err := resolveRegions(context.Background(), []string{"us-west-2", "eu-west-1"}, "", "test", nil, logger)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := []string{"eu-west-1", "us-west-2"}
+	if !reflect.DeepEqual(regions, expected) {
+		t.Errorf("regions = %v, want %v", regions, expected)
+	}
+}
+
+func TestResolveRegionsAllKeyword(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	mock := &mockRegionLister{
+		output: &ec2.DescribeRegionsOutput{
+			Regions: []ec2types.Region{
+				{RegionName: strPtr("us-east-1")},
+				{RegionName: strPtr("eu-west-1")},
+				{RegionName: strPtr("ap-southeast-1")},
+			},
+		},
+	}
+
+	oldFactory := regionListerFactory
+	regionListerFactory = func(_ context.Context, _, _ string, _ map[string]*credentialProcessOutput) (RegionLister, error) {
+		return mock, nil
+	}
+	defer func() { regionListerFactory = oldFactory }()
+
+	regions, err := resolveRegions(context.Background(), []string{"all"}, "", "test-profile", nil, logger)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := []string{"ap-southeast-1", "eu-west-1", "us-east-1"}
+	if !reflect.DeepEqual(regions, expected) {
+		t.Errorf("regions = %v, want %v", regions, expected)
+	}
+}
+
+func TestResolveRegionsAllCaseInsensitive(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	mock := &mockRegionLister{
+		output: &ec2.DescribeRegionsOutput{
+			Regions: []ec2types.Region{
+				{RegionName: strPtr("us-east-1")},
+			},
+		},
+	}
+
+	oldFactory := regionListerFactory
+	regionListerFactory = func(_ context.Context, _, _ string, _ map[string]*credentialProcessOutput) (RegionLister, error) {
+		return mock, nil
+	}
+	defer func() { regionListerFactory = oldFactory }()
+
+	for _, keyword := range []string{"ALL", "All", " all "} {
+		regions, err := resolveRegions(context.Background(), []string{keyword}, "", "p", nil, logger)
+		if err != nil {
+			t.Fatalf("keyword %q: unexpected error: %v", keyword, err)
+		}
+		if !reflect.DeepEqual(regions, []string{"us-east-1"}) {
+			t.Errorf("keyword %q: regions = %v", keyword, regions)
+		}
+	}
+}
+
+func TestResolveRegionsAllWithVaultCreds(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	mock := &mockRegionLister{
+		output: &ec2.DescribeRegionsOutput{
+			Regions: []ec2types.Region{
+				{RegionName: strPtr("us-west-2")},
+			},
+		},
+	}
+
+	var receivedCreds map[string]*credentialProcessOutput
+	oldFactory := regionListerFactory
+	regionListerFactory = func(_ context.Context, _, _ string, creds map[string]*credentialProcessOutput) (RegionLister, error) {
+		receivedCreds = creds
+		return mock, nil
+	}
+	defer func() { regionListerFactory = oldFactory }()
+
+	vaultCreds := map[string]*credentialProcessOutput{
+		"myprofile": {AccessKeyID: "AKIA", SecretAccessKey: "secret", SessionToken: "tok"},
+	}
+
+	regions, err := resolveRegions(context.Background(), []string{"all"}, "", "myprofile", vaultCreds, logger)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !reflect.DeepEqual(regions, []string{"us-west-2"}) {
+		t.Errorf("regions = %v", regions)
+	}
+	if receivedCreds == nil {
+		t.Fatal("expected vault creds to be passed through")
+	}
+	if _, ok := receivedCreds["myprofile"]; !ok {
+		t.Error("expected myprofile in vault creds")
+	}
+}
+
+func TestFetchAllRegionsError(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	oldFactory := regionListerFactory
+	regionListerFactory = func(_ context.Context, _, _ string, _ map[string]*credentialProcessOutput) (RegionLister, error) {
+		return &mockRegionLister{err: errors.New("access denied")}, nil
+	}
+	defer func() { regionListerFactory = oldFactory }()
+
+	_, err := resolveRegions(context.Background(), []string{"all"}, "", "p", nil, logger)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "describe regions") {
+		t.Errorf("error = %v, want describe regions error", err)
+	}
+}
+
+func strPtr(s string) *string { return &s }
 
 func TestDecodeClusterCA(t *testing.T) {
 	tests := []struct {
@@ -355,26 +483,29 @@ func TestDescribeClusterErrors(t *testing.T) {
 }
 
 func TestDiscoverEKSClustersNilConfig(t *testing.T) {
-	_, err := DiscoverEKSClusters(context.Background(), nil, nil)
+	_, _, err := DiscoverEKSClusters(context.Background(), nil, nil, nil)
 	if err == nil {
 		t.Fatal("expected error for nil config, got nil")
 	}
 }
 
-func TestDiscoverEKSClustersListError(t *testing.T) {
+func writeTestAWSConfig(t *testing.T, profiles ...string) string {
+	t.Helper()
 	tmpDir := t.TempDir()
-	credentialsData, err := readFixture("credentials_valid")
-	if err != nil {
-		t.Fatalf("readFixture failed: %v", err)
+	configPath := filepath.Join(tmpDir, "config")
+	var b strings.Builder
+	for _, p := range profiles {
+		fmt.Fprintf(&b, "[profile %s]\nregion = us-east-1\n\n", p)
 	}
-	credentialsPath := filepath.Join(tmpDir, "credentials")
-	if err := writeFixture(credentialsPath, string(credentialsData)); err != nil {
-		t.Fatalf("writeFixture failed: %v", err)
+	if err := os.WriteFile(configPath, []byte(b.String()), 0o600); err != nil {
+		t.Fatalf("write test aws config: %v", err)
 	}
+	return configPath
+}
 
+func TestDiscoverEKSClustersListError(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.AWS.CredentialsFile = credentialsPath
-	cfg.AWS.Profiles = []string{"test"}
+	cfg.AWS.ConfigFile = writeTestAWSConfig(t, "test")
 	cfg.AWS.Regions = []string{"us-west-2"}
 	cfg.AWS.Timeout = 100 * time.Millisecond
 
@@ -384,26 +515,15 @@ func TestDiscoverEKSClustersListError(t *testing.T) {
 		}, nil
 	}
 
-	_, err = DiscoverEKSClusters(context.Background(), cfg, factory)
+	_, _, err := DiscoverEKSClusters(context.Background(), cfg, factory, nil)
 	if err == nil {
 		t.Fatal("expected error for list failure, got nil")
 	}
 }
 
 func TestDiscoverEKSClustersFactoryError(t *testing.T) {
-	tmpDir := t.TempDir()
-	credentialsData, err := readFixture("credentials_valid")
-	if err != nil {
-		t.Fatalf("readFixture failed: %v", err)
-	}
-	credentialsPath := filepath.Join(tmpDir, "credentials")
-	if err := writeFixture(credentialsPath, string(credentialsData)); err != nil {
-		t.Fatalf("writeFixture failed: %v", err)
-	}
-
 	cfg := DefaultConfig()
-	cfg.AWS.CredentialsFile = credentialsPath
-	cfg.AWS.Profiles = []string{"test"}
+	cfg.AWS.ConfigFile = writeTestAWSConfig(t, "test")
 	cfg.AWS.Regions = []string{"us-west-2"}
 	cfg.AWS.Timeout = 100 * time.Millisecond
 
@@ -411,7 +531,7 @@ func TestDiscoverEKSClustersFactoryError(t *testing.T) {
 		return nil, errors.New("factory error")
 	}
 
-	_, err = DiscoverEKSClusters(context.Background(), cfg, factory)
+	_, _, err := DiscoverEKSClusters(context.Background(), cfg, factory, nil)
 	if err == nil {
 		t.Fatal("expected error for factory failure, got nil")
 	}
@@ -481,39 +601,156 @@ aws_access_key_id = prod
 	})
 }
 
-func TestNormalizeProfiles(t *testing.T) {
+func TestParseConfigFileProfiles(t *testing.T) {
+	t.Run("empty config file path", func(t *testing.T) {
+		_, err := parseConfigFileProfiles("")
+		if err == nil {
+			t.Fatal("expected error for empty path, got nil")
+		}
+	})
+
+	t.Run("whitespace config file path", func(t *testing.T) {
+		_, err := parseConfigFileProfiles("   ")
+		if err == nil {
+			t.Fatal("expected error for whitespace path, got nil")
+		}
+	})
+
+	t.Run("valid config file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "config")
+		content := `[sso-session cfgctl]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+
+[profile prod]
+sso_session = cfgctl
+sso_account_id = 111111111111
+sso_role_name = AdminAccess
+
+[profile staging]
+sso_session = cfgctl
+sso_account_id = 222222222222
+sso_role_name = AdminAccess
+
+[default]
+region = us-east-1
+`
+		if err := writeFixture(configPath, content); err != nil {
+			t.Fatalf("writeFixture failed: %v", err)
+		}
+
+		profiles, err := parseConfigFileProfiles(configPath)
+		if err != nil {
+			t.Fatalf("parseConfigFileProfiles failed: %v", err)
+		}
+
+		expected := []string{"prod", "staging"}
+		if !reflect.DeepEqual(profiles, expected) {
+			t.Errorf("profiles = %v, want %v", profiles, expected)
+		}
+	})
+
+	t.Run("config file with comments", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "config")
+		content := `# Comment line
+[sso-session test]
+sso_start_url = https://example.awsapps.com/start
+
+; Another comment
+[profile dev]
+sso_session = test
+
+[profile prod]
+sso_session = test
+`
+		if err := writeFixture(configPath, content); err != nil {
+			t.Fatalf("writeFixture failed: %v", err)
+		}
+
+		profiles, err := parseConfigFileProfiles(configPath)
+		if err != nil {
+			t.Fatalf("parseConfigFileProfiles failed: %v", err)
+		}
+
+		expected := []string{"dev", "prod"}
+		if !reflect.DeepEqual(profiles, expected) {
+			t.Errorf("profiles = %v, want %v", profiles, expected)
+		}
+	})
+
+	t.Run("missing config file", func(t *testing.T) {
+		_, err := parseConfigFileProfiles("/nonexistent/path")
+		if err == nil {
+			t.Fatal("expected error for missing file, got nil")
+		}
+	})
+
+	t.Run("empty config file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "config")
+		if err := writeFixture(configPath, ""); err != nil {
+			t.Fatalf("writeFixture failed: %v", err)
+		}
+
+		profiles, err := parseConfigFileProfiles(configPath)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(profiles) != 0 {
+			t.Errorf("profiles = %v, want empty", profiles)
+		}
+	})
+}
+
+func TestFilterProfilesByRole(t *testing.T) {
+	profiles := []string{
+		"prod/adminaccess",
+		"prod/readonly",
+		"staging/adminaccess",
+		"staging/poweruser",
+		"simple-profile",
+	}
+
 	tests := []struct {
 		name     string
-		profiles []string
+		roles    []string
 		expected []string
 	}{
 		{
-			name:     "empty profiles",
-			profiles: []string{},
-			expected: []string{},
+			name:     "single role",
+			roles:    []string{"adminaccess"},
+			expected: []string{"prod/adminaccess", "staging/adminaccess"},
 		},
 		{
-			name:     "nil profiles",
-			profiles: nil,
-			expected: []string{},
+			name:     "multiple roles",
+			roles:    []string{"adminaccess", "readonly"},
+			expected: []string{"prod/adminaccess", "prod/readonly", "staging/adminaccess"},
 		},
 		{
-			name:     "profiles with whitespace",
-			profiles: []string{" prod ", "  ", "staging"},
-			expected: []string{"prod", "staging"},
+			name:     "case insensitive",
+			roles:    []string{"AdminAccess"},
+			expected: []string{"prod/adminaccess", "staging/adminaccess"},
 		},
 		{
-			name:     "duplicate profiles",
-			profiles: []string{"prod", "prod", "staging"},
-			expected: []string{"prod", "staging"},
+			name:     "no slash in profile",
+			roles:    []string{"simple-profile"},
+			expected: []string{"simple-profile"},
+		},
+		{
+			name:     "no match",
+			roles:    []string{"nonexistent"},
+			expected: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := normalizeProfiles(tt.profiles)
+			result := filterProfilesByRole(profiles, tt.roles)
 			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("normalizeProfiles(%v) = %v, want %v", tt.profiles, result, tt.expected)
+				t.Errorf("filterProfilesByRole() = %v, want %v", result, tt.expected)
 			}
 		})
 	}

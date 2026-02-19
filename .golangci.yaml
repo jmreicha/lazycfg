@@ -88,6 +88,29 @@ linters:
         linters:
           - gosec
         text: "G304"
+      # Test files: hardcoded credentials are test fixtures
+      - path: ".*_test\\.go$"
+        linters:
+          - gosec
+        text: "G101"
+      # Test files: executable mock scripts need 0o755
+      - path: ".*_test\\.go$"
+        linters:
+          - gosec
+        text: "G306"
+      # Test files: safe integer conversions (e.g. loop index to rune)
+      - path: ".*_test\\.go$"
+        linters:
+          - gosec
+        text: "G115"
+      # Path traversal taint analysis: paths come from trusted config/internal sources
+      - linters:
+          - gosec
+        text: "G703"
+      # Exported fields intentionally named AccessToken/SessionToken
+      - linters:
+          - gosec
+        text: "G117"
 
 formatters:
   enable:

@@ -20,6 +20,7 @@ func init() {
 }
 
 var (
+	errAWSConfigFileEmpty    = errors.New("aws config file cannot be empty")
 	errAWSCredentialsEmpty   = errors.New("aws credentials file cannot be empty")
 	errConfigPathEmpty       = errors.New("config path cannot be empty")
 	errMergeSourceDirEmpty   = errors.New("merge source directory cannot be empty")
@@ -33,9 +34,6 @@ var (
 type Config struct {
 	// Enabled indicates whether this provider should be active.
 	Enabled bool `yaml:"enabled"`
-
-	// Demo enables fake data without AWS calls.
-	Demo bool `yaml:"-"`
 
 	// ConfigPath is the output path for the generated kubeconfig.
 	ConfigPath string `yaml:"config_path"`
@@ -58,11 +56,19 @@ type Config struct {
 
 // AWSConfig represents EKS discovery settings.
 type AWSConfig struct {
+	// ConfigFile is the path to the AWS config file (~/.aws/config).
+	// Used for profile resolution and SSO credential loading.
+	ConfigFile string `yaml:"config_file"`
+
 	// CredentialsFile is the path to the AWS credentials file.
+	//
+	// Deprecated: prefer ConfigFile for SSO-based authentication.
 	CredentialsFile string `yaml:"credentials_file"`
 
-	// Profiles limits which AWS profiles to scan. Empty means all profiles.
-	Profiles []string `yaml:"profiles"`
+	// Roles filters profiles to only those matching the given role names.
+	// Matches against the role portion of profile names (e.g. "adminaccess"
+	// matches "prod/adminaccess"). Empty means all roles.
+	Roles []string `yaml:"roles"`
 
 	// Regions defines which AWS regions to scan for clusters.
 	Regions []string `yaml:"regions"`
@@ -93,6 +99,7 @@ type DiscoveredCluster struct {
 	Name     string
 	Endpoint string
 	CAData   []byte
+	AuthMode string // authModeAWSVault or "" (default: aws cli with SSO/profile)
 }
 
 // ConfigFromMap builds a typed configuration from a raw provider map.
@@ -113,6 +120,10 @@ func ConfigFromMap(raw map[string]interface{}) (*Config, error) {
 
 	if cfg.ConfigPath == "" {
 		cfg.ConfigPath = defaultConfigPath()
+	}
+
+	if cfg.AWS.ConfigFile == "" {
+		cfg.AWS.ConfigFile = defaultAWSConfigFile()
 	}
 
 	if cfg.AWS.CredentialsFile == "" {
@@ -154,7 +165,6 @@ func ConfigFromMap(raw map[string]interface{}) (*Config, error) {
 func DefaultConfig() *Config {
 	return &Config{
 		Enabled:       true,
-		Demo:          false,
 		ConfigPath:    defaultConfigPath(),
 		AWS:           defaultAWSConfig(),
 		NamingPattern: defaultNamingPattern(),
@@ -181,11 +191,11 @@ func (c *Config) Validate() error {
 		c.MergeEnabled = true
 	}
 
-	// AWS validation is only required when not in MergeOnly or Demo modes.
-	awsValidationRequired := !c.MergeOnly && !c.Demo
+	// AWS validation is only required when not in MergeOnly mode.
+	awsValidationRequired := !c.MergeOnly
 
 	if awsValidationRequired {
-		credentialsFile, err := normalizePath(c.AWS.CredentialsFile, errAWSCredentialsEmpty)
+		configFile, err := normalizePath(c.AWS.ConfigFile, errAWSConfigFileEmpty)
 		if err != nil {
 			return err
 		}
@@ -202,7 +212,16 @@ func (c *Config) Validate() error {
 			return errTimeoutInvalid
 		}
 
-		c.AWS.CredentialsFile = credentialsFile
+		c.AWS.ConfigFile = configFile
+
+		// CredentialsFile is optional; normalize if provided.
+		if strings.TrimSpace(c.AWS.CredentialsFile) != "" {
+			credentialsFile, err := normalizePath(c.AWS.CredentialsFile, errAWSCredentialsEmpty)
+			if err != nil {
+				return err
+			}
+			c.AWS.CredentialsFile = credentialsFile
+		}
 	}
 
 	if strings.TrimSpace(c.NamingPattern) == "" {
@@ -227,8 +246,8 @@ func (c *Config) IsEnabled() bool {
 
 func defaultAWSConfig() AWSConfig {
 	return AWSConfig{
+		ConfigFile:      defaultAWSConfigFile(),
 		CredentialsFile: defaultCredentialsFile(),
-		Profiles:        []string{},
 		Regions:         defaultRegions(),
 		ParallelWorkers: defaultParallelWorkers(),
 		Timeout:         defaultTimeout(),
@@ -252,6 +271,15 @@ func defaultConfigPath() string {
 	return filepath.Join(home, ".kube", "config")
 }
 
+func defaultAWSConfigFile() string {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return ""
+	}
+
+	return filepath.Join(home, ".aws", "config")
+}
+
 func defaultCredentialsFile() string {
 	home, err := os.UserHomeDir()
 	if err != nil || home == "" {
@@ -262,7 +290,7 @@ func defaultCredentialsFile() string {
 }
 
 func defaultRegions() []string {
-	return []string{"eu-west-1", "us-east-1", "us-west-2"}
+	return []string{"all"}
 }
 
 func defaultParallelWorkers() int {
