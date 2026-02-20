@@ -18,7 +18,7 @@ func BuildKubeconfig(clusters []DiscoveredCluster, namingPattern string) (*api.C
 	}
 
 	config := &api.Config{
-		Kind:           "Config",
+		Kind:           kubeconfigKind,
 		APIVersion:     "v1",
 		Clusters:       make(map[string]*api.Cluster),
 		AuthInfos:      make(map[string]*api.AuthInfo),

@@ -14,6 +14,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
+const kubeconfigKind = "Config"
+
 var (
 	errKubeconfigMissing     = errors.New("kubeconfig not found")
 	errKubeconfigPathEmpty   = errors.New("kubeconfig path is empty")
@@ -131,7 +133,7 @@ func loadKubeconfigIfExists(path string) (*api.Config, error) {
 
 func newKubeconfig() *api.Config {
 	config := api.NewConfig()
-	config.Kind = "Config"
+	config.Kind = kubeconfigKind
 	config.APIVersion = "v1"
 	config.Preferences = api.Preferences{}
 	config.CurrentContext = ""
@@ -144,7 +146,7 @@ func ensureKubeconfigDefaults(config *api.Config) {
 	}
 
 	if config.Kind == "" {
-		config.Kind = "Config"
+		config.Kind = kubeconfigKind
 	}
 	if config.APIVersion == "" {
 		config.APIVersion = "v1"

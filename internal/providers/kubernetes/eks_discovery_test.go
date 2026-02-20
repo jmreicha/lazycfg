@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/eks/types"
+	"github.com/aws/smithy-go"
 )
 
 type mockEKSClient struct {
@@ -242,6 +244,17 @@ type mockRegionLister struct {
 func (m *mockRegionLister) DescribeRegions(_ context.Context, _ *ec2.DescribeRegionsInput, _ ...func(*ec2.Options)) (*ec2.DescribeRegionsOutput, error) {
 	return m.output, m.err
 }
+
+// mockAPIError implements smithy.APIError for testing isAccessDenied.
+type mockAPIError struct {
+	code    string
+	message string
+}
+
+func (e *mockAPIError) Error() string                 { return e.message }
+func (e *mockAPIError) ErrorCode() string             { return e.code }
+func (e *mockAPIError) ErrorMessage() string          { return e.message }
+func (e *mockAPIError) ErrorFault() smithy.ErrorFault { return smithy.FaultUnknown }
 
 func TestResolveRegionsExplicit(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -703,6 +716,239 @@ sso_session = test
 			t.Errorf("profiles = %v, want empty", profiles)
 		}
 	})
+}
+
+func TestDiscoverClustersForProfileRegionAccessDeniedList(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.AWS.Timeout = 100 * time.Millisecond
+
+	factory := func(_ context.Context, _, _ string) (EKSClient, error) {
+		return &mockEKSClient{
+			listErr: &mockAPIError{code: "AccessDeniedException", message: "not allowed"},
+		}, nil
+	}
+
+	var (
+		clusters []DiscoveredCluster
+		warnings []string
+		mu       sync.Mutex
+	)
+
+	err := discoverClustersForProfileRegion(
+		context.Background(), cfg, factory, "test-profile", "us-west-2", "",
+		&mu, &clusters, &warnings,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(clusters) != 0 {
+		t.Errorf("expected 0 clusters, got %d", len(clusters))
+	}
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d", len(warnings))
+	}
+	if !strings.Contains(warnings[0], "access denied") {
+		t.Errorf("expected access denied warning, got: %s", warnings[0])
+	}
+}
+
+func TestDiscoverClustersForProfileRegionAccessDeniedDescribe(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.AWS.Timeout = 100 * time.Millisecond
+
+	factory := func(_ context.Context, _, _ string) (EKSClient, error) {
+		return &mockEKSClient{
+			listOutput:  &eks.ListClustersOutput{Clusters: []string{"cluster1"}},
+			describeErr: &mockAPIError{code: "AccessDeniedException", message: "not allowed"},
+		}, nil
+	}
+
+	var (
+		clusters []DiscoveredCluster
+		warnings []string
+		mu       sync.Mutex
+	)
+
+	err := discoverClustersForProfileRegion(
+		context.Background(), cfg, factory, "test-profile", "us-west-2", "",
+		&mu, &clusters, &warnings,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(clusters) != 0 {
+		t.Errorf("expected 0 clusters, got %d", len(clusters))
+	}
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d", len(warnings))
+	}
+	if !strings.Contains(warnings[0], "access denied") {
+		t.Errorf("expected access denied warning, got: %s", warnings[0])
+	}
+}
+
+func TestDiscoverClustersForProfileRegionSetsAuthMode(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.AWS.Timeout = 100 * time.Millisecond
+
+	clusterName := "my-cluster"
+	endpoint := "https://my-cluster.example.com"
+	factory := func(_ context.Context, _, _ string) (EKSClient, error) {
+		return &mockEKSClient{
+			listOutput: &eks.ListClustersOutput{Clusters: []string{clusterName}},
+			outputs: map[string]*eks.DescribeClusterOutput{
+				clusterName: {
+					Cluster: &types.Cluster{
+						Name:     &clusterName,
+						Endpoint: &endpoint,
+						CertificateAuthority: &types.Certificate{
+							Data: func() *string {
+								v := "dGVzdA=="
+								return &v
+							}(),
+						},
+					},
+				},
+			},
+		}, nil
+	}
+
+	var (
+		clusters []DiscoveredCluster
+		warnings []string
+		mu       sync.Mutex
+	)
+
+	err := discoverClustersForProfileRegion(
+		context.Background(), cfg, factory, "prod", "us-west-2", authModeAWSVault,
+		&mu, &clusters, &warnings,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(clusters) != 1 {
+		t.Fatalf("expected 1 cluster, got %d", len(clusters))
+	}
+	if clusters[0].AuthMode != authModeAWSVault {
+		t.Errorf("AuthMode = %q, want %q", clusters[0].AuthMode, authModeAWSVault)
+	}
+}
+
+func TestIsAccessDenied(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "access denied error",
+			err:  &mockAPIError{code: "AccessDeniedException", message: "not allowed"},
+			want: true,
+		},
+		{
+			name: "other API error",
+			err:  &mockAPIError{code: "ThrottlingException", message: "slow down"},
+			want: false,
+		},
+		{
+			name: "non-API error",
+			err:  errors.New("network failure"),
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isAccessDenied(tt.err); got != tt.want {
+				t.Errorf("isAccessDenied() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFetchAllRegionsWithVaultCreds(t *testing.T) {
+	mock := &mockRegionLister{
+		output: &ec2.DescribeRegionsOutput{
+			Regions: []ec2types.Region{
+				{RegionName: strPtr("us-west-2")},
+				{RegionName: strPtr("eu-west-1")},
+			},
+		},
+	}
+
+	var receivedCreds map[string]*credentialProcessOutput
+	oldFactory := regionListerFactory
+	regionListerFactory = func(_ context.Context, _, _ string, creds map[string]*credentialProcessOutput) (RegionLister, error) {
+		receivedCreds = creds
+		return mock, nil
+	}
+	defer func() { regionListerFactory = oldFactory }()
+
+	vaultCreds := map[string]*credentialProcessOutput{
+		"testprofile": {AccessKeyID: "AKIA", SecretAccessKey: "secret", SessionToken: "tok"},
+	}
+
+	regions, err := fetchAllRegions(context.Background(), "/config", "testprofile", vaultCreds)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(regions) != 2 {
+		t.Errorf("expected 2 regions, got %d", len(regions))
+	}
+	if receivedCreds == nil {
+		t.Fatal("expected vault creds to be passed")
+	}
+}
+
+func TestFetchAllRegionsFactoryError(t *testing.T) {
+	oldFactory := regionListerFactory
+	regionListerFactory = func(_ context.Context, _, _ string, _ map[string]*credentialProcessOutput) (RegionLister, error) {
+		return nil, errors.New("factory failed")
+	}
+	defer func() { regionListerFactory = oldFactory }()
+
+	_, err := fetchAllRegions(context.Background(), "", "profile", nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestFetchAllRegionsNilRegionName(t *testing.T) {
+	mock := &mockRegionLister{
+		output: &ec2.DescribeRegionsOutput{
+			Regions: []ec2types.Region{
+				{RegionName: strPtr("us-east-1")},
+				{RegionName: nil},
+				{RegionName: strPtr("eu-west-1")},
+			},
+		},
+	}
+
+	oldFactory := regionListerFactory
+	regionListerFactory = func(_ context.Context, _, _ string, _ map[string]*credentialProcessOutput) (RegionLister, error) {
+		return mock, nil
+	}
+	defer func() { regionListerFactory = oldFactory }()
+
+	regions, err := fetchAllRegions(context.Background(), "", "p", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := []string{"eu-west-1", "us-east-1"}
+	if !reflect.DeepEqual(regions, expected) {
+		t.Errorf("regions = %v, want %v", regions, expected)
+	}
+}
+
+func TestResolveRegionsEmpty(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	_, err := resolveRegions(context.Background(), nil, "", "p", nil, logger)
+	if err == nil {
+		t.Fatal("expected error for empty regions, got nil")
+	}
 }
 
 func TestFilterProfilesByRole(t *testing.T) {

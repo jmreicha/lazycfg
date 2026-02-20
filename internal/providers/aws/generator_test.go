@@ -1,6 +1,11 @@
 package aws
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/jmreicha/cfgctl/internal/core"
+)
 
 const testProfilePrefix = "sso_"
 
@@ -321,6 +326,103 @@ sso_auto_populated = true`
 
 	if content != expected {
 		t.Fatalf("config content = %q", content)
+	}
+}
+
+func TestBuildConfigContentNoProfiles(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ProfilePrefix = testProfilePrefix
+	cfg.SSO.Region = testRegion
+	cfg.SSO.RegistrationScopes = defaultSSOScopes
+	cfg.SSO.SessionName = defaultSSOSessionName
+	cfg.SSO.StartURL = testStartURL
+
+	content, warnings, err := BuildConfigContent(cfg, []DiscoveredProfile{})
+	if err != nil {
+		t.Fatalf("BuildConfigContent failed: %v", err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %v", warnings)
+	}
+	if !strings.Contains(content, "[sso-session cfgctl]") {
+		t.Fatal("expected sso-session in content")
+	}
+	if strings.Contains(content, "[profile ") {
+		t.Fatal("expected no profile sections for empty profiles")
+	}
+}
+
+func TestBuildConfigContentNilConfig(t *testing.T) {
+	_, _, err := BuildConfigContent(nil, nil)
+	if err == nil {
+		t.Fatal("expected error for nil config")
+	}
+}
+
+func TestBuildConfigContentWithPrune(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ProfilePrefix = testProfilePrefix
+	cfg.SSO.Region = testRegion
+	cfg.SSO.RegistrationScopes = defaultSSOScopes
+	cfg.SSO.SessionName = defaultSSOSessionName
+	cfg.SSO.StartURL = testStartURL
+	cfg.Prune = true
+
+	profiles := []DiscoveredProfile{
+		{AccountID: "111111111111", AccountName: "prod", RoleName: "Admin"},
+	}
+
+	result := &core.Result{
+		Warnings: []string{},
+		Metadata: make(map[string]interface{}),
+	}
+
+	// buildConfigContent is the internal function that handles prune logic
+	// When the output file doesn't exist, prune merge should still work
+	content, _, err := buildConfigContent(cfg, "/nonexistent/path/config", profiles, result)
+	if err != nil {
+		t.Fatalf("buildConfigContent failed: %v", err)
+	}
+	if !strings.Contains(content, "sso_prod/admin") {
+		t.Fatalf("expected profile in content, got %q", content)
+	}
+}
+
+func TestBuildConfigContentWithoutPrune(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.ProfilePrefix = testProfilePrefix
+	cfg.SSO.Region = testRegion
+	cfg.SSO.RegistrationScopes = defaultSSOScopes
+	cfg.SSO.SessionName = defaultSSOSessionName
+	cfg.SSO.StartURL = testStartURL
+	cfg.Prune = false
+
+	profiles := []DiscoveredProfile{
+		{AccountID: "111111111111", AccountName: "prod", RoleName: "Admin"},
+	}
+
+	result := &core.Result{
+		Warnings: []string{},
+		Metadata: make(map[string]interface{}),
+	}
+
+	content, names, err := buildConfigContent(cfg, "/tmp/config", profiles, result)
+	if err != nil {
+		t.Fatalf("buildConfigContent failed: %v", err)
+	}
+	if len(names) != 1 {
+		t.Fatalf("expected 1 name, got %d", len(names))
+	}
+	if !strings.Contains(content, "sso_prod/admin") {
+		t.Fatalf("expected profile in content, got %q", content)
+	}
+}
+
+func TestBuildCredentialProcessContentNilConfig(t *testing.T) {
+	content, _, _, err := BuildCredentialProcessContent(nil, nil)
+	_ = content
+	if err == nil {
+		t.Fatal("expected error for nil config")
 	}
 }
 

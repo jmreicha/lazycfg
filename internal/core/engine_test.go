@@ -407,6 +407,88 @@ func TestEngineCleanProvider_Error(t *testing.T) {
 	}
 }
 
+func TestNewEngine_NilLogger(t *testing.T) {
+	registry := NewRegistry()
+	backupManager := NewBackupManager("")
+	config := NewConfig()
+	engine := NewEngine(registry, backupManager, config, nil)
+
+	if engine == nil {
+		t.Fatal("expected engine, got nil")
+	}
+	// Should not panic when executing with the default logger
+	_, err := engine.Execute(context.Background(), &ExecuteOptions{})
+	if err == nil {
+		t.Fatal("expected error for no providers, got nil")
+	}
+}
+
+func TestProviderMissingTools_KnownProviders(t *testing.T) {
+	findExecutableHook = func(name string) (string, bool) {
+		// All tools are "found"
+		return "/usr/bin/" + name, true
+	}
+	t.Cleanup(func() {
+		findExecutableHook = nil
+	})
+
+	registry := NewRegistry()
+	config := NewConfig()
+	engine := NewEngine(registry, NewBackupManager(""), config, newTestLogger())
+
+	tests := []struct {
+		provider string
+	}{
+		{"aws"},
+		{"granted"},
+		{"kubernetes"},
+		{"ssh"},
+		{"unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.provider, func(t *testing.T) {
+			missing := engine.providerMissingTools(tt.provider)
+			if len(missing) != 0 {
+				t.Errorf("expected no missing tools for %q when hook returns found, got %v", tt.provider, missing)
+			}
+		})
+	}
+}
+
+func TestProviderMissingTools_AllMissing(t *testing.T) {
+	findExecutableHook = func(string) (string, bool) {
+		return "", false
+	}
+	t.Cleanup(func() {
+		findExecutableHook = nil
+	})
+
+	registry := NewRegistry()
+	config := NewConfig()
+	engine := NewEngine(registry, NewBackupManager(""), config, newTestLogger())
+
+	tests := []struct {
+		provider string
+		expected int
+	}{
+		{"aws", 1},
+		{"granted", 1},
+		{"kubernetes", 2},
+		{"ssh", 1},
+		{"unknown", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.provider, func(t *testing.T) {
+			missing := engine.providerMissingTools(tt.provider)
+			if len(missing) != tt.expected {
+				t.Errorf("expected %d missing tools for %q, got %d: %v", tt.expected, tt.provider, len(missing), missing)
+			}
+		})
+	}
+}
+
 func TestReorderProvidersForDependencies_AWSFirst(t *testing.T) {
 	providers := []Provider{
 		&engineTestProvider{name: testProviderKubernetes},

@@ -525,6 +525,112 @@ func TestConfigValidateWithMergeOnlySkipsAWS(t *testing.T) {
 	}
 }
 
+func TestConfigFromMapWithMergeSettings(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	raw := map[string]interface{}{
+		"merge_enabled": true,
+		"merge_only":    true,
+		"merge": map[string]interface{}{
+			"source_dir":       "/custom/source",
+			"include_patterns": []string{"*.conf"},
+			"exclude_patterns": []string{"*.tmp"},
+		},
+	}
+
+	cfg, err := ConfigFromMap(raw)
+	if err != nil {
+		t.Fatalf("ConfigFromMap failed: %v", err)
+	}
+
+	if !cfg.MergeEnabled {
+		t.Error("expected MergeEnabled to be true")
+	}
+	if !cfg.MergeOnly {
+		t.Error("expected MergeOnly to be true")
+	}
+	if cfg.Merge.SourceDir != "/custom/source" {
+		t.Errorf("Merge.SourceDir = %q", cfg.Merge.SourceDir)
+	}
+	if !reflect.DeepEqual(cfg.Merge.IncludePatterns, []string{"*.conf"}) {
+		t.Errorf("IncludePatterns = %v", cfg.Merge.IncludePatterns)
+	}
+	if !reflect.DeepEqual(cfg.Merge.ExcludePatterns, []string{"*.tmp"}) {
+		t.Errorf("ExcludePatterns = %v", cfg.Merge.ExcludePatterns)
+	}
+}
+
+func TestConfigFromMapWithDisabledProvider(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	raw := map[string]interface{}{
+		"enabled": false,
+	}
+
+	cfg, err := ConfigFromMap(raw)
+	if err != nil {
+		t.Fatalf("ConfigFromMap failed: %v", err)
+	}
+
+	if cfg.Enabled {
+		t.Error("expected Enabled to be false")
+	}
+}
+
+func TestConfigFromMapWithAWSRoles(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	raw := map[string]interface{}{
+		"aws": map[string]interface{}{
+			"roles": []string{"AdminAccess", "ReadOnly"},
+		},
+	}
+
+	cfg, err := ConfigFromMap(raw)
+	if err != nil {
+		t.Fatalf("ConfigFromMap failed: %v", err)
+	}
+
+	if !reflect.DeepEqual(cfg.AWS.Roles, []string{"AdminAccess", "ReadOnly"}) {
+		t.Errorf("Roles = %v", cfg.AWS.Roles)
+	}
+}
+
+func TestConfigIsEnabled(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  *Config
+		want bool
+	}{
+		{
+			name: "nil config",
+			cfg:  nil,
+			want: false,
+		},
+		{
+			name: "enabled config",
+			cfg:  &Config{Enabled: true},
+			want: true,
+		},
+		{
+			name: "disabled config",
+			cfg:  &Config{Enabled: false},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cfg.IsEnabled(); got != tt.want {
+				t.Errorf("IsEnabled() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestConfigValidateWithMergeOnly(t *testing.T) {
 	baseDir := t.TempDir()
 
