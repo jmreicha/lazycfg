@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/jmreicha/cfgctl/internal/core"
 	"github.com/spf13/cobra"
@@ -14,6 +15,8 @@ func printGenerateResults(results map[string]*core.Result) {
 	colorEnabled := supportsColor()
 	for providerName, result := range results {
 		fmt.Printf("\n%s:\n", formatSection(colorEnabled, providerName))
+
+		printMetadataSummary(colorEnabled, result.Metadata)
 
 		if len(result.FilesCreated) > 0 {
 			fmt.Println(formatLabel(colorEnabled, "  Files created:"))
@@ -38,6 +41,29 @@ func printGenerateResults(results map[string]*core.Result) {
 			for _, warning := range result.Warnings {
 				fmt.Printf("    - %s\n", formatWarning(colorEnabled, warning))
 			}
+		}
+	}
+}
+
+func printMetadataSummary(colorEnabled bool, metadata map[string]interface{}) {
+	if len(metadata) == 0 {
+		return
+	}
+
+	if clusters, ok := metadata["discovered_clusters"]; ok {
+		fmt.Printf("  %s %v\n", formatLabel(colorEnabled, "Clusters discovered:"), clusters)
+	}
+	if regions, ok := metadata["regions"]; ok {
+		if rs, ok := regions.([]string); ok {
+			fmt.Printf("  %s %s\n", formatLabel(colorEnabled, "Regions:"), strings.Join(rs, ", "))
+		}
+	}
+	if authMode, ok := metadata["auth_mode"]; ok {
+		fmt.Printf("  %s %v\n", formatLabel(colorEnabled, "Auth:"), authMode)
+	}
+	if mergeFiles, ok := metadata["merge_files"]; ok {
+		if files, ok := mergeFiles.([]string); ok && len(files) > 0 {
+			fmt.Printf("  %s %d files\n", formatLabel(colorEnabled, "Merged:"), len(files))
 		}
 	}
 }
@@ -141,11 +167,10 @@ Examples:
 	cmd.Flags().StringVar(&awsSSOStartURL, "aws-sso-url", "", "AWS SSO start URL")
 	cmd.Flags().StringVar(&awsSSORegion, "aws-sso-region", "", "AWS SSO region")
 	cmd.Flags().StringVar(&awsTemplate, "aws-template", "", "template for AWS profile names")
-	cmd.Flags().BoolVar(&kubeDemo, "kube-demo", false, "use fake kubernetes discovery data")
 	cmd.Flags().BoolVar(&kubeMerge, "kube-merge", false, "merge existing kubeconfig files")
 	cmd.Flags().BoolVar(&kubeMergeOnly, "kube-merge-only", false, "merge existing kubeconfig files without AWS discovery")
-	cmd.Flags().StringVar(&kubeProfiles, "kube-profiles", "", "comma-separated AWS profile names")
 	cmd.Flags().StringVar(&kubeRegions, "kube-regions", "", "comma-separated AWS regions")
+	cmd.Flags().StringVar(&kubeRoles, "kube-roles", "", "comma-separated role names to filter profiles (e.g. adminaccess)")
 
 	return cmd
 }

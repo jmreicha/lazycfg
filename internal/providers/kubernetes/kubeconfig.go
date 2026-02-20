@@ -18,7 +18,7 @@ func BuildKubeconfig(clusters []DiscoveredCluster, namingPattern string) (*api.C
 	}
 
 	config := &api.Config{
-		Kind:           "Config",
+		Kind:           kubeconfigKind,
 		APIVersion:     "v1",
 		Clusters:       make(map[string]*api.Cluster),
 		AuthInfos:      make(map[string]*api.AuthInfo),
@@ -52,6 +52,33 @@ func BuildKubeconfig(clusters []DiscoveredCluster, namingPattern string) (*api.C
 }
 
 func execConfigForCluster(cluster DiscoveredCluster) *api.ExecConfig {
+	if cluster.AuthMode == "aws-vault" {
+		return &api.ExecConfig{
+			APIVersion: "client.authentication.k8s.io/v1",
+			Command:    "aws-vault",
+			Args: []string{
+				"exec",
+				cluster.Profile,
+				"--",
+				"aws",
+				"eks",
+				"get-token",
+				"--cluster-name",
+				cluster.Name,
+				"--region",
+				cluster.Region,
+			},
+			Env: []api.ExecEnvVar{
+				{
+					Name:  "AWS_PROFILE",
+					Value: accountFromProfile(cluster.Profile),
+				},
+			},
+			InteractiveMode:    api.IfAvailableExecInteractiveMode,
+			ProvideClusterInfo: false,
+		}
+	}
+
 	return &api.ExecConfig{
 		APIVersion: "client.authentication.k8s.io/v1",
 		Command:    "aws",
@@ -94,4 +121,13 @@ func renderNamingPattern(pattern string, cluster DiscoveredCluster) (string, err
 	}
 
 	return rendered, nil
+}
+
+// accountFromProfile extracts the account portion of a profile name.
+// For "account/role" profiles it returns "account"; otherwise the full profile.
+func accountFromProfile(profile string) string {
+	if idx := strings.Index(profile, "/"); idx >= 0 {
+		return profile[:idx]
+	}
+	return profile
 }

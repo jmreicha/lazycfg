@@ -218,6 +218,112 @@ func TestConfig_GetProviderConfig_NotExists(t *testing.T) {
 	}
 }
 
+func TestConfig_SetProviderConfig_NilMap(t *testing.T) {
+	cfg := &Config{} // Providers map is nil
+	cfg.SetProviderConfig("test", &testProviderConfig{Data: map[string]interface{}{"a": "b"}})
+
+	got := cfg.GetProviderConfig("test")
+	if got == nil {
+		t.Fatal("expected provider config after set on nil map, got nil")
+	}
+}
+
+func TestConfig_GetProviderConfig_NilProviders(t *testing.T) {
+	cfg := &Config{} // Providers map is nil
+	got := cfg.GetProviderConfig("anything")
+	if got != nil {
+		t.Errorf("expected nil for nil Providers map, got %v", got)
+	}
+}
+
+func TestLoadConfig_EmptyPath(t *testing.T) {
+	// Set HOME to a temp dir with no config files so FindConfigFile returns ""
+	tmpDir := t.TempDir()
+	home := filepath.Join(tmpDir, "home")
+	if err := os.MkdirAll(home, 0o700); err != nil {
+		t.Fatalf("failed to create home dir: %v", err)
+	}
+	t.Setenv("HOME", home)
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get working dir: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(cwd); chdirErr != nil {
+			t.Fatalf("failed to restore working dir: %v", chdirErr)
+		}
+	}()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	cfg, err := LoadConfig("")
+	if err != nil {
+		t.Fatalf("LoadConfig with empty path failed: %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("expected default config, got nil")
+	}
+}
+
+func TestLoadConfig_UnreadableFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfgPath := filepath.Join(tmpDir, "config.yaml")
+
+	// Create directory with same name as config file so ReadFile fails
+	if err := os.Mkdir(cfgPath, 0o700); err != nil {
+		t.Fatalf("failed to create dir: %v", err)
+	}
+
+	_, err := LoadConfig(cfgPath)
+	if err == nil {
+		t.Fatal("expected error for unreadable config file, got nil")
+	}
+}
+
+func TestDecodeProviders_NoRawProviders(t *testing.T) {
+	cfg := NewConfig()
+	// No RawProviders set -- should be a no-op
+	if err := cfg.decodeProviders(); err != nil {
+		t.Fatalf("decodeProviders with empty RawProviders failed: %v", err)
+	}
+}
+
+func TestDecodeProviders_NilProvidersMap(t *testing.T) {
+	cfg := &Config{
+		Providers: nil,
+		RawProviders: map[string]map[string]interface{}{
+			"test": {"key": "value"},
+		},
+	}
+
+	if err := cfg.decodeProviders(); err != nil {
+		t.Fatalf("decodeProviders failed: %v", err)
+	}
+
+	if cfg.Providers == nil {
+		t.Fatal("expected Providers map to be initialized")
+	}
+	if cfg.Providers["test"] == nil {
+		t.Fatal("expected test provider config to be set")
+	}
+}
+
+func TestDecodeProviders_UnknownProvider(t *testing.T) {
+	cfg := &Config{
+		Providers: nil,
+		RawProviders: map[string]map[string]interface{}{
+			"unknown_provider_xyz": {"key": "value"},
+		},
+	}
+
+	err := cfg.decodeProviders()
+	if err == nil {
+		t.Fatal("expected error for unknown provider factory, got nil")
+	}
+}
+
 func TestConfig_Merge(t *testing.T) {
 	cfg1 := NewConfig()
 	cfg1.Verbose = false

@@ -170,6 +170,24 @@ func TestRegistry_GetAll(t *testing.T) {
 	}
 }
 
+func TestProviderExistsError_Error(t *testing.T) {
+	err := &ProviderExistsError{Name: "aws"}
+	msg := err.Error()
+	expected := `provider "aws" is already registered`
+	if msg != expected {
+		t.Errorf("Error() = %q, want %q", msg, expected)
+	}
+}
+
+func TestProviderNotFoundError_Error(t *testing.T) {
+	err := &ProviderNotFoundError{Name: "missing"}
+	msg := err.Error()
+	expected := `provider "missing" not found`
+	if msg != expected {
+		t.Errorf("Error() = %q, want %q", msg, expected)
+	}
+}
+
 func TestRegistry_Clear(t *testing.T) {
 	registry := NewRegistry()
 

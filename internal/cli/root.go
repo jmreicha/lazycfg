@@ -26,11 +26,10 @@ var (
 	verbose       bool
 
 	// Kubernetes generate flags.
-	kubeDemo      bool
 	kubeMerge     bool
 	kubeMergeOnly bool
-	kubeProfiles  string
 	kubeRegions   string
+	kubeRoles     string
 
 	// AWS generate flags.
 	awsCredentialProcess bool
@@ -188,7 +187,7 @@ func initializeComponents() error {
 		kubernetesConfig = typedConfig
 	}
 	applyKubernetesCLIOverrides(kubernetesConfig)
-	if err := registry.Register(kubernetes.NewProvider(kubernetesConfig)); err != nil {
+	if err := registry.Register(kubernetes.NewProvider(kubernetesConfig, kubernetes.WithLogger(logger))); err != nil {
 		return fmt.Errorf("failed to register kubernetes provider: %w", err)
 	}
 
@@ -200,12 +199,12 @@ func applyKubernetesCLIOverrides(cfg *kubernetes.Config) {
 		return
 	}
 
-	if profiles := parseCSVFlag(kubeProfiles); len(profiles) > 0 {
-		cfg.AWS.Profiles = profiles
-	}
-
 	if regions := parseCSVFlag(kubeRegions); len(regions) > 0 {
 		cfg.AWS.Regions = regions
+	}
+
+	if roles := parseCSVFlag(kubeRoles); len(roles) > 0 {
+		cfg.AWS.Roles = roles
 	}
 
 	if kubeMergeOnly {
@@ -213,10 +212,6 @@ func applyKubernetesCLIOverrides(cfg *kubernetes.Config) {
 		cfg.MergeEnabled = true
 	} else if kubeMerge {
 		cfg.MergeEnabled = true
-	}
-
-	if kubeDemo {
-		cfg.Demo = true
 	}
 }
 

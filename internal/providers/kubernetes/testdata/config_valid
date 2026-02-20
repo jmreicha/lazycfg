@@ -1,0 +1,17 @@
+[sso-session cfgctl]
+sso_start_url = https://example.awsapps.com/start
+sso_region = us-east-1
+sso_registration_scopes = sso:account:access
+
+[profile prod]
+sso_session = cfgctl
+sso_account_id = 111111111111
+sso_role_name = AdminAccess
+
+[profile staging]
+sso_session = cfgctl
+sso_account_id = 222222222222
+sso_role_name = AdminAccess
+
+[default]
+region = us-east-1

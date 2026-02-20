@@ -23,6 +23,10 @@ func TestConfigFromMapDefaults(t *testing.T) {
 		t.Errorf("ConfigPath = %q", cfg.ConfigPath)
 	}
 
+	if cfg.AWS.ConfigFile != filepath.Join(home, ".aws", "config") {
+		t.Errorf("ConfigFile = %q", cfg.AWS.ConfigFile)
+	}
+
 	if cfg.AWS.CredentialsFile != filepath.Join(home, ".aws", "credentials") {
 		t.Errorf("CredentialsFile = %q", cfg.AWS.CredentialsFile)
 	}
@@ -61,8 +65,8 @@ func TestConfigFromMapOverrides(t *testing.T) {
 		"config_path":    "/custom/kubeconfig",
 		"naming_pattern": "{profile}-{region}-{cluster}",
 		"aws": map[string]interface{}{
+			"config_file":      "/custom/aws-config",
 			"credentials_file": "/custom/creds",
-			"profiles":         []string{"prod"},
 			"regions":          []string{"us-west-2"},
 			"parallel_workers": 4,
 			"timeout":          "45s",
@@ -87,12 +91,12 @@ func TestConfigFromMapOverrides(t *testing.T) {
 		t.Errorf("NamingPattern = %q", cfg.NamingPattern)
 	}
 
-	if cfg.AWS.CredentialsFile != "/custom/creds" {
-		t.Errorf("CredentialsFile = %q", cfg.AWS.CredentialsFile)
+	if cfg.AWS.ConfigFile != "/custom/aws-config" {
+		t.Errorf("ConfigFile = %q", cfg.AWS.ConfigFile)
 	}
 
-	if !reflect.DeepEqual(cfg.AWS.Profiles, []string{"prod"}) {
-		t.Errorf("Profiles = %v", cfg.AWS.Profiles)
+	if cfg.AWS.CredentialsFile != "/custom/creds" {
+		t.Errorf("CredentialsFile = %q", cfg.AWS.CredentialsFile)
 	}
 
 	if !reflect.DeepEqual(cfg.AWS.Regions, []string{"us-west-2"}) {
@@ -127,8 +131,8 @@ func TestConfigValidate(t *testing.T) {
 		Enabled:    true,
 		ConfigPath: filepath.Join(baseDir, "kube", "config"),
 		AWS: AWSConfig{
+			ConfigFile:      filepath.Join(baseDir, "aws", "config"),
 			CredentialsFile: filepath.Join(baseDir, "aws", "credentials"),
-			Profiles:        []string{"dev"},
 			Regions:         []string{"us-west-2"},
 			ParallelWorkers: 2,
 			Timeout:         5 * time.Second,
@@ -208,6 +212,15 @@ func TestDefaultConfigPathNoHome(t *testing.T) {
 	}
 }
 
+func TestDefaultAWSConfigFileNoHome(t *testing.T) {
+	t.Setenv("HOME", "")
+
+	path := defaultAWSConfigFile()
+	if path != "" {
+		t.Errorf("defaultAWSConfigFile() = %q, want empty string", path)
+	}
+}
+
 func TestDefaultCredentialsFileNoHome(t *testing.T) {
 	t.Setenv("HOME", "")
 
@@ -232,6 +245,7 @@ func TestConfigValidateErrors(t *testing.T) {
 		Enabled:    true,
 		ConfigPath: filepath.Join(baseDir, "kube", "config"),
 		AWS: AWSConfig{
+			ConfigFile:      filepath.Join(baseDir, "aws", "config"),
 			CredentialsFile: filepath.Join(baseDir, "aws", "credentials"),
 			Regions:         []string{"us-west-2"},
 			ParallelWorkers: 1,
@@ -297,11 +311,11 @@ func TestConfigValidateErrors(t *testing.T) {
 			wantErr: errNamingPatternEmpty,
 		},
 		{
-			name: "empty credentials file",
+			name: "empty aws config file",
 			mutate: func(cfg *Config) {
-				cfg.AWS.CredentialsFile = ""
+				cfg.AWS.ConfigFile = ""
 			},
-			wantErr: errAWSCredentialsEmpty,
+			wantErr: errAWSConfigFileEmpty,
 		},
 	}
 
@@ -473,6 +487,10 @@ func TestConfigFromMapWithPartialOverrides(t *testing.T) {
 		t.Errorf("ConfigPath = %q, want %q", cfg.ConfigPath, "/custom/path")
 	}
 
+	if cfg.AWS.ConfigFile != filepath.Join(home, ".aws", "config") {
+		t.Errorf("ConfigFile should use default, got %q", cfg.AWS.ConfigFile)
+	}
+
 	if cfg.AWS.CredentialsFile != filepath.Join(home, ".aws", "credentials") {
 		t.Errorf("CredentialsFile should use default")
 	}
@@ -482,12 +500,12 @@ func TestConfigFromMapWithPartialOverrides(t *testing.T) {
 	}
 }
 
-func TestConfigValidateWithDemo(t *testing.T) {
+func TestConfigValidateWithMergeOnlySkipsAWS(t *testing.T) {
 	baseDir := t.TempDir()
 
 	cfg := &Config{
 		Enabled:    true,
-		Demo:       true,
+		MergeOnly:  true,
 		ConfigPath: filepath.Join(baseDir, "kube", "config"),
 		AWS: AWSConfig{
 			CredentialsFile: "",
@@ -503,7 +521,113 @@ func TestConfigValidateWithDemo(t *testing.T) {
 
 	err := cfg.Validate()
 	if err != nil {
-		t.Errorf("expected no error for demo mode, got: %v", err)
+		t.Errorf("expected no error for merge-only mode, got: %v", err)
+	}
+}
+
+func TestConfigFromMapWithMergeSettings(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	raw := map[string]interface{}{
+		"merge_enabled": true,
+		"merge_only":    true,
+		"merge": map[string]interface{}{
+			"source_dir":       "/custom/source",
+			"include_patterns": []string{"*.conf"},
+			"exclude_patterns": []string{"*.tmp"},
+		},
+	}
+
+	cfg, err := ConfigFromMap(raw)
+	if err != nil {
+		t.Fatalf("ConfigFromMap failed: %v", err)
+	}
+
+	if !cfg.MergeEnabled {
+		t.Error("expected MergeEnabled to be true")
+	}
+	if !cfg.MergeOnly {
+		t.Error("expected MergeOnly to be true")
+	}
+	if cfg.Merge.SourceDir != "/custom/source" {
+		t.Errorf("Merge.SourceDir = %q", cfg.Merge.SourceDir)
+	}
+	if !reflect.DeepEqual(cfg.Merge.IncludePatterns, []string{"*.conf"}) {
+		t.Errorf("IncludePatterns = %v", cfg.Merge.IncludePatterns)
+	}
+	if !reflect.DeepEqual(cfg.Merge.ExcludePatterns, []string{"*.tmp"}) {
+		t.Errorf("ExcludePatterns = %v", cfg.Merge.ExcludePatterns)
+	}
+}
+
+func TestConfigFromMapWithDisabledProvider(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	raw := map[string]interface{}{
+		"enabled": false,
+	}
+
+	cfg, err := ConfigFromMap(raw)
+	if err != nil {
+		t.Fatalf("ConfigFromMap failed: %v", err)
+	}
+
+	if cfg.Enabled {
+		t.Error("expected Enabled to be false")
+	}
+}
+
+func TestConfigFromMapWithAWSRoles(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	raw := map[string]interface{}{
+		"aws": map[string]interface{}{
+			"roles": []string{"AdminAccess", "ReadOnly"},
+		},
+	}
+
+	cfg, err := ConfigFromMap(raw)
+	if err != nil {
+		t.Fatalf("ConfigFromMap failed: %v", err)
+	}
+
+	if !reflect.DeepEqual(cfg.AWS.Roles, []string{"AdminAccess", "ReadOnly"}) {
+		t.Errorf("Roles = %v", cfg.AWS.Roles)
+	}
+}
+
+func TestConfigIsEnabled(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  *Config
+		want bool
+	}{
+		{
+			name: "nil config",
+			cfg:  nil,
+			want: false,
+		},
+		{
+			name: "enabled config",
+			cfg:  &Config{Enabled: true},
+			want: true,
+		},
+		{
+			name: "disabled config",
+			cfg:  &Config{Enabled: false},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cfg.IsEnabled(); got != tt.want {
+				t.Errorf("IsEnabled() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 

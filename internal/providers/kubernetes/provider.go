@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jmreicha/cfgctl/internal/core"
 	"k8s.io/client-go/tools/clientcmd"
@@ -21,15 +23,32 @@ var errProviderConfigNil = errors.New("kubernetes provider configuration is nil"
 // Provider implements the core.Provider interface for Kubernetes configuration management.
 type Provider struct {
 	config *Config
+	logger *slog.Logger
 }
 
 // NewProvider creates a new Kubernetes provider instance with the given configuration.
-func NewProvider(config *Config) *Provider {
+func NewProvider(config *Config, opts ...ProviderOption) *Provider {
 	if config == nil {
 		config = DefaultConfig()
 	}
 
-	return &Provider{config: config}
+	p := &Provider{config: config, logger: slog.New(slog.NewTextHandler(os.Stderr, nil))}
+	for _, opt := range opts {
+		opt(p)
+	}
+	return p
+}
+
+// ProviderOption configures a Provider.
+type ProviderOption func(*Provider)
+
+// WithLogger sets the logger for the provider.
+func WithLogger(logger *slog.Logger) ProviderOption {
+	return func(p *Provider) {
+		if logger != nil {
+			p.logger = logger
+		}
+	}
 }
 
 // Name returns the unique identifier for this provider.
@@ -69,9 +88,25 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 		return result, nil
 	}
 
-	discovered, err := p.discoverClusters(ctx)
+	p.logger.Debug("starting kubernetes generation",
+		"config_path", p.config.ConfigPath,
+		"merge_only", p.config.MergeOnly,
+		"merge_enabled", p.config.MergeEnabled,
+	)
+
+	discovered, discoveryWarnings, err := p.discoverClusters(ctx)
 	if err != nil {
 		return nil, err
+	}
+	result.Warnings = append(result.Warnings, discoveryWarnings...)
+
+	for _, c := range discovered {
+		p.logger.Debug("discovered cluster",
+			"profile", c.Profile,
+			"region", c.Region,
+			"cluster", c.Name,
+			"auth_mode", c.AuthMode,
+		)
 	}
 
 	mergeConfig, mergeFiles, err := p.buildKubeconfig(discovered)
@@ -85,7 +120,34 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 	}
 
 	if len(mergeFiles) > 0 {
+		for _, f := range mergeFiles {
+			p.logger.Debug("merging kubeconfig file", "path", f)
+		}
 		result.Metadata["merge_files"] = mergeFiles
+	}
+
+	for name := range mergeConfig.Contexts {
+		p.logger.Debug("generating context", "name", name)
+	}
+
+	// Populate summary metadata.
+	result.Metadata["discovered_clusters"] = len(discovered)
+	result.Metadata["regions"] = p.config.AWS.Regions
+
+	authModes := map[string]struct{}{}
+	for _, c := range discovered {
+		if c.AuthMode != "" {
+			authModes[c.AuthMode] = struct{}{}
+		} else {
+			authModes["aws-cli"] = struct{}{}
+		}
+	}
+	if len(authModes) > 0 {
+		modes := make([]string, 0, len(authModes))
+		for m := range authModes {
+			modes = append(modes, m)
+		}
+		result.Metadata["auth_mode"] = strings.Join(modes, ", ")
 	}
 
 	if opts != nil && opts.DryRun {
@@ -93,11 +155,11 @@ func (p *Provider) Generate(ctx context.Context, opts *core.GenerateOptions) (*c
 	}
 
 	outputPath := p.config.ConfigPath
+	p.logger.Debug("writing kubeconfig", "path", outputPath)
 	if err := p.writeKubeconfig(outputPath, mergeConfig, opts, result); err != nil {
 		return nil, err
 	}
 
-	result.Metadata["discovered_clusters"] = len(discovered)
 	return result, nil
 }
 
@@ -117,16 +179,12 @@ func (p *Provider) validateAndPrepare(opts *core.GenerateOptions) error {
 	return p.config.Validate()
 }
 
-func (p *Provider) discoverClusters(ctx context.Context) ([]DiscoveredCluster, error) {
+func (p *Provider) discoverClusters(ctx context.Context) ([]DiscoveredCluster, []string, error) {
 	if p.config.MergeOnly {
-		return nil, nil
+		return nil, nil, nil
 	}
 
-	if p.config.Demo {
-		return demoClusters(), nil
-	}
-
-	return DiscoverEKSClusters(ctx, p.config, nil)
+	return DiscoverEKSClusters(ctx, p.config, nil, p.logger)
 }
 
 func (p *Provider) buildKubeconfig(discovered []DiscoveredCluster) (*api.Config, []string, error) {
@@ -182,14 +240,6 @@ func (p *Provider) writeKubeconfig(outputPath string, mergeConfig *api.Config, o
 	return nil
 }
 
-// Backup creates a backup of existing configuration files.
-func (p *Provider) Backup(_ context.Context) (string, error) {
-	if p.config == nil {
-		return "", nil
-	}
-	return core.BackupFile(p.config.ConfigPath)
-}
-
 // NeedsBackup reports whether a backup should be created before generation.
 func (p *Provider) NeedsBackup(opts *core.GenerateOptions) (bool, error) {
 	if p.config == nil {
@@ -208,12 +258,20 @@ func (p *Provider) NeedsBackup(opts *core.GenerateOptions) (bool, error) {
 	if !p.config.Enabled {
 		return false, nil
 	}
-	if opts != nil && (opts.DryRun || !opts.Force) {
+	if opts == nil || !opts.Force {
 		if _, err := os.Stat(p.config.ConfigPath); err == nil {
 			return false, nil
 		}
 	}
 	return true, nil
+}
+
+// Backup creates a backup of existing configuration files.
+func (p *Provider) Backup(_ context.Context) (string, error) {
+	if p.config == nil {
+		return "", nil
+	}
+	return core.BackupFile(p.config.ConfigPath)
 }
 
 // Restore recovers configuration from a backup.
@@ -241,23 +299,4 @@ func (p *Provider) Clean(_ context.Context) error {
 	}
 
 	return nil
-}
-
-func demoClusters() []DiscoveredCluster {
-	return []DiscoveredCluster{
-		{
-			Profile:  "demo",
-			Region:   "us-east-1",
-			Name:     "demo-app",
-			Endpoint: "https://demo-app.example.com",
-			CAData:   []byte("demo-ca"),
-		},
-		{
-			Profile:  "demo",
-			Region:   "us-west-2",
-			Name:     "demo-platform",
-			Endpoint: "https://demo-platform.example.com",
-			CAData:   []byte("demo-ca"),
-		},
-	}
 }

@@ -100,39 +100,27 @@ func TestNewRootCmdFlags(t *testing.T) {
 }
 
 func TestApplyKubernetesCLIOverrides(t *testing.T) {
-	prevKubeDemo := kubeDemo
 	prevKubeMerge := kubeMerge
 	prevKubeMergeOnly := kubeMergeOnly
-	prevKubeProfiles := kubeProfiles
 	prevKubeRegions := kubeRegions
 	defer func() {
-		kubeDemo = prevKubeDemo
 		kubeMerge = prevKubeMerge
 		kubeMergeOnly = prevKubeMergeOnly
-		kubeProfiles = prevKubeProfiles
 		kubeRegions = prevKubeRegions
 	}()
 
-	kubeDemo = true
 	kubeMerge = true
 	kubeMergeOnly = false
-	kubeProfiles = "prod,dev"
 	kubeRegions = "us-west-2,us-east-1"
 
 	cfg := kubernetes.DefaultConfig()
 	applyKubernetesCLIOverrides(cfg)
 
-	if !cfg.Demo {
-		t.Fatal("expected demo to be enabled")
-	}
 	if !cfg.MergeEnabled {
 		t.Fatal("expected merge to be enabled")
 	}
 	if cfg.MergeOnly {
 		t.Fatal("expected merge-only to be false")
-	}
-	if !reflect.DeepEqual(cfg.AWS.Profiles, []string{"dev", "prod"}) {
-		t.Fatalf("profiles = %v", cfg.AWS.Profiles)
 	}
 	if !reflect.DeepEqual(cfg.AWS.Regions, []string{"us-east-1", "us-west-2"}) {
 		t.Fatalf("regions = %v", cfg.AWS.Regions)
