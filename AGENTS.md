@@ -281,3 +281,11 @@ Use these rules to apply my own personal style and preferences to your responses
 - Read `./context/findings.md` before any other work.
 - Update `./context/findings.md` continuously while you work.
 - Log your own mistakes and corrections, not just user feedback.
+
+### SSH and AWS manual config tracking patterns (2026-02-21)
+
+- AWS manual config tracking is marker-based. Generated profiles include a marker key (default `sso_auto_populated`) written by `writeMarker`, and prune logic keeps only sections without the marker or generated names. The merge path is `BuildGeneratedConfigContent` -> `mergeConfigContent`, which reads the existing config and drops sections that are tagged or match generated names, then appends generated sections. Role chains are treated as generated profiles and included in the generated name set.
+- AWS manual config tracking also skips the generated SSO session section during merge by filtering a matching `[sso-session <name>]` section, so manual session entries are not preserved if they collide with the session name.
+- SSH manual config tracking is comment/header driven, not marker-based. `renderConfig` always writes a generated header and rebuilds the file from parsed content. `isGeneratedComment` filters existing generated comments while preserving user comments and includes.
+- SSH preserves manual content by parsing the existing config with `ParseConfig` and reassembling it. It separates includes, top-level settings, wildcard Host \*, and explicit hosts; then upserts global options and hosts by exact pattern. There is no explicit marker for user blocks, so manual edits are kept unless the same host pattern is regenerated and updated.
+- Both providers avoid writing when output exists and `--force` is not set; `NeedsBackup` uses the same existence checks, so manual edits are only overwritten when forced.
