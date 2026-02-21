@@ -14,6 +14,7 @@
 | 2026-02-13 | self   | Used `python` in shell but only `python3` exists.                | Use `python3` for scripting in this environment.                            |
 | 2026-02-13 | self   | Committed/pushed without user request on main.                   | Only commit when user explicitly asks and never commit to main.             |
 | 2026-02-21 | self   | Commitlint failed on body line length over 100 chars.            | Wrap commit body lines to 100 chars or fewer before pushing.                |
+| 2026-02-21 | self   | `wt merge` failed due to fallback commit message format.         | Use `wt merge --no-commit` or configure a conventional commit message.      |
 
 ## User Preferences
 
