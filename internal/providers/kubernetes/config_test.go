@@ -58,6 +58,10 @@ func TestConfigFromMapDefaults(t *testing.T) {
 	if !reflect.DeepEqual(cfg.Merge.ExcludePatterns, defaultExcludePatterns()) {
 		t.Errorf("ExcludePatterns = %v", cfg.Merge.ExcludePatterns)
 	}
+
+	if len(cfg.ManualConfigs) != 0 {
+		t.Errorf("ManualConfigs = %v", cfg.ManualConfigs)
+	}
 }
 
 func TestConfigFromMapOverrides(t *testing.T) {
@@ -75,6 +79,30 @@ func TestConfigFromMapOverrides(t *testing.T) {
 			"source_dir":       "/custom/merge",
 			"include_patterns": []string{"*.yaml"},
 			"exclude_patterns": []string{"*.bak"},
+		},
+		"manual_configs": []map[string]interface{}{
+			{
+				"name":             "docker-desktop",
+				"cluster":          "docker-desktop",
+				"context":          "docker-desktop",
+				"user":             "docker-desktop",
+				"cluster_endpoint": "https://kubernetes.docker.internal:6443",
+				"cluster_ca_data":  "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t",
+				"auth_info": map[string]interface{}{
+					"token": "example-token",
+					"exec": map[string]interface{}{
+						"api_version": "client.authentication.k8s.io/v1beta1",
+						"command":     "aws",
+						"args":        []string{"eks", "get-token", "--cluster-name", "demo"},
+						"env": map[string]interface{}{
+							"AWS_PROFILE": "demo",
+						},
+					},
+				},
+				"context_settings": map[string]interface{}{
+					"namespace": "default",
+				},
+			},
 		},
 	}
 
@@ -121,6 +149,35 @@ func TestConfigFromMapOverrides(t *testing.T) {
 
 	if !reflect.DeepEqual(cfg.Merge.ExcludePatterns, []string{"*.bak"}) {
 		t.Errorf("ExcludePatterns = %v", cfg.Merge.ExcludePatterns)
+	}
+
+	expectedManualConfigs := []ManualConfig{
+		{
+			Name:            "docker-desktop",
+			ClusterName:     "docker-desktop",
+			ContextName:     "docker-desktop",
+			UserName:        "docker-desktop",
+			ClusterEndpoint: "https://kubernetes.docker.internal:6443",
+			ClusterCAData:   "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t",
+			AuthInfo: ManualAuthInfo{
+				Token: "example-token",
+				Exec: ManualExecConfig{
+					APIVersion: "client.authentication.k8s.io/v1beta1",
+					Command:    "aws",
+					Args:       []string{"eks", "get-token", "--cluster-name", "demo"},
+					Env: map[string]string{
+						"AWS_PROFILE": "demo",
+					},
+				},
+			},
+			ContextSettings: ManualContext{
+				Namespace: "default",
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(cfg.ManualConfigs, expectedManualConfigs) {
+		t.Errorf("ManualConfigs = %v", cfg.ManualConfigs)
 	}
 }
 
@@ -497,6 +554,10 @@ func TestConfigFromMapWithPartialOverrides(t *testing.T) {
 
 	if cfg.NamingPattern != defaultNamingPattern() {
 		t.Errorf("NamingPattern should use default")
+	}
+
+	if len(cfg.ManualConfigs) != 0 {
+		t.Errorf("ManualConfigs = %v", cfg.ManualConfigs)
 	}
 }
 

@@ -44,6 +44,18 @@ providers:
       source_dir: ~/.kube
       include_patterns: ["*.yaml", "*.yml", "config"]
       exclude_patterns: ["*.bak", "*.backup"]
+
+    manual_configs:
+      - name: "docker-desktop"
+        cluster: "docker-desktop"
+        context: "docker-desktop"
+        user: "docker-desktop"
+        cluster_endpoint: "https://kubernetes.docker.internal:6443"
+        cluster_ca_data: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t"
+        auth_info:
+          token: "example-token"
+        context_settings:
+          namespace: "default"
 ```
 
 ## CLI Interface
@@ -90,6 +102,7 @@ type Config struct {
     AWS           AWSConfig   `yaml:"aws"`
     NamingPattern string      `yaml:"naming_pattern"`
     Merge         MergeConfig `yaml:"merge"`
+    ManualConfigs []ManualConfig `yaml:"manual_configs"`
 }
 
 type AWSConfig struct {
@@ -112,6 +125,40 @@ type DiscoveredCluster struct {
     Name     string
     Endpoint string
     CAData   []byte
+}
+
+type ManualConfig struct {
+    Name            string        `yaml:"name"`
+    ClusterName     string        `yaml:"cluster"`
+    ContextName     string        `yaml:"context"`
+    UserName        string        `yaml:"user"`
+    ClusterEndpoint string        `yaml:"cluster_endpoint"`
+    ClusterCAData   string        `yaml:"cluster_ca_data"`
+    ClusterCAFile   string        `yaml:"cluster_ca_file"`
+    AuthInfo        ManualAuthInfo `yaml:"auth_info"`
+    ContextSettings ManualContext  `yaml:"context_settings"`
+}
+
+type ManualAuthInfo struct {
+    ClientCertificateData string          `yaml:"client_certificate_data"`
+    ClientCertificateFile string          `yaml:"client_certificate_file"`
+    ClientKeyData         string          `yaml:"client_key_data"`
+    ClientKeyFile         string          `yaml:"client_key_file"`
+    Token                 string          `yaml:"token"`
+    Username              string          `yaml:"username"`
+    Password              string          `yaml:"password"`
+    Exec                  ManualExecConfig `yaml:"exec"`
+}
+
+type ManualExecConfig struct {
+    APIVersion string            `yaml:"api_version"`
+    Command    string            `yaml:"command"`
+    Args       []string          `yaml:"args"`
+    Env        map[string]string `yaml:"env"`
+}
+
+type ManualContext struct {
+    Namespace string `yaml:"namespace"`
 }
 ```
 
