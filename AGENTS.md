@@ -289,3 +289,9 @@ Use these rules to apply my own personal style and preferences to your responses
 - SSH manual config tracking is comment/header driven, not marker-based. `renderConfig` always writes a generated header and rebuilds the file from parsed content. `isGeneratedComment` filters existing generated comments while preserving user comments and includes.
 - SSH preserves manual content by parsing the existing config with `ParseConfig` and reassembling it. It separates includes, top-level settings, wildcard Host \*, and explicit hosts; then upserts global options and hosts by exact pattern. There is no explicit marker for user blocks, so manual edits are kept unless the same host pattern is regenerated and updated.
 - Both providers avoid writing when output exists and `--force` is not set; `NeedsBackup` uses the same existence checks, so manual edits are only overwritten when forced.
+
+### Kubernetes backup scan research (2026-02-21)
+
+- The merge flow already scans `~/.kube` for `config`, `*.yml`, and `*.yaml`, which is where Docker Desktop, minikube, and kind typically write their kubeconfigs.
+- Kubernetes backups are written as `<config>.<timestamp>.bak` in the same directory and excluded by default, so scanning backups would mainly reintroduce old generated configs and stale auth data.
+- The backup manager path (`~/.cfgctl/backups/<provider>`) is not part of the merge scan today; adding it would pull in historical configs users likely intended to replace.
