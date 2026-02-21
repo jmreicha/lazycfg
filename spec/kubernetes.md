@@ -20,6 +20,11 @@ When `--merge` flag is passed, also merge existing kubeconfig files from `~/.kub
 
 Merge operates independently of discovery. Can use `--merge` alone to combine existing files without AWS calls.
 
+### Manual Config Entries
+
+Manual configs in `manual_configs` always get merged into the output. If a manual entry uses the same name as a
+discovered or merged entry, the manual one wins.
+
 ## Configuration
 
 ```yaml
