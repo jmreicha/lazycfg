@@ -17,6 +17,7 @@
 | 2026-02-21 | self   | `wt merge` failed due to fallback commit message format.          | Use `wt merge --no-commit` or configure a conventional commit message.               |
 | 2026-02-21 | self   | Edited provider tests in main worktree instead of issue worktree. | Confirm worktree path before edits; use the issue worktree for changes.              |
 | 2026-02-21 | self   | Edited docs in the main worktree instead of the issue worktree.   | Use the issue worktree path for edits; verify `git rev-parse --show-toplevel` first. |
+| 2026-02-21 | self   | `bd sync` wrote to the main worktree path.                        | Confirm the output path and run `bd sync` in the intended worktree.                  |
 
 ## User Preferences
 
