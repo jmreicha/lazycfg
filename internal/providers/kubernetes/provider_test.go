@@ -850,6 +850,107 @@ func TestProvider_buildKubeconfig(t *testing.T) {
 	})
 }
 
+func TestProvider_buildKubeconfigManualConfigs(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.MergeEnabled = false
+	cfg.MergeOnly = false
+	cfg.ManualConfigs = []ManualConfig{
+		{
+			Name:            "manual-cluster",
+			ClusterEndpoint: "https://manual.example.com",
+			AuthInfo: ManualAuthInfo{
+				Token: "manual-token",
+			},
+			ContextSettings: ManualContext{
+				Namespace: "manual",
+			},
+		},
+	}
+
+	provider := NewProvider(cfg)
+
+	result, files, err := provider.buildKubeconfig(nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil config")
+	}
+	if files != nil {
+		t.Errorf("expected nil files, got %v", files)
+	}
+
+	cluster := result.Clusters["manual-cluster"]
+	if cluster == nil {
+		t.Fatal("expected manual cluster to be in config")
+	}
+	if cluster.Server != "https://manual.example.com" {
+		t.Errorf("manual cluster.Server = %q", cluster.Server)
+	}
+
+	context := result.Contexts["manual-cluster"]
+	if context == nil {
+		t.Fatal("expected manual context to be in config")
+	}
+	if context.Namespace != "manual" {
+		t.Errorf("manual context.Namespace = %q", context.Namespace)
+	}
+}
+
+func TestProvider_buildKubeconfigManualOverridesDiscovered(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.MergeEnabled = false
+	cfg.MergeOnly = false
+	cfg.ManualConfigs = []ManualConfig{
+		{
+			Name:            "prod-test-cluster",
+			ClusterEndpoint: "https://manual.example.com",
+			ContextSettings: ManualContext{
+				Namespace: "manual",
+			},
+		},
+	}
+
+	provider := NewProvider(cfg)
+
+	clusters := []DiscoveredCluster{
+		{
+			Profile:  "prod",
+			Region:   "us-west-2",
+			Name:     "test-cluster",
+			Endpoint: "https://test.example.com",
+			CAData:   []byte("ca-data"),
+		},
+	}
+
+	result, files, err := provider.buildKubeconfig(clusters)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil config")
+	}
+	if files != nil {
+		t.Errorf("expected nil files, got %v", files)
+	}
+
+	cluster := result.Clusters["prod-test-cluster"]
+	if cluster == nil {
+		t.Fatal("expected cluster to be in config")
+	}
+	if cluster.Server != "https://manual.example.com" {
+		t.Errorf("cluster.Server = %q", cluster.Server)
+	}
+
+	context := result.Contexts["prod-test-cluster"]
+	if context == nil {
+		t.Fatal("expected context to be in config")
+	}
+	if context.Namespace != "manual" {
+		t.Errorf("context.Namespace = %q", context.Namespace)
+	}
+}
+
 func TestProvider_validateAndPrepare(t *testing.T) {
 	t.Run("wrong config type in opts returns error", func(t *testing.T) {
 		provider := NewProvider(DefaultConfig())
