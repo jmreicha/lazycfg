@@ -2,20 +2,21 @@
 
 ## Corrections
 
-| Date       | Source | What Went Wrong                                                  | What To Do Instead                                                          |
-| ---------- | ------ | ---------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 2026-02-07 | self   | Did not read or update `context/findings.md` at session start.   | Read `context/findings.md` before any other work and update continuously.   |
-| 2026-02-07 | self   | Edited files in the main worktree instead of the issue worktree. | Confirm `git rev-parse --show-toplevel` in the issue worktree before edits. |
-| 2026-02-13 | self   | Removed GoReleaser install step despite release needing it.      | Confirm the release command path (semantic-release exec) before removal.    |
-| 2026-02-13 | self   | Suggested bumping Go version to satisfy GoReleaser.              | Avoid changing toolchains to fix CI; install correct tool instead.          |
-| 2026-02-13 | self   | Wired GoReleaser to `prepareCmd` causing tag mismatch errors.    | Run GoReleaser at publish step after semantic-release creates tags.         |
-| 2026-02-13 | self   | Missed required Syft binary for SBOM generation.                 | Install syft in release workflow when sboms are enabled.                    |
-| 2026-02-13 | self   | Assumed `skip_push` supported in `dockers_v2` config.            | Verify dockers_v2 fields; use `disable` when skipping docker builds.        |
-| 2026-02-13 | self   | Used `python` in shell but only `python3` exists.                | Use `python3` for scripting in this environment.                            |
-| 2026-02-13 | self   | Committed/pushed without user request on main.                   | Only commit when user explicitly asks and never commit to main.             |
-| 2026-02-21 | self   | Commitlint failed on body line length over 100 chars.            | Wrap commit body lines to 100 chars or fewer before pushing.                |
-| 2026-02-21 | self   | `wt merge` failed due to fallback commit message format.         | Use `wt merge --no-commit` or configure a conventional commit message.      |
-| 2026-02-21 | self   | Edited provider tests in main worktree instead of issue worktree. | Confirm worktree path before edits; use the issue worktree for changes.     |
+| Date       | Source | What Went Wrong                                                   | What To Do Instead                                                                   |
+| ---------- | ------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 2026-02-07 | self   | Did not read or update `context/findings.md` at session start.    | Read `context/findings.md` before any other work and update continuously.            |
+| 2026-02-07 | self   | Edited files in the main worktree instead of the issue worktree.  | Confirm `git rev-parse --show-toplevel` in the issue worktree before edits.          |
+| 2026-02-13 | self   | Removed GoReleaser install step despite release needing it.       | Confirm the release command path (semantic-release exec) before removal.             |
+| 2026-02-13 | self   | Suggested bumping Go version to satisfy GoReleaser.               | Avoid changing toolchains to fix CI; install correct tool instead.                   |
+| 2026-02-13 | self   | Wired GoReleaser to `prepareCmd` causing tag mismatch errors.     | Run GoReleaser at publish step after semantic-release creates tags.                  |
+| 2026-02-13 | self   | Missed required Syft binary for SBOM generation.                  | Install syft in release workflow when sboms are enabled.                             |
+| 2026-02-13 | self   | Assumed `skip_push` supported in `dockers_v2` config.             | Verify dockers_v2 fields; use `disable` when skipping docker builds.                 |
+| 2026-02-13 | self   | Used `python` in shell but only `python3` exists.                 | Use `python3` for scripting in this environment.                                     |
+| 2026-02-13 | self   | Committed/pushed without user request on main.                    | Only commit when user explicitly asks and never commit to main.                      |
+| 2026-02-21 | self   | Commitlint failed on body line length over 100 chars.             | Wrap commit body lines to 100 chars or fewer before pushing.                         |
+| 2026-02-21 | self   | `wt merge` failed due to fallback commit message format.          | Use `wt merge --no-commit` or configure a conventional commit message.               |
+| 2026-02-21 | self   | Edited provider tests in main worktree instead of issue worktree. | Confirm worktree path before edits; use the issue worktree for changes.              |
+| 2026-02-21 | self   | Edited docs in the main worktree instead of the issue worktree.   | Use the issue worktree path for edits; verify `git rev-parse --show-toplevel` first. |
 
 ## User Preferences
 
@@ -36,6 +37,7 @@
 - Tool discovery for providers is now centralized in `internal/core/engine.go` via `providerMissingTools`.
 - SSH provider uses comment-based markers to distinguish generated vs user content; a generic `BlockPreserver` interface is planned for `internal/core/` to make this reusable across providers (steampipe first, then SSH migration).
 - Provider interface includes `BackupDecider` (`NeedsBackup`) for conditional backups; engine handles backup/rollback orchestration.
+- Kubernetes provider backups use `core.BackupFile`, which writes `<config>.<timestamp>.bak` next to the kubeconfig; merge excludes `*.bak` and `*.backup` by default.
 
 ## Research Notes
 
