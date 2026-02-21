@@ -30,9 +30,10 @@ This project requires the following tools:
 - **pre-commit** - Pre-commit hook framework
 - **bd (beads)** - Issue tracker for git
 - **common-repo** - Repository configuration management
+- **wt (worktrunk)** (optional) - Git worktree management
 - **prek** (optional) - Pre-commit hook management tool
 - **mcp-cli** (optional) - MCP server interface
-- **wt (worktrunk)** (optional) - Git worktree management
+- **gh** (optional) - GitHub CLI
 
 ### Installation
 
@@ -99,6 +100,41 @@ cfgctl generate ssh --force
 
 # Validate config
 cfgctl validate
+```
+
+Kubernetes provider example:
+
+```bash
+# List available providers
+cfgctl list
+
+# Generate kubeconfig with EKS discovery (auto-discovers clusters)
+cfgctl generate kubernetes
+
+# Generate for specific regions
+cfgctl generate kubernetes --kube-regions us-west-2,us-east-1
+
+# Filter to specific roles (matches profile names containing role)
+cfgctl generate kubernetes --kube-roles admin,readonly
+
+# Merge with existing kubeconfig files
+cfgctl generate kubernetes --kube-merge
+
+# Merge only (skip AWS discovery, just merge existing files)
+cfgctl generate kubernetes --kube-merge-only
+
+# Preview changes without writing
+cfgctl generate kubernetes --dry-run
+
+# Overwrite existing kubeconfig
+cfgctl generate kubernetes --force
+```
+
+Granted provider example:
+
+```bash
+# Configure Granted for AWS vault
+cfgctl generate granted
 ```
 
 ### Working with Beads
@@ -175,6 +211,7 @@ OPENCODE_TIMEOUT=3600 task iterate
 
 ### Development Workflow
 
+1. Clone the repository
 2. Create or claim an issue
 3. Create a feature branch: `git checkout -b feature/your-feature`
 4. Make your changes
