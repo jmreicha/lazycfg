@@ -197,13 +197,30 @@ func (p *Provider) buildKubeconfig(discovered []DiscoveredCluster) (*api.Config,
 		}
 	}
 
+	manualConfig, err := buildManualKubeconfig(p.config.ManualConfigs)
+	if err != nil && !errors.Is(err, errManualConfigsEmpty) {
+		return nil, nil, err
+	}
+
 	if !p.config.MergeEnabled && !p.config.MergeOnly {
-		return discoveredConfig, nil, nil
+		if discoveredConfig == nil && manualConfig == nil {
+			return nil, nil, nil
+		}
+
+		merged := newKubeconfig()
+		mergeInto(merged, discoveredConfig)
+		mergeInto(merged, manualConfig)
+		return merged, nil, nil
 	}
 
 	outputPath := p.config.ConfigPath
 	mergeConfig, mergeFiles, err := MergeKubeconfigs(outputPath, p.config.Merge, discoveredConfig)
-	return mergeConfig, mergeFiles, err
+	if err != nil {
+		return nil, nil, err
+	}
+
+	mergeInto(mergeConfig, manualConfig)
+	return mergeConfig, mergeFiles, nil
 }
 
 func (p *Provider) handleDryRun(result *core.Result, discovered []DiscoveredCluster, mergeConfig *api.Config) *core.Result {
