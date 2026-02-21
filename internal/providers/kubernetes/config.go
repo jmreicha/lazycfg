@@ -52,6 +52,9 @@ type Config struct {
 
 	// Merge contains settings for merging existing kubeconfig files.
 	Merge MergeConfig `yaml:"merge"`
+
+	// ManualConfigs defines manual kubeconfig entries to preserve.
+	ManualConfigs []ManualConfig `yaml:"manual_configs"`
 }
 
 // AWSConfig represents EKS discovery settings.
@@ -100,6 +103,84 @@ type DiscoveredCluster struct {
 	Endpoint string
 	CAData   []byte
 	AuthMode string // authModeAWSVault or "" (default: aws cli with SSO/profile)
+}
+
+// ManualConfig represents a manually managed kubeconfig entry.
+type ManualConfig struct {
+	// Name is a stable identifier for the manual config.
+	Name string `yaml:"name"`
+
+	// ClusterName is the kubeconfig cluster entry name.
+	ClusterName string `yaml:"cluster"`
+
+	// ContextName is the kubeconfig context entry name.
+	ContextName string `yaml:"context"`
+
+	// UserName is the kubeconfig user entry name.
+	UserName string `yaml:"user"`
+
+	// ClusterEndpoint is the API server endpoint.
+	ClusterEndpoint string `yaml:"cluster_endpoint"`
+
+	// ClusterCAData is the base64-encoded cluster CA data.
+	ClusterCAData string `yaml:"cluster_ca_data"`
+
+	// ClusterCAFile is a file path to the cluster CA certificate.
+	ClusterCAFile string `yaml:"cluster_ca_file"`
+
+	// AuthInfo defines the user authentication details.
+	AuthInfo ManualAuthInfo `yaml:"auth_info"`
+
+	// ContextSettings defines the context-specific settings.
+	ContextSettings ManualContext `yaml:"context_settings"`
+}
+
+// ManualAuthInfo represents user authentication details for manual configs.
+type ManualAuthInfo struct {
+	// ClientCertificateData is the base64-encoded client certificate data.
+	ClientCertificateData string `yaml:"client_certificate_data"`
+
+	// ClientCertificateFile is a file path to the client certificate.
+	ClientCertificateFile string `yaml:"client_certificate_file"`
+
+	// ClientKeyData is the base64-encoded client key data.
+	ClientKeyData string `yaml:"client_key_data"`
+
+	// ClientKeyFile is a file path to the client key.
+	ClientKeyFile string `yaml:"client_key_file"`
+
+	// Token is a bearer token for authentication.
+	Token string `yaml:"token"`
+
+	// Username is the basic auth username.
+	Username string `yaml:"username"`
+
+	// Password is the basic auth password.
+	Password string `yaml:"password"`
+
+	// Exec defines an exec-based auth command.
+	Exec ManualExecConfig `yaml:"exec"`
+}
+
+// ManualExecConfig represents exec auth configuration for manual configs.
+type ManualExecConfig struct {
+	// APIVersion is the exec API version.
+	APIVersion string `yaml:"api_version"`
+
+	// Command is the executable to run.
+	Command string `yaml:"command"`
+
+	// Args are the command arguments.
+	Args []string `yaml:"args"`
+
+	// Env sets environment variables for the command.
+	Env map[string]string `yaml:"env"`
+}
+
+// ManualContext represents context settings for manual configs.
+type ManualContext struct {
+	// Namespace is the default namespace for the context.
+	Namespace string `yaml:"namespace"`
 }
 
 // ConfigFromMap builds a typed configuration from a raw provider map.
@@ -158,6 +239,10 @@ func ConfigFromMap(raw map[string]interface{}) (*Config, error) {
 		cfg.Merge.ExcludePatterns = defaultExcludePatterns()
 	}
 
+	if cfg.ManualConfigs == nil {
+		cfg.ManualConfigs = []ManualConfig{}
+	}
+
 	return cfg, nil
 }
 
@@ -171,6 +256,7 @@ func DefaultConfig() *Config {
 		MergeEnabled:  false,
 		MergeOnly:     false,
 		Merge:         defaultMergeConfig(),
+		ManualConfigs: []ManualConfig{},
 	}
 }
 
