@@ -40,6 +40,11 @@
 - Provider interface includes `BackupDecider` (`NeedsBackup`) for conditional backups; engine handles backup/rollback orchestration.
 - Kubernetes provider backups use `core.BackupFile`, which writes `<config>.<timestamp>.bak` next to the kubeconfig; merge excludes `*.bak` and `*.backup` by default.
 
+## Patterns That Work
+
+- Steampipe provider uses comment-marker (`# managed-by: cfgctl`) to distinguish generated vs user blocks in .spc files; parseSPCBlocks/mergeBlocks/renderBlocks handle the round-trip.
+- When adding a provider, remember to update the CLI test in `internal/cli/commands_test.go` that asserts exact provider count.
+
 ## Research Notes
 
 ### GCP Multi-Account Management Research (2026-02-14)
