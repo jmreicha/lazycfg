@@ -171,6 +171,8 @@ Examples:
 	cmd.Flags().BoolVar(&kubeMergeOnly, "kube-merge-only", false, "merge existing kubeconfig files without AWS discovery")
 	cmd.Flags().StringVar(&kubeRegions, "kube-regions", "", "comma-separated AWS regions")
 	cmd.Flags().StringVar(&kubeRoles, "kube-roles", "", "comma-separated role names to filter profiles (e.g. adminaccess)")
+	cmd.Flags().BoolVar(&steampipeIgnoreErrors, "steampipe-ignore-errors", false, "add ignore_error_codes (AccessDenied, UnauthorizedOperation) to all connections")
+	cmd.Flags().StringVar(&steampipeRegions, "steampipe-regions", "", "comma-separated AWS regions for steampipe connections")
 
 	return cmd
 }

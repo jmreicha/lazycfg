@@ -306,6 +306,8 @@ func (e *Engine) providerMissingTools(providerName string) []string {
 		return MissingExecutables("k9s", "kubectl")
 	case "ssh":
 		return MissingExecutables("ssh")
+	case "steampipe":
+		return MissingExecutables("steampipe")
 	default:
 		return nil
 	}

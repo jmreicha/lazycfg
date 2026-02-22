@@ -80,11 +80,11 @@ func TestInitializeComponents(t *testing.T) {
 	}
 
 	providers := registry.List()
-	if len(providers) != 4 {
-		t.Fatalf("expected four providers, got %v", providers)
+	if len(providers) != 5 {
+		t.Fatalf("expected five providers, got %v", providers)
 	}
-	if providers[0] != "aws" || providers[1] != "granted" || providers[2] != "kubernetes" || providers[3] != "ssh" {
-		t.Fatalf("expected aws, granted, kubernetes, and ssh providers, got %v", providers)
+	if providers[0] != "aws" || providers[1] != "granted" || providers[2] != "kubernetes" || providers[3] != "ssh" || providers[4] != "steampipe" {
+		t.Fatalf("expected aws, granted, kubernetes, ssh, and steampipe providers, got %v", providers)
 	}
 }
 
