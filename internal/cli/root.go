@@ -13,6 +13,7 @@ import (
 	"github.com/jmreicha/cfgctl/internal/providers/granted"
 	"github.com/jmreicha/cfgctl/internal/providers/kubernetes"
 	"github.com/jmreicha/cfgctl/internal/providers/ssh"
+	"github.com/jmreicha/cfgctl/internal/providers/steampipe"
 	"github.com/spf13/cobra"
 )
 
@@ -41,6 +42,10 @@ var (
 	awsSSOStartURL       string
 	awsSSORegion         string
 	awsTemplate          string
+
+	// Steampipe generate flags.
+	steampipeIgnoreErrors bool
+	steampipeRegions      string
 
 	// Shared components.
 	registry      *core.Registry
@@ -191,6 +196,23 @@ func initializeComponents() error {
 		return fmt.Errorf("failed to register kubernetes provider: %w", err)
 	}
 
+	var steampipeConfig *steampipe.Config
+	providerConfig = config.GetProviderConfig(steampipe.ProviderName)
+	if providerConfig == nil {
+		steampipeConfig = steampipe.DefaultConfig()
+		config.SetProviderConfig(steampipe.ProviderName, steampipeConfig)
+	} else {
+		typedConfig, ok := providerConfig.(*steampipe.Config)
+		if !ok {
+			return fmt.Errorf("steampipe provider config has unexpected type %T", providerConfig)
+		}
+		steampipeConfig = typedConfig
+	}
+	applySteampipeCLIOverrides(steampipeConfig)
+	if err := registry.Register(steampipe.NewProvider(steampipeConfig)); err != nil {
+		return fmt.Errorf("failed to register steampipe provider: %w", err)
+	}
+
 	return nil
 }
 
@@ -254,6 +276,20 @@ func applyAWSCLIOverrides(cfg *aws.Config) {
 
 	if strings.TrimSpace(awsSSORegion) != "" {
 		cfg.SSO.Region = strings.TrimSpace(awsSSORegion)
+	}
+}
+
+func applySteampipeCLIOverrides(cfg *steampipe.Config) {
+	if cfg == nil {
+		return
+	}
+
+	if steampipeIgnoreErrors && len(cfg.IgnoreErrorCodes) == 0 {
+		cfg.IgnoreErrorCodes = steampipe.DefaultIgnoreErrorCodes
+	}
+
+	if regions := parseCSVFlag(steampipeRegions); len(regions) > 0 {
+		cfg.Regions = regions
 	}
 }
 
